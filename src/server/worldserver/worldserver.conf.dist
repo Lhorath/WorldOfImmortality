@@ -4118,6 +4118,25 @@ PacketSpoof.BanDuration = 86400
 
 AntiCheat.PendingMoveChangesTimeoutTime = 0
 
+#    Anticheat.Enable
+#        Description: Enable movement anomaly reporting. Reports do not automatically
+#                     kick, ban, or otherwise punish players.
+#        Default:     1 - (Enabled)
+#
+#    Anticheat.DetectionsEnabled
+#        Description: Bitmask of detectors: speed=1, fly=2, water-walk=4, repeated
+#                     jump=8, teleport-to-plane=16, climb=32. Combine values to enable
+#                     multiple detectors.
+#        Default:     63 - (All detectors)
+#
+#    Anticheat.ReportsIngameNotification
+#        Description: Notify online game masters when a player reaches this many
+#                     confirmed reports. Disabled if 0.
+#        Default:     10
+Anticheat.Enable = 1
+Anticheat.DetectionsEnabled = 63
+Anticheat.ReportsIngameNotification = 10
+
 #
 ###################################################################################################
 

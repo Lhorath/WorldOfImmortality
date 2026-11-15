@@ -31,6 +31,7 @@ void AddSC_achievement_scripts();
 void AddSC_action_ip_logger();
 void AddSC_duel_reset();
 void AddSC_xp_boost();
+void AddSC_anticheat_scripts();
 // player
 void AddSC_chat_log();
 void AddSC_action_ip_logger();
@@ -49,6 +50,7 @@ void AddWorldScripts()
     AddSC_npcs_special();
     AddSC_achievement_scripts();
     AddSC_chat_log(); // location: scripts\World\chat_log.cpp
+    AddSC_anticheat_scripts();
 
     // FIXME: This should be moved in a script validation hook.
     // To avoid duplicate code, we check once /*ONLY*/ if logging is permitted or not.

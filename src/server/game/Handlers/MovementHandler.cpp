@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "AnticheatMgr.h"
 #include "Battleground.h"
 #include "Common.h"
 #include "Corpse.h"
@@ -405,6 +406,7 @@ void WorldSession::HandleMovementOpcodes(WorldPackets::Movement::ClientPlayerMov
 
 void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo& movementInfo)
 {
+    uint32 reportedFlags = movementInfo.flags;
     Unit* mover = ValidateAndGetUnitBeingMoved(movementInfo.guid, opcode, false);
     if (!ValidateMovementInfo(mover, &movementInfo))
         return;
@@ -472,6 +474,8 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo& movem
     /* process position-change */
     movementInfo.guid = mover->GetGUID();
     movementInfo.time = AdjustClientMovementTime(movementInfo.time);
+    if (plrMover)
+        sAnticheatMgr.StartHackDetection(plrMover, movementInfo, static_cast<uint32>(opcode), reportedFlags);
     mover->m_movementInfo = movementInfo;
 
     WorldPackets::Movement::MoveUpdate moveUpdate(opcode);

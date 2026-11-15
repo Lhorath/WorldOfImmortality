@@ -1,6 +1,8 @@
 #include "Player.h"
 #include "ScriptMgr.h"
+#include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
+#include "SpellHistory.h"
 #include "WorldSession.h"
 
 namespace
@@ -21,6 +23,11 @@ class tele_npc_vote : public CreatureScript
 {
     public:
     tele_npc_vote() : CreatureScript("tele_npc_vote") {}
+
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return new ScriptedAI(creature);
+        }
 
     bool OnGossipHello(Player* pPlayer, Creature* pCreature)
     {
