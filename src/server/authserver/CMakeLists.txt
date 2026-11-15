@@ -72,6 +72,7 @@ if(UNIX)
     install(FILES  authserver.conf.dist DESTINATION ${CONF_DIR})
   endif()
 elseif(WIN32)
+  copy_mysql_runtime(authserver)
   install(TARGETS authserver DESTINATION "${CMAKE_INSTALL_PREFIX}")
   if(COPY_CONF)
     add_custom_command(TARGET authserver

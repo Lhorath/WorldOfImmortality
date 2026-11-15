@@ -22,3 +22,22 @@ target_compile_definitions(mysql
 target_link_libraries(mysql
   INTERFACE
     MySQL::MySQL)
+
+if(WIN32)
+  function(copy_mysql_runtime target)
+    get_filename_component(mysql_library_dir "${MYSQL_LIBRARY}" DIRECTORY)
+    get_filename_component(mysql_library_name "${MYSQL_LIBRARY}" NAME_WE)
+    set(mysql_runtime_library "${mysql_library_dir}/${mysql_library_name}.dll")
+
+    if(NOT EXISTS "${mysql_runtime_library}")
+      message(FATAL_ERROR "Could not find the MySQL runtime library: ${mysql_runtime_library}")
+    endif()
+
+    add_custom_command(TARGET ${target}
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${mysql_runtime_library}"
+        "$<TARGET_FILE_DIR:${target}>"
+      VERBATIM)
+  endfunction()
+endif()

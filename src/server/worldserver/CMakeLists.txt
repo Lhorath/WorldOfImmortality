@@ -78,6 +78,7 @@ if(UNIX)
     install(FILES worldserver.conf.dist DESTINATION ${CONF_DIR})
   endif()
 elseif(WIN32)
+  copy_mysql_runtime(worldserver)
   install(TARGETS worldserver DESTINATION "${CMAKE_INSTALL_PREFIX}")
   if(COPY_CONF)
     add_custom_command(TARGET worldserver

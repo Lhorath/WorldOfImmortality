@@ -23,3 +23,19 @@ nbproject/*
 cmake-build-*/
 .vs
 *.user
+
+# Compiled binaries and intermediate files
+*.exe
+*.dll
+*.pdb
+*.lib
+*.obj
+*.o
+*.a
+*.so
+*.dylib
+*.ilk
+*.exp
+*.pch
+*.idb
+*.ipch
