@@ -209,6 +209,8 @@ void AddSC_storm_peaks();
 void AddSC_wintergrasp();
 void AddSC_zuldrak();
 void AddSC_crystalsong_forest();
+void AddSC_tele_npc_vote();
+void AddSC_tele_npc_fun_vote();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
@@ -406,4 +408,6 @@ void AddNorthrendScripts()
     AddSC_storm_peaks();
     AddSC_wintergrasp();
     AddSC_zuldrak();
+    AddSC_tele_npc_vote();
+    AddSC_tele_npc_fun_vote();
 }

@@ -1050,6 +1050,13 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         Pet* SummonPet(uint32 entry, float x, float y, float z, float ang, PetType petType, uint32 despwtime);
         void RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent = false);
         uint32 GetPhaseMaskForSpawn() const;                // used for proper set phase for DB at GM-mode creature/GO spawn
+        // These helpers rely on the externally managed voting and guild-house tables.
+        bool HasVoted();
+        int32 GetVotePoints();
+        bool ModVotePoints(int32 amount, bool required = false);
+        void UnbindAllInst();
+        void InstanceReset();
+        uint32 GetGuildHouseMask() const;
 
         // pet auras
         std::unordered_set<PetAura const*> m_petAuras;

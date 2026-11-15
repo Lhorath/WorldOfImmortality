@@ -114,11 +114,15 @@
 #include "WorldSession.h"
 #include "WorldStatePackets.h"
 
+#include <limits>
+
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 
 // corpse reclaim times
 #define DEATH_EXPIRE_STEP (5*MINUTE)
 #define MAX_DEATH_COUNT 3
+
+uint32 constexpr GUILD_HOUSE_MAP_ID = 37;
 
 static uint32 corpseReclaimDelay[MAX_DEATH_COUNT] = { 30, 60, 120 };
 
@@ -1663,6 +1667,25 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         // this check not dependent from map instance copy and same for all instance copies of selected map
         if (sMapMgr->PlayerCannotEnter(mapid, this, false))
             return false;
+
+        if (mapid == GUILD_HOUSE_MAP_ID)
+        {
+            if (IsGameMaster())
+                SetPhaseMask(PHASEMASK_ANYWHERE, true);
+            else
+            {
+                uint32 guildPhaseMask = GetGuildHouseMask();
+                if (!GetGuildId() || guildPhaseMask <= PHASEMASK_NORMAL)
+                {
+                    GetSession()->SendNotification("Your guild does not have a guild house assigned.");
+                    return false;
+                }
+
+                SetPhaseMask(guildPhaseMask, true);
+            }
+        }
+        else if (GetMapId() == GUILD_HOUSE_MAP_ID)
+            SetPhaseMask(PHASEMASK_NORMAL, true);
 
         //I think this always returns true. Correct me if I am wrong.
         // If the map is not created, assume it is possible to enter it.
@@ -24761,6 +24784,141 @@ uint32 Player::GetPhaseMaskForSpawn() const
         return n_phase;
 
     return PHASEMASK_NORMAL;
+}
+
+int32 Player::GetVotePoints()
+{
+    QueryResult result = LoginDatabase.PQuery("SELECT points FROM voting_points WHERE id = {}", GetSession()->GetAccountId());
+    if (!result)
+        return -1;
+
+    return result->Fetch()[0].GetInt32();
+}
+
+bool Player::ModVotePoints(int32 amount, bool required)
+{
+    int32 currentPoints = GetVotePoints();
+    if (currentPoints < 0)
+    {
+        GetSession()->SendNotification("You must have voted at least once to use this option.");
+        return false;
+    }
+
+    int64 newPoints = int64(currentPoints) + amount;
+    if (newPoints < 0)
+    {
+        if (required)
+        {
+            GetSession()->SendNotification("You do not have enough vote points to use this option.");
+            return false;
+        }
+
+        newPoints = 0;
+    }
+
+    if (newPoints > std::numeric_limits<int32>::max())
+    {
+        GetSession()->SendNotification("Your vote point balance is too large to update.");
+        return false;
+    }
+
+    LoginDatabase.PExecute("UPDATE voting_points SET points = {} WHERE id = {}", uint32(newPoints), GetSession()->GetAccountId());
+    if (GetVotePoints() != newPoints)
+    {
+        GetSession()->SendNotification("The vote point balance could not be updated.");
+        return false;
+    }
+
+    GetSession()->SendNotification("You now have %u vote points.", uint32(newPoints));
+    return true;
+}
+
+bool Player::HasVoted()
+{
+    uint64 cutoff = GameTime::GetGameTime() - 12 * HOUR;
+    QueryResult ipResult = LoginDatabase.PQuery("SELECT 1 FROM voting WHERE user_ip = '{}' AND `time` > {}",
+        GetSession()->GetRemoteAddress(), cutoff);
+    QueryResult accountResult = LoginDatabase.PQuery("SELECT 1 FROM voting_points WHERE id = {} AND `time` > {}",
+        GetSession()->GetAccountId(), cutoff);
+
+    return ipResult || accountResult;
+}
+
+void Player::UnbindAllInst()
+{
+    uint32 unboundCount = 0;
+    for (uint8 difficultyIndex = 0; difficultyIndex < MAX_DIFFICULTY; ++difficultyIndex)
+    {
+        Difficulty difficulty = Difficulty(difficultyIndex);
+        BoundInstancesMap& binds = GetBoundInstances(difficulty);
+        for (auto const& bind : binds)
+            if (bind.first != GetMapId())
+                ++unboundCount;
+    }
+
+    if (!unboundCount)
+    {
+        GetSession()->SendNotification("You do not have any instance locks to reset.");
+        return;
+    }
+
+    if (!ModVotePoints(-2, true))
+        return;
+
+    for (uint8 difficultyIndex = 0; difficultyIndex < MAX_DIFFICULTY; ++difficultyIndex)
+    {
+        Difficulty difficulty = Difficulty(difficultyIndex);
+        BoundInstancesMap& binds = GetBoundInstances(difficulty);
+        for (auto itr = binds.begin(); itr != binds.end();)
+        {
+            if (itr->first == GetMapId())
+            {
+                ++itr;
+                continue;
+            }
+
+            UnbindInstance(itr, difficulty);
+        }
+    }
+
+    GetSession()->SendNotification("Reset %u of your instance locks.", unboundCount);
+}
+
+void Player::InstanceReset()
+{
+    if (GetSession()->GetSecurity() < SEC_ADMINISTRATOR)
+    {
+        GetSession()->SendNotification("You are not authorized to reset instance locks.");
+        return;
+    }
+
+    for (uint8 difficultyIndex = 0; difficultyIndex < MAX_DIFFICULTY; ++difficultyIndex)
+    {
+        Difficulty difficulty = Difficulty(difficultyIndex);
+        BoundInstancesMap& binds = GetBoundInstances(difficulty);
+        for (auto itr = binds.begin(); itr != binds.end();)
+            UnbindInstance(itr, difficulty);
+    }
+
+    GetSession()->SendNotification("Your personal instance locks have been reset.");
+}
+
+uint32 Player::GetGuildHouseMask() const
+{
+    if (!GetGuildId())
+        return PHASEMASK_NORMAL;
+
+    QueryResult result = CharacterDatabase.PQuery("SELECT phasemask FROM guild_house_masks WHERE guid = {}", GetGuildId());
+    if (!result)
+        return PHASEMASK_NORMAL;
+
+    uint64 phaseId = result->Fetch()[0].GetUInt64();
+    if (phaseId == 1)
+        return PHASEMASK_NORMAL;
+    if (phaseId > 30)
+        return PHASEMASK_NORMAL;
+
+    return uint32(1) << (phaseId + 1);
 }
 
 InventoryResult Player::CanEquipUniqueItem(Item* pItem, uint8 eslot, uint32 limit_count) const
