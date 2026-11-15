@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,34 +16,44 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "Battleground.h"
 #include "BattlegroundNA.h"
-#include "Log.h"
+#include "Language.h"
+#include "Object.h"
+#include "ObjectMgr.h"
 #include "Player.h"
 #include "WorldPacket.h"
-#include "WorldStatePackets.h"
 
 BattlegroundNA::BattlegroundNA()
 {
-    BgObjects.resize(BG_NA_OBJECT_MAX);
+    m_BgObjects.resize(BG_NA_OBJECT_MAX);
+
+    m_StartDelayTimes[BG_STARTING_EVENT_FIRST]  = BG_START_DELAY_1M;
+    m_StartDelayTimes[BG_STARTING_EVENT_SECOND] = BG_START_DELAY_30S;
+    m_StartDelayTimes[BG_STARTING_EVENT_THIRD]  = BG_START_DELAY_15S;
+    m_StartDelayTimes[BG_STARTING_EVENT_FOURTH] = BG_START_DELAY_NONE;
+    //we must set messageIds
+    m_StartMessageIds[BG_STARTING_EVENT_FIRST]  = LANG_ARENA_ONE_MINUTE;
+    m_StartMessageIds[BG_STARTING_EVENT_SECOND] = LANG_ARENA_THIRTY_SECONDS;
+    m_StartMessageIds[BG_STARTING_EVENT_THIRD]  = LANG_ARENA_FIFTEEN_SECONDS;
+    m_StartMessageIds[BG_STARTING_EVENT_FOURTH] = LANG_ARENA_HAS_BEGUN;
 }
 
-void BattlegroundNA::PostUpdateImpl(uint32 diff)
+BattlegroundNA::~BattlegroundNA()
 {
-    if (GetStatus() != STATUS_IN_PROGRESS)
-        return;
 
-    _events.Update(diff);
+}
 
-    while (uint32 eventId = _events.ExecuteEvent())
+void BattlegroundNA::Update(uint32 diff)
+{
+    Battleground::Update(diff);
+
+    if (GetStatus() == STATUS_IN_PROGRESS)
     {
-        switch (eventId)
+        if (GetStartTime() >= 47*MINUTE*IN_MILLISECONDS)    // after 47 minutes without one team losing, the arena closes with no winner and no rating change
         {
-            case BG_NA_EVENT_REMOVE_DOORS:
-                for (uint32 i = BG_NA_OBJECT_DOOR_1; i <= BG_NA_OBJECT_DOOR_2; ++i)
-                    DelObject(i);
-                break;
-            default:
-                break;
+            UpdateArenaWorldState();
+            CheckArenaAfterTimerConditions();
         }
     }
 }
@@ -57,33 +68,86 @@ void BattlegroundNA::StartingEventOpenDoors()
 {
     for (uint32 i = BG_NA_OBJECT_DOOR_1; i <= BG_NA_OBJECT_DOOR_2; ++i)
         DoorOpen(i);
-    _events.ScheduleEvent(BG_NA_EVENT_REMOVE_DOORS, BG_NA_REMOVE_DOORS_TIMER);
 
     for (uint32 i = BG_NA_OBJECT_BUFF_1; i <= BG_NA_OBJECT_BUFF_2; ++i)
         SpawnBGObject(i, 60);
 }
 
-void BattlegroundNA::HandleAreaTrigger(Player* player, uint32 trigger)
+void BattlegroundNA::AddPlayer(Player *plr)
+{
+    Battleground::AddPlayer(plr);
+    //create score and add it to map, default values are set in constructor
+    BattlegroundNAScore* sc = new BattlegroundNAScore;
+
+    m_PlayerScores[plr->GetGUID()] = sc;
+
+    UpdateArenaWorldState();
+}
+
+void BattlegroundNA::RemovePlayer(Player* /*plr*/, uint64 /*guid*/)
+{
+    if (GetStatus() == STATUS_WAIT_LEAVE)
+        return;
+
+    UpdateArenaWorldState();
+    CheckArenaWinConditions();
+}
+
+void BattlegroundNA::HandleKillPlayer(Player *player, Player *killer)
 {
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
-    switch (trigger)
+    if (!killer)
+    {
+        sLog->outError("BattlegroundNA: Killer player not found");
+        return;
+    }
+
+    Battleground::HandleKillPlayer(player,killer);
+
+    UpdateArenaWorldState();
+    CheckArenaWinConditions();
+}
+
+bool BattlegroundNA::HandlePlayerUnderMap(Player *player)
+{
+    player->TeleportTo(GetMapId(),4055.504395f,2919.660645f,13.611241f,player->GetOrientation(),false);
+    return true;
+}
+
+void BattlegroundNA::HandleAreaTrigger(Player *Source, uint32 Trigger)
+{
+    if (GetStatus() != STATUS_IN_PROGRESS)
+        return;
+
+    //uint32 SpellId = 0;
+    //uint64 buff_guid = 0;
+    switch(Trigger)
     {
         case 4536:                                          // buff trigger?
         case 4537:                                          // buff trigger?
             break;
         default:
-            Battleground::HandleAreaTrigger(player, trigger);
+            sLog->outError("WARNING: Unhandled AreaTrigger in Battleground: %u", Trigger);
+            Source->GetSession()->SendAreaTriggerMessage("Warning: Unhandled AreaTrigger in Battleground: %u", Trigger);
             break;
     }
+
+    //if (buff_guid)
+    //    HandleTriggerBuff(buff_guid,Source);
 }
 
-void BattlegroundNA::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
+void BattlegroundNA::FillInitialWorldStates(WorldPacket &data)
 {
-    packet.Worldstates.emplace_back(2577, 1); // BATTLEGROUND_NAGRAND_ARENA_SHOW
+    data << uint32(0xa11) << uint32(1);           // 9
+    UpdateArenaWorldState();
+}
 
-    Arena::FillInitialWorldStates(packet);
+void BattlegroundNA::Reset()
+{
+    //call parent's class reset
+    Battleground::Reset();
 }
 
 bool BattlegroundNA::SetupBattleground()
@@ -97,9 +161,19 @@ bool BattlegroundNA::SetupBattleground()
         || !AddObject(BG_NA_OBJECT_BUFF_1, BG_NA_OBJECT_TYPE_BUFF_1, 4009.189941f, 2895.250000f, 13.052700f, -1.448624f, 0, 0, 0.6626201f, -0.7489557f, 120)
         || !AddObject(BG_NA_OBJECT_BUFF_2, BG_NA_OBJECT_TYPE_BUFF_2, 4103.330078f, 2946.350098f, 13.051300f, -0.06981307f, 0, 0, 0.03489945f, -0.9993908f, 120))
     {
-        TC_LOG_ERROR("sql.sql", "BatteGroundNA: Failed to spawn some object!");
+        sLog->outErrorDb("BatteGroundNA: Failed to spawn some object!");
         return false;
     }
 
     return true;
 }
+
+/*
+20:12:14 id:036668 [S2C] SMSG_INIT_WORLD_STATES (706 = 0x02C2) len: 86
+0000: 2f 02 00 00 72 0e 00 00 00 00 00 00 09 00 11 0a  |  /...r...........
+0010: 00 00 01 00 00 00 0f 0a 00 00 00 00 00 00 10 0a  |  ................
+0020: 00 00 00 00 00 00 d4 08 00 00 00 00 00 00 d8 08  |  ................
+0030: 00 00 00 00 00 00 d7 08 00 00 00 00 00 00 d6 08  |  ................
+0040: 00 00 00 00 00 00 d5 08 00 00 00 00 00 00 d3 08  |  ................
+0050: 00 00 00 00 00 00                                |  ......
+*/

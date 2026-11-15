@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,257 +15,147 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "GameObject.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
+#include "ScriptPCH.h"
 #include "utgarde_keep.h"
 
-uint32 ForgeSearch[3] =
+uint32 entry_search[3] =
 {
-    GO_GLOWING_ANVIL_1,
-    GO_GLOWING_ANVIL_2,
-    GO_GLOWING_ANVIL_3
+    186609,
+    186610,
+    186611
 };
 
-struct npc_dragonflayer_forge_master : public ScriptedAI
+class npc_dragonflayer_forge_master : public CreatureScript
 {
-    npc_dragonflayer_forge_master(Creature* creature) : ScriptedAI(creature)
+public:
+    npc_dragonflayer_forge_master() : CreatureScript("npc_dragonflayer_forge_master") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _instance = creature->GetInstanceScript();
-        _forgeId = 0;
+        return new npc_dragonflayer_forge_masterAI(pCreature);
     }
 
-    void Reset() override
+    struct npc_dragonflayer_forge_masterAI : public ScriptedAI
     {
-        if (!_forgeId)
-            _forgeId = GetForgeMasterType();
-
-        if (!me->IsAlive())
-            return;
-
-        if (_forgeId)
-            _instance->SetData(DATA_FORGE_1 + _forgeId - 1, NOT_STARTED);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        if (!_forgeId)
-            _forgeId = GetForgeMasterType();
-
-        if (_forgeId)
-            _instance->SetData(DATA_FORGE_1 + _forgeId - 1, DONE);
-    }
-
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        if (!_forgeId)
-            _forgeId = GetForgeMasterType();
-
-        if (_forgeId)
-            _instance->SetData(DATA_FORGE_1 + _forgeId - 1, IN_PROGRESS);
-
-        me->SetEmoteState(EMOTE_ONESHOT_NONE);
-    }
-
-    void UpdateAI(uint32 /*diff*/) override
-    {
-        if (!_forgeId)
-            _forgeId = GetForgeMasterType();
-
-        if (!UpdateVictim())
-            return;
-
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    uint8 GetForgeMasterType()
-    {
-        float diff = 30.0f;
-        uint8 id = 0;
-
-        for (uint8 i = 0; i < 3; ++i)
+        npc_dragonflayer_forge_masterAI(Creature *c) : ScriptedAI(c)
         {
-            if (GameObject* go = me->FindNearestGameObject(ForgeSearch[i], 30))
+            pInstance = c->GetInstanceScript();
+            fm_Type = 0;
+        }
+
+        InstanceScript* pInstance;
+        uint8 fm_Type;
+
+        void Reset()
+        {
+            if (fm_Type == 0) fm_Type = GetForgeMasterType();
+            CheckForge();
+        }
+
+        void CheckForge()
+        {
+           if (pInstance)
             {
-                if (me->IsWithinDist(go, diff, false))
+                switch(fm_Type)
                 {
-                    id = i + 1;
-                    diff = me->GetDistance2d(go);
+                case 1:
+                    pInstance->SetData(EVENT_FORGE_1,me->isAlive() ? NOT_STARTED : DONE);
+                    break;
+                case 2:
+                    pInstance->SetData(EVENT_FORGE_2,me->isAlive() ? NOT_STARTED : DONE);
+                    break;
+                case 3:
+                    pInstance->SetData(EVENT_FORGE_3,me->isAlive() ? NOT_STARTED : DONE);
+                    break;
                 }
             }
         }
-        return id > 0 && id < 4 ? id : 0;
-    }
 
-    InstanceScript* _instance;
-    uint8 _forgeId;
-};
-
-enum Fixate
-{
-    SPELL_FIXATE_TRIGGER = 40415
-};
-
-// 40414 - Fixate
-class spell_fixate : public SpellScript
-{
-    PrepareSpellScript(spell_fixate);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_FIXATE_TRIGGER });
-    }
-
-    void HandleScriptEffect(SpellEffIndex /*effIndex*/)
-    {
-        GetHitUnit()->CastSpell(GetCaster(), SPELL_FIXATE_TRIGGER, true);
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_fixate::HandleScriptEffect, EFFECT_2, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
-};
-
-enum SecondWind
-{
-    SPELL_SECOND_WIND_TRIGGER = 42771
-};
-
-// 42770 - Second Wind
-class spell_uk_second_wind : public AuraScript
-{
-    PrepareAuraScript(spell_uk_second_wind);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SECOND_WIND_TRIGGER });
-    }
-
-    bool CheckProc(ProcEventInfo& eventInfo)
-    {
-        SpellInfo const* spellInfo = eventInfo.GetSpellInfo();
-        if (!spellInfo)
-            return false;
-
-        return (spellInfo->GetAllEffectsMechanicMask() & ((1 << MECHANIC_ROOT) | (1 << MECHANIC_STUN))) != 0;
-    }
-
-    void HandleProc(AuraEffect const* aurEff, ProcEventInfo& eventInfo)
-    {
-        PreventDefaultAction();
-        Unit* caster = eventInfo.GetActionTarget();
-        caster->CastSpell(caster, SPELL_SECOND_WIND_TRIGGER, aurEff);
-    }
-
-    void Register() override
-    {
-        DoCheckProc += AuraCheckProcFn(spell_uk_second_wind::CheckProc);
-        OnEffectProc += AuraEffectProcFn(spell_uk_second_wind::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
-    }
-};
-
-enum EnslavedProtoDrake
-{
-    TYPE_PROTODRAKE_AT      = 28,
-    DATA_PROTODRAKE_MOVE    = 6,
-
-    PATH_PROTODRAKE         = 1007568,
-
-    EVENT_REND              = 1,
-    EVENT_FLAME_BREATH      = 2,
-    EVENT_KNOCKAWAY         = 3,
-
-    SPELL_REND              = 43931,
-    SPELL_FLAME_BREATH      = 50653,
-    SPELL_KNOCK_AWAY        = 49722,
-
-    POINT_LAST              = 5,
-};
-
-const Position protodrakeCheckPos = {206.24f, -190.28f, 200.11f, 0.f};
-
-struct npc_enslaved_proto_drake : public ScriptedAI
-{
-    npc_enslaved_proto_drake(Creature* creature) : ScriptedAI(creature)
-    {
-        _setData = false;
-    }
-
-    void Reset() override
-    {
-        _events.Reset();
-        _events.ScheduleEvent(EVENT_REND, 2s, 3s);
-        _events.ScheduleEvent(EVENT_FLAME_BREATH, 5500ms, 7s);
-        _events.ScheduleEvent(EVENT_KNOCKAWAY, 3500ms, 6s);
-    }
-
-    void MovementInform(uint32 type, uint32 id) override
-    {
-        if (type == WAYPOINT_MOTION_TYPE && id == POINT_LAST)
+        void JustDied(Unit * /*killer*/)
         {
-            me->SetAnimTier(AnimTier::Ground);
-        }
-    }
-
-    void SetData(uint32 type, uint32 data) override
-    {
-        if (type == TYPE_PROTODRAKE_AT && data == DATA_PROTODRAKE_MOVE && !_setData && me->GetDistance(protodrakeCheckPos) < 5.0f)
-        {
-            _setData = true;
-            me->SetAnimTier(AnimTier::Fly);
-            me->GetMotionMaster()->MovePath(PATH_PROTODRAKE, false);
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        _events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventid = _events.ExecuteEvent())
-        {
-            switch (eventid)
+            if (fm_Type == 0) fm_Type = GetForgeMasterType();
+            if (pInstance)
             {
-                case EVENT_REND:
-                    DoCast(SPELL_REND);
-                    _events.ScheduleEvent(EVENT_REND, 15s, 20s);
+                switch(fm_Type)
+                {
+                case 1:
+                    pInstance->SetData(EVENT_FORGE_1,DONE);
                     break;
-                case EVENT_FLAME_BREATH:
-                    DoCast(SPELL_FLAME_BREATH);
-                    _events.ScheduleEvent(EVENT_FLAME_BREATH, 11s, 12s);
+                case 2:
+                    pInstance->SetData(EVENT_FORGE_2,DONE);
                     break;
-                case EVENT_KNOCKAWAY:
-                    DoCast(SPELL_KNOCK_AWAY);
-                    _events.ScheduleEvent(EVENT_KNOCKAWAY, 7s, 8500ms);
+                case 3:
+                    pInstance->SetData(EVENT_FORGE_3,DONE);
                     break;
-                default:
-                    break;
+                }
             }
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void EnterCombat(Unit * /*who*/)
+        {
+            if (fm_Type == 0) fm_Type = GetForgeMasterType();
+            if (pInstance)
+            {
+                switch(fm_Type)
+                {
+                case 1:
+                    pInstance->SetData(EVENT_FORGE_1,IN_PROGRESS);
+                    break;
+                case 2:
+                    pInstance->SetData(EVENT_FORGE_2,IN_PROGRESS);
+                    break;
+                case 3:
+                    pInstance->SetData(EVENT_FORGE_3,IN_PROGRESS);
+                    break;
+                }
+            }
+            me->SetUInt32Value(UNIT_NPC_EMOTESTATE ,EMOTE_ONESHOT_NONE);
+        }
 
-private:
-    bool _setData;
-    EventMap _events;
+        uint8 GetForgeMasterType()
+        {
+            float diff = 30.0f;
+            int near_f = 0;
+
+            for (uint8 i = 0; i < 3 ; ++i)
+            {
+                GameObject* temp;
+                temp = me->FindNearestGameObject(entry_search[i],30);
+                if (temp)
+                {
+                    if (me->IsWithinDist(temp,diff,false))
+                    {
+                        near_f = i + 1;
+                        diff = me->GetDistance2d(temp);
+
+                    }
+                }
+            }
+
+            switch (near_f)
+            {
+            case 1:  return 1;
+            case 2:  return 2;
+            case 3:  return 3;
+            default: return 0;
+            }
+        }
+
+        void UpdateAI(const uint32 /*diff*/)
+        {
+            if (fm_Type == 0)
+                fm_Type = GetForgeMasterType();
+
+            if (!UpdateVictim())
+                return;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_utgarde_keep()
 {
-    RegisterUtgardeKeepCreatureAI(npc_dragonflayer_forge_master);
-    RegisterUtgardeKeepCreatureAI(npc_enslaved_proto_drake);
-    RegisterSpellScript(spell_fixate);
-    RegisterSpellScript(spell_uk_second_wind);
+    new npc_dragonflayer_forge_master();
 }

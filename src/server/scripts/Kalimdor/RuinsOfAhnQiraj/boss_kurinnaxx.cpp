@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,170 +16,133 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Kurinnaxx
+SD%Complete: 100
+SDComment: VERIFY SCRIPT AND SQL
+SDCategory: Ruins of Ahn'Qiraj
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "Containers.h"
-#include "InstanceScript.h"
+#include "ScriptPCH.h"
 #include "ruins_of_ahnqiraj.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
 
-enum KurinnaxxTexts
+enum Spells
 {
-    SAY_KURINAXX_DEATH           = 5,
-    EMOTE_FRENZY                 = 0
-};
-
-enum KurinnaxxSpells
-{
-    SPELL_MORTAL_WOUND           = 25646,
-    SPELL_SAND_TRAP_TRIGGER      = 26524,
-    SPELL_THRASH                 =  3391,
-    SPELL_WIDE_SLASH             = 25814,
-    SPELL_FRENZY                 = 26527,
+    SPELL_MORTALWOUND            = 25646,
+    SPELL_SANDTRAP               = 25656,
+    SPELL_ENRAGE                 = 28798,
     SPELL_SUMMON_PLAYER          = 26446,
-
-    SPELL_SAND_TRAP_EFFECT       = 25648
+    SPELL_TRASH                  =  3391,
+    SPELL_WIDE_SLASH             = 25814
 };
 
-enum KurinnaxxEvents
+class boss_kurinnaxx : public CreatureScript
 {
-    EVENT_MORTAL_WOUND           = 1,
-    EVENT_SAND_TRAP,
-    EVENT_THRASH,
-    EVENT_WIDE_SLASH,
-    EVENT_FRENZY,
-    EVENT_SUMMON_PLAYER
-};
+public:
+    boss_kurinnaxx() : CreatureScript("boss_kurinnaxx") { }
 
-// 15348 - Kurinnaxx
-struct boss_kurinnaxx : public BossAI
-{
-    boss_kurinnaxx(Creature* creature) : BossAI(creature, DATA_KURINNAXX), _frenzied(false) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _Reset();
-        _frenzied = false;
+        return new boss_kurinnaxxAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_kurinnaxxAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_MORTAL_WOUND, 2s, 8s);
-        events.ScheduleEvent(EVENT_SAND_TRAP, 5s, 10s);
-        events.ScheduleEvent(EVENT_THRASH, 0s, 15s);
-        events.ScheduleEvent(EVENT_WIDE_SLASH, 10s, 15s);
-        events.ScheduleEvent(EVENT_SUMMON_PLAYER, 5s);
-    }
-
-    void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (!_frenzied && me->HealthBelowPctDamaged(30, damage))
+        boss_kurinnaxxAI(Creature *c) : ScriptedAI(c)
         {
-            _frenzied = true;
-            events.ScheduleEvent(EVENT_FRENZY, 0s);
+            pInstance = c->GetInstanceScript();
         }
-    }
 
-    void OnSpellCast(SpellInfo const* spell) override
-    {
-        if (spell->Id == SPELL_FRENZY)
-            Talk(EMOTE_FRENZY);
-    }
+        uint32 uiMortalWoundTimer;
+        uint32 uiSandtrapTimer;
+        uint32 uiWideSlashTimer;
+        uint32 uiSummonPlayerTimer;
+        uint32 uiTrashTimer;
+        bool bIsEnraged;
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
+        InstanceScript* pInstance;
 
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
+            bIsEnraged = false;
+            uiMortalWoundTimer = urand(2000,7000);
+            uiSandtrapTimer = urand(20000,30000);
+            uiWideSlashTimer = urand(10000,15000);
+            uiTrashTimer = urand(20000,25000);
+            uiSummonPlayerTimer = urand(30000,40000);
+
+            if (pInstance)
+                pInstance->SetData(DATA_KURINNAXX_EVENT, NOT_STARTED);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            if (pInstance)
+                pInstance->SetData(DATA_KURINNAXX_EVENT, IN_PROGRESS);
+        }
+
+        void JustDied(Unit * /*killer*/)
+        {
+            if (pInstance)
+                pInstance->SetData(DATA_KURINNAXX_EVENT, DONE);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //If we are <30% cast enrage
+            if (!bIsEnraged && !HealthAbovePct(30) && !me->IsNonMeleeSpellCasted(false))
             {
-                case EVENT_MORTAL_WOUND:
-                    DoCastVictim(SPELL_MORTAL_WOUND);
-                    events.Repeat(4s, 12s);
-                    break;
-                case EVENT_SAND_TRAP:
-                    DoCastSelf(SPELL_SAND_TRAP_TRIGGER);
-                    events.Repeat(5s, 15s);
-                    break;
-                case EVENT_THRASH:
-                    DoCastSelf(SPELL_THRASH);
-                    events.Repeat(10s, 20s);
-                    break;
-                case EVENT_WIDE_SLASH:
-                    DoCastSelf(SPELL_WIDE_SLASH);
-                    events.Repeat(10s, 15s);
-                    break;
-                case EVENT_FRENZY:
-                    DoCastSelf(SPELL_FRENZY);
-                    break;
-                case EVENT_SUMMON_PLAYER:
-                    if (me->GetDistance(me->GetVictim()) > 10.0f)
-                        DoCastVictim(SPELL_SUMMON_PLAYER);
-                    events.Repeat(5s);
-                    break;
-                default:
-                    break;
+                bIsEnraged = true;
+                DoCast(me, SPELL_ENRAGE);
             }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            //Mortal Wound spell
+            if (uiMortalWoundTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_MORTALWOUND);
+                uiMortalWoundTimer = urand(2000,7000);
+            } else uiMortalWoundTimer -= diff;
+
+            //Santrap spell
+            if (uiSandtrapTimer <= diff)
+            {
+                if (Unit* pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                    DoCast(pTarget, SPELL_SANDTRAP);
+                uiSandtrapTimer = 30000;
+            } else uiSandtrapTimer -= diff;
+
+            //Wide Slash spell
+            if (uiWideSlashTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_WIDE_SLASH);
+                uiWideSlashTimer = urand(10000,15000);
+            } else uiWideSlashTimer -= diff;
+
+            //Trash spell
+            if (uiTrashTimer <= diff)
+            {
+                DoCast(me, SPELL_TRASH);
+                uiTrashTimer = urand(20000,25000);
+            } else uiTrashTimer -= diff;
+
+            //Summon Player spell
+            if (uiSummonPlayerTimer <= diff)
+            {
+                if (Unit* pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                    DoCast(pTarget, SPELL_SUMMON_PLAYER);
+                uiSummonPlayerTimer = urand(30000,40000);
+            } else uiSummonPlayerTimer -= diff;
+
+            DoMeleeAttackIfReady();
         }
+    };
 
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    bool _frenzied;
-};
-
-// 26524 - Sand Trap
-class spell_kurinnaxx_sand_trap : public SpellScript
-{
-    PrepareSpellScript(spell_kurinnaxx_sand_trap);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SAND_TRAP_EFFECT });
-    }
-
-    void FilterTargets(std::list<WorldObject*>& targets)
-    {
-        if (targets.empty())
-            return;
-
-        WorldObject* target = Trinity::Containers::SelectRandomContainerElement(targets);
-        targets.clear();
-        targets.push_back(target);
-    }
-
-    void HandleScript(SpellEffIndex /*effIndex*/)
-    {
-        GetHitUnit()->CastSpell(GetHitUnit(), SPELL_SAND_TRAP_EFFECT, true);
-    }
-
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_kurinnaxx_sand_trap::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-        OnEffectHitTarget += SpellEffectFn(spell_kurinnaxx_sand_trap::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
 };
 
 void AddSC_boss_kurinnaxx()
 {
-    RegisterAQ20CreatureAI(boss_kurinnaxx);
-    RegisterSpellScript(spell_kurinnaxx_sand_trap);
+    new boss_kurinnaxx();
 }

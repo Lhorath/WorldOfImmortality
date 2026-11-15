@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,116 +23,144 @@ SDComment:
 SDCategory: Temple of Ahn'Qiraj
 EndScriptData */
 
-#include "ScriptMgr.h"
-#include "Creature.h"
-#include "InstanceScript.h"
+#include "ScriptPCH.h"
 #include "temple_of_ahnqiraj.h"
-
-ObjectData const creatureData[] =
-{
-    { NPC_VEM,       DATA_VEM       },
-    { NPC_KRI,       DATA_KRI       },
-    { NPC_YAUJ,      DATA_YAUJ      },
-    { NPC_VEKLOR,    DATA_VEKLOR    },
-    { NPC_VEKNILASH, DATA_VEKNILASH },
-    { NPC_VISCIDUS,  DATA_VISCIDUS  },
-    { NPC_SARTURA,   DATA_SARTURA   },
-    { 0,             0              } // END
-};
-
-DoorData const doorData[] =
-{
-    { AQ40_DOOR_1, DATA_SARTURA,       DOOR_TYPE_PASSAGE },
-    { AQ40_DOOR_1, DATA_HUHURAN,       DOOR_TYPE_PASSAGE },
-    { AQ40_DOOR_2, DATA_TWIN_EMPERORS, DOOR_TYPE_PASSAGE },
-    { AQ40_DOOR_3, DATA_SKERAM,        DOOR_TYPE_PASSAGE },
-    { 0,           0,                  DOOR_TYPE_ROOM    } // END
-};
 
 class instance_temple_of_ahnqiraj : public InstanceMapScript
 {
-    public:
-        instance_temple_of_ahnqiraj() : InstanceMapScript(AQ40ScriptName, 531) { }
+public:
+    instance_temple_of_ahnqiraj() : InstanceMapScript("instance_temple_of_ahnqiraj", 531) { }
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
+    InstanceScript* GetInstanceScript(InstanceMap* pMap) const
+    {
+        return new instance_temple_of_ahnqiraj_InstanceMapScript(pMap);
+    }
+
+    struct instance_temple_of_ahnqiraj_InstanceMapScript : public InstanceScript
+    {
+        instance_temple_of_ahnqiraj_InstanceMapScript(Map* pMap) : InstanceScript(pMap) {Initialize();};
+
+        //If Vem is dead...
+        bool IsBossDied[3];
+
+        //Storing Skeram, Vem and Kri.
+        uint64 SkeramGUID;
+        uint64 VemGUID;
+        uint64 KriGUID;
+        uint64 VeklorGUID;
+        uint64 VeknilashGUID;
+
+        uint32 BugTrioDeathCount;
+
+        uint32 CthunPhase;
+
+        void Initialize()
         {
-            return new instance_temple_of_ahnqiraj_InstanceMapScript(map);
+            IsBossDied[0] = false;
+            IsBossDied[1] = false;
+            IsBossDied[2] = false;
+
+            SkeramGUID = 0;
+            VemGUID = 0;
+            KriGUID = 0;
+            VeklorGUID = 0;
+            VeknilashGUID = 0;
+
+            BugTrioDeathCount = 0;
+
+            CthunPhase = 0;
         }
 
-        struct instance_temple_of_ahnqiraj_InstanceMapScript : public InstanceScript
+        void OnCreatureCreate(Creature* creature)
         {
-            instance_temple_of_ahnqiraj_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
+            switch (creature->GetEntry())
             {
-                SetHeaders(DataHeader);
-                LoadObjectData(creatureData, nullptr);
-                SetBossNumber(EncounterCount);
-                LoadDoorData(doorData);
-                IsBossDied[0] = false;
-                IsBossDied[1] = false;
-
-                BugTrioDeathCount = 0;
-
-                CthunPhase = 0;
+                case 15263: SkeramGUID = creature->GetGUID(); break;
+                case 15544: VemGUID = creature->GetGUID(); break;
+                case 15511: KriGUID = creature->GetGUID(); break;
+                case 15276: VeklorGUID = creature->GetGUID(); break;
+                case 15275: VeknilashGUID = creature->GetGUID(); break;
             }
+        }
 
-            bool IsBossDied[2];
+        bool IsEncounterInProgress() const
+        {
+            //not active in AQ40
+            return false;
+        }
 
-            uint32 BugTrioDeathCount;
-
-            uint32 CthunPhase;
-
-            bool IsEncounterInProgress() const override
+        uint32 GetData(uint32 type)
+        {
+            switch(type)
             {
-                //not active in AQ40
-                return false;
-            }
+                case DATA_VEMISDEAD:
+                    if (IsBossDied[0])
+                        return 1;
+                    break;
 
-            uint32 GetData(uint32 type) const override
+                case DATA_VEKLORISDEAD:
+                    if (IsBossDied[1])
+                        return 1;
+                    break;
+
+                case DATA_VEKNILASHISDEAD:
+                    if (IsBossDied[2])
+                        return 1;
+                    break;
+
+                case DATA_BUG_TRIO_DEATH:
+                    return BugTrioDeathCount;
+
+                case DATA_CTHUN_PHASE:
+                    return CthunPhase;
+            }
+            return 0;
+        }
+
+        uint64 GetData64 (uint32 identifier)
+        {
+            switch(identifier)
             {
-                switch (type)
-                {
-                    case DATA_VEKLORISDEAD:
-                        if (IsBossDied[0])
-                            return 1;
-                        break;
-
-                    case DATA_VEKNILASHISDEAD:
-                        if (IsBossDied[1])
-                            return 1;
-                        break;
-
-                    case DATA_BUG_TRIO_DEATH:
-                        return BugTrioDeathCount;
-
-                    case DATA_CTHUN_PHASE:
-                        return CthunPhase;
-                }
-                return 0;
+                case DATA_SKERAM:
+                    return SkeramGUID;
+                case DATA_VEM:
+                    return VemGUID;
+                case DATA_KRI:
+                    return KriGUID;
+                case DATA_VEKLOR:
+                    return VeklorGUID;
+                case DATA_VEKNILASH:
+                    return VeknilashGUID;
             }
+            return 0;
+        }                                                       // end GetData64
 
-            void SetData(uint32 type, uint32 data) override
+        void SetData(uint32 type, uint32 data)
+        {
+            switch(type)
             {
-                switch (type)
-                {
-                    case DATA_BUG_TRIO_DEATH:
-                        if (++BugTrioDeathCount >= 3)
-                            SetBossState(DATA_BUG_TRIO, DONE);
-                        break;
+                case DATA_VEM_DEATH:
+                    IsBossDied[0] = true;
+                    break;
 
-                    case DATA_VEKLOR_DEATH:
-                        IsBossDied[0] = true;
-                        break;
+                case DATA_BUG_TRIO_DEATH:
+                    ++BugTrioDeathCount;
+                    break;
 
-                    case DATA_VEKNILASH_DEATH:
-                        IsBossDied[1] = true;
-                        break;
+                case DATA_VEKLOR_DEATH:
+                    IsBossDied[1] = true;
+                    break;
 
-                    case DATA_CTHUN_PHASE:
-                        CthunPhase = data;
-                        break;
-                }
+                case DATA_VEKNILASH_DEATH:
+                    IsBossDied[2] = true;
+                    break;
+
+                case DATA_CTHUN_PHASE:
+                    CthunPhase = data;
+                    break;
             }
-        };
+        }
+    };
 
 };
 

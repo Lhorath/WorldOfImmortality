@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,151 +15,127 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
-#include "ScriptedCreature.h"
-#include "SpellAuraEffects.h"
-#include "SpellScript.h"
+#include "ScriptPCH.h"
 #include "violet_hold.h"
 
-enum MoraggSpells
+//Spells
+enum Spells
 {
-    SPELL_CORROSIVE_SALIVA       = 54527,
-    SPELL_OPTIC_LINK             = 54396,
-    SPELL_RAY_OF_PAIN            = 54438,
-    SPELL_RAY_OF_SUFFERING       = 54442,
-
-    // Visual
-    SPELL_OPTIC_LINK_LEVEL_1     = 54393,
-    SPELL_OPTIC_LINK_LEVEL_2     = 54394,
-    SPELL_OPTIC_LINK_LEVEL_3     = 54395
+    SPELL_CORROSIVE_SALIVA                     = 54527,
+    SPELL_OPTIC_LINK                           = 54396
 };
 
-// 29316 - Moragg
-// 32235 - Chaos Watcher
-struct boss_moragg : public BossAI
+class boss_moragg : public CreatureScript
 {
-    boss_moragg(Creature* creature) : BossAI(creature, DATA_MORAGG) { }
+public:
+    boss_moragg() : CreatureScript("boss_moragg") { }
 
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::Reset();
+        return new boss_moraggAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_moraggAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
-    }
-
-    void JustReachedHome() override
-    {
-        BossAI::JustReachedHome();
-        instance->SetData(DATA_HANDLE_CELLS, DATA_MORAGG);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        scheduler.Update(diff,
-            std::bind(&BossAI::DoMeleeAttackIfReady, this));
-    }
-
-    void ScheduleTasks() override
-    {
-        scheduler.Async([this]
+        boss_moraggAI(Creature *c) : ScriptedAI(c)
         {
-            DoCast(me, SPELL_RAY_OF_PAIN);
-            DoCast(me, SPELL_RAY_OF_SUFFERING);
-        });
+            pInstance = c->GetInstanceScript();
+        }
 
-        scheduler.Schedule(15s, [this](TaskContext task)
+        uint32 uiOpticLinkTimer;
+        uint32 uiCorrosiveSalivaTimer;
+
+        InstanceScript* pInstance;
+
+        void Reset()
         {
-            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 50.0f, true))
-                DoCast(target, SPELL_OPTIC_LINK);
-            task.Repeat(25s);
-        });
+            uiOpticLinkTimer = 10000;
+            uiCorrosiveSalivaTimer = 5000;
 
-        scheduler.Schedule(5s, [this](TaskContext task)
-        {
-            DoCastVictim(SPELL_CORROSIVE_SALIVA);
-            task.Repeat(10s);
-        });
-    }
-};
-
-// 54438, 59523 - Ray of Pain
-// 54442, 59524 - Ray of Suffering
-class spell_moragg_ray : public AuraScript
-{
-    PrepareAuraScript(spell_moragg_ray);
-
-    void OnPeriodic(AuraEffect const* aurEff)
-    {
-        PreventDefaultAction();
-
-        if (UnitAI* AI = GetTarget()->GetAI())
-            if (Unit* target = AI->SelectTarget(SelectTargetMethod::Random, 0, 45.0f, true))
+            if (pInstance)
             {
-                uint32 triggerSpell = aurEff->GetSpellEffectInfo().TriggerSpell;
-                GetTarget()->CastSpell(target, triggerSpell, aurEff);
+                if (pInstance->GetData(DATA_WAVE_COUNT) == 6)
+                    pInstance->SetData(DATA_1ST_BOSS_EVENT, NOT_STARTED);
+                else if (pInstance->GetData(DATA_WAVE_COUNT) == 12)
+                    pInstance->SetData(DATA_2ND_BOSS_EVENT, NOT_STARTED);
             }
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_moragg_ray::OnPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
-    }
-};
-
-// 54396 - Optic Link
-class spell_moragg_optic_link : public AuraScript
-{
-    PrepareAuraScript(spell_moragg_optic_link);
-
-    void OnPeriodic(AuraEffect const* aurEff)
-    {
-        if (Unit* caster = GetCaster())
-        {
-            if (aurEff->GetTickNumber() >= 8)
-                caster->CastSpell(GetTarget(), SPELL_OPTIC_LINK_LEVEL_3, aurEff);
-
-            if (aurEff->GetTickNumber() >= 4)
-                caster->CastSpell(GetTarget(), SPELL_OPTIC_LINK_LEVEL_2, aurEff);
-
-            caster->CastSpell(GetTarget(), SPELL_OPTIC_LINK_LEVEL_1, aurEff);
         }
-    }
 
-    void OnUpdate(AuraEffect* aurEff)
-    {
-        switch (aurEff->GetTickNumber())
+        void EnterCombat(Unit* /*who*/)
         {
-            case 1:
-                aurEff->SetAmount(aurEff->GetAmount() + 250); // base amount is 500
-                break;
-            case 4:
-                aurEff->SetAmount(aurEff->GetAmount() * 2); // goes to 1500
-                break;
-            case 8:
-                aurEff->SetAmount(aurEff->GetAmount() * 2); // goes to 3000
-                break;
-            default:
-                break;
+            if (pInstance)
+            {
+                if (GameObject *pDoor = pInstance->instance->GetGameObject(pInstance->GetData64(DATA_MORAGG_CELL)))
+                    if (pDoor->GetGoState() == GO_STATE_READY)
+                   {
+                        EnterEvadeMode();
+                        return;
+                    }
+                if (pInstance->GetData(DATA_WAVE_COUNT) == 6)
+                    pInstance->SetData(DATA_1ST_BOSS_EVENT, IN_PROGRESS);
+                else if (pInstance->GetData(DATA_WAVE_COUNT) == 12)
+                    pInstance->SetData(DATA_2ND_BOSS_EVENT, IN_PROGRESS);
+            }
         }
-    }
 
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_moragg_optic_link::OnPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
-        OnEffectUpdatePeriodic += AuraEffectUpdatePeriodicFn(spell_moragg_optic_link::OnUpdate, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
-    }
+        void AttackStart(Unit* pWho)
+        {
+            if (me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE) || me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE))
+                return;
+
+            if (me->Attack(pWho, true))
+            {
+                me->AddThreat(pWho, 0.0f);
+                me->SetInCombatWith(pWho);
+                pWho->SetInCombatWith(me);
+                DoStartMovement(pWho);
+            }
+        }
+
+        void MoveInLineOfSight(Unit* /*who*/) {}
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            if (uiOpticLinkTimer <= diff)
+            {
+                if (Unit* pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                    DoCast(pTarget, SPELL_OPTIC_LINK);
+                uiOpticLinkTimer = 15000;
+            } else uiOpticLinkTimer -= diff;
+
+            if (uiCorrosiveSalivaTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_CORROSIVE_SALIVA);
+                uiCorrosiveSalivaTimer = 10000;
+            } else uiCorrosiveSalivaTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+        void JustDied(Unit* /*killer*/)
+        {
+            if (pInstance)
+            {
+                if (pInstance->GetData(DATA_WAVE_COUNT) == 6)
+                {
+                    pInstance->SetData(DATA_1ST_BOSS_EVENT, DONE);
+                    pInstance->SetData(DATA_WAVE_COUNT, 7);
+                }
+                else if (pInstance->GetData(DATA_WAVE_COUNT) == 12)
+                {
+                    pInstance->SetData(DATA_2ND_BOSS_EVENT, DONE);
+                    pInstance->SetData(DATA_WAVE_COUNT,13);
+                }
+            }
+        }
+    };
+
 };
 
 void AddSC_boss_moragg()
 {
-    RegisterVioletHoldCreatureAI(boss_moragg);
-    RegisterSpellScript(spell_moragg_ray);
-    RegisterSpellScript(spell_moragg_optic_link);
+    new boss_moragg();
 }

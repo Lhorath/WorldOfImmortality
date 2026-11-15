@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,51 +17,38 @@
 
 #include "LFGPlayerData.h"
 
-namespace lfg
+LfgPlayerData::LfgPlayerData():
+m_State(LFG_STATE_NONE), m_OldState(LFG_STATE_NONE), m_Roles(0), m_Comment("")
+{}
+
+LfgPlayerData::~LfgPlayerData()
 {
-
-LfgPlayerData::LfgPlayerData(): m_State(LFG_STATE_NONE), m_OldState(LFG_STATE_NONE),
-    m_Team(0), m_Group(), m_Roles(0), m_Comment(""), m_NumberOfPartyMembersAtJoin(0)
-{ }
-
-LfgPlayerData::~LfgPlayerData() { }
+}
 
 void LfgPlayerData::SetState(LfgState state)
 {
-    switch (state)
+    switch(state)
     {
         case LFG_STATE_NONE:
-        case LFG_STATE_FINISHED_DUNGEON:
-            m_Roles = 0;
-            m_SelectedDungeons.clear();
-            m_Comment.clear();
-            [[fallthrough]];
         case LFG_STATE_DUNGEON:
+        case LFG_STATE_FINISHED_DUNGEON:
             m_OldState = state;
-            [[fallthrough]];
+                    // No break on purpose
         default:
             m_State = state;
     }
 }
 
-void LfgPlayerData::RestoreState()
+void LfgPlayerData::ClearState()
 {
-    if (m_OldState == LFG_STATE_NONE)
-    {
-        m_SelectedDungeons.clear();
-        m_Roles = 0;
-    }
+    m_SelectedDungeons.clear();
+    m_Roles = 0;
     m_State = m_OldState;
 }
 
-void LfgPlayerData::SetTeam(uint8 team)
+void LfgPlayerData::SetLockedDungeons(const LfgLockMap& lockStatus)
 {
-    m_Team = team;
-}
-
-void LfgPlayerData::SetGroup(ObjectGuid group)
-{
-    m_Group = group;
+    m_LockedDungeons = lockStatus;
 }
 
 void LfgPlayerData::SetRoles(uint8 roles)
@@ -69,14 +56,19 @@ void LfgPlayerData::SetRoles(uint8 roles)
     m_Roles = roles;
 }
 
-void LfgPlayerData::SetComment(std::string const& comment)
+void LfgPlayerData::SetComment(const std::string& comment)
 {
     m_Comment = comment;
 }
 
-void LfgPlayerData::SetSelectedDungeons(LfgDungeonSet const& dungeons)
+void LfgPlayerData::SetSelectedDungeons(const LfgDungeonSet& dungeons)
 {
     m_SelectedDungeons = dungeons;
+}
+
+void LfgPlayerData::ClearSelectedDungeons()
+{
+    m_SelectedDungeons.clear();
 }
 
 LfgState LfgPlayerData::GetState() const
@@ -84,19 +76,9 @@ LfgState LfgPlayerData::GetState() const
     return m_State;
 }
 
-LfgState LfgPlayerData::GetOldState() const
+const LfgLockMap & LfgPlayerData::GetLockedDungeons() const
 {
-    return m_OldState;
-}
-
-uint8 LfgPlayerData::GetTeam() const
-{
-    return m_Team;
-}
-
-ObjectGuid LfgPlayerData::GetGroup() const
-{
-    return m_Group;
+    return m_LockedDungeons;
 }
 
 uint8 LfgPlayerData::GetRoles() const
@@ -104,24 +86,12 @@ uint8 LfgPlayerData::GetRoles() const
     return m_Roles;
 }
 
-std::string const& LfgPlayerData::GetComment() const
+const std::string& LfgPlayerData::GetComment() const
 {
     return m_Comment;
 }
 
-LfgDungeonSet const& LfgPlayerData::GetSelectedDungeons() const
+const LfgDungeonSet& LfgPlayerData::GetSelectedDungeons() const
 {
     return m_SelectedDungeons;
 }
-
-void LfgPlayerData::SetNumberOfPartyMembersAtJoin(uint8 count)
-{
-    m_NumberOfPartyMembersAtJoin = count;
-}
-
-uint8 LfgPlayerData::GetNumberOfPartyMembersAtJoin()
-{
-    return m_NumberOfPartyMembersAtJoin;
-}
-
-} // namespace lfg

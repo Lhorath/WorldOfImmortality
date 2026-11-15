@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,24 +16,20 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Mail.h"
-#include "AuctionHouseMgr.h"
-#include "BattlegroundMgr.h"
-#include "CalendarMgr.h"
-#include "CharacterCache.h"
 #include "DatabaseEnv.h"
-#include "GameTime.h"
-#include "Item.h"
+#include "Mail.h"
 #include "Log.h"
-#include "LootMgr.h"
-#include "ObjectAccessor.h"
+#include "World.h"
 #include "ObjectMgr.h"
 #include "Player.h"
-#include "World.h"
+#include "Unit.h"
+#include "BattlegroundMgr.h"
+#include "Item.h"
+#include "AuctionHouseMgr.h"
 
 MailSender::MailSender(Object* sender, MailStationery stationery) : m_stationery(stationery)
 {
-    switch (sender->GetTypeId())
+    switch(sender->GetTypeId())
     {
         case TYPEID_UNIT:
             m_messageType = MAIL_CREATURE;
@@ -42,67 +39,54 @@ MailSender::MailSender(Object* sender, MailStationery stationery) : m_stationery
             m_messageType = MAIL_GAMEOBJECT;
             m_senderId = sender->GetEntry();
             break;
-        /*case TYPEID_ITEM:
+        case TYPEID_ITEM:
             m_messageType = MAIL_ITEM;
             m_senderId = sender->GetEntry();
-            break;*/
+            break;
         case TYPEID_PLAYER:
             m_messageType = MAIL_NORMAL;
-            m_senderId = sender->GetGUID().GetCounter();
+            m_senderId = sender->GetGUIDLow();
             break;
         default:
             m_messageType = MAIL_NORMAL;
-            m_senderId = 0;                                 // will show mail from non-existing player
-            TC_LOG_ERROR("misc", "MailSender::MailSender - Mail message contains unexpected sender typeid ({}).", sender->GetTypeId());
+            m_senderId = 0;                                 // will show mail from not existed player
+            sLog->outError("MailSender::MailSender - Mail have unexpected sender typeid (%u)", sender->GetTypeId());
             break;
     }
 }
 
-MailSender::MailSender(CalendarEvent* sender)
-    : m_messageType(MAIL_CALENDAR), m_senderId(sender->GetEventId()), m_stationery(MAIL_STATIONERY_DEFAULT) // what stationery we should use here?
+MailSender::MailSender(AuctionEntry* sender)
+    : m_messageType(MAIL_AUCTION), m_senderId(sender->GetHouseId()), m_stationery(MAIL_STATIONERY_AUCTION)
 {
 }
-
-MailSender::MailSender(AuctionEntry* sender)
-    : m_messageType(MAIL_AUCTION), m_senderId(sender->GetHouseId()), m_stationery(MAIL_STATIONERY_AUCTION) { }
 
 MailSender::MailSender(Player* sender)
 {
     m_messageType = MAIL_NORMAL;
-    m_stationery = sender->IsGameMaster() ? MAIL_STATIONERY_GM : MAIL_STATIONERY_DEFAULT;
-    m_senderId = sender->GetGUID().GetCounter();
+    m_stationery = sender->isGameMaster() ? MAIL_STATIONERY_GM : MAIL_STATIONERY_DEFAULT;
+    m_senderId = sender->GetGUIDLow();
 }
 
-MailSender::MailSender(uint32 senderEntry)
+MailReceiver::MailReceiver(Player* receiver) : m_receiver(receiver), m_receiver_lowguid(receiver->GetGUIDLow())
 {
-    m_messageType = MAIL_CREATURE;
-    m_senderId = senderEntry;
-    m_stationery = MAIL_STATIONERY_DEFAULT;
 }
 
-MailReceiver::MailReceiver(Player* receiver) : m_receiver(receiver), m_receiver_lowguid(receiver->GetGUID().GetCounter()) { }
-
-MailReceiver::MailReceiver(Player* receiver, ObjectGuid::LowType receiver_lowguid) : m_receiver(receiver), m_receiver_lowguid(receiver_lowguid)
+MailReceiver::MailReceiver(Player* receiver,uint32 receiver_lowguid) : m_receiver(receiver), m_receiver_lowguid(receiver_lowguid)
 {
-    ASSERT(!receiver || receiver->GetGUID().GetCounter() == receiver_lowguid);
+    ASSERT(!receiver || receiver->GetGUIDLow() == receiver_lowguid);
 }
 
 MailDraft& MailDraft::AddItem(Item* item)
 {
-    m_items[item->GetGUID().GetCounter()] = item;
-    return *this;
+    m_items[item->GetGUIDLow()] = item; return *this;
 }
 
-void MailDraft::prepareItems(Player* receiver, CharacterDatabaseTransaction trans)
+void MailDraft::prepareItems(Player* receiver, SQLTransaction& trans)
 {
     if (!m_mailTemplateId || !m_mailTemplateItemsNeed)
         return;
 
     m_mailTemplateItemsNeed = false;
-
-    // The mail sent after turning in the quest The Good News and The Bad News contains 100g
-    if (m_mailTemplateId == 123)
-        m_money = 1000000;
 
     Loot mailLoot;
 
@@ -112,9 +96,9 @@ void MailDraft::prepareItems(Player* receiver, CharacterDatabaseTransaction tran
     uint32 max_slot = mailLoot.GetMaxSlotInLootFor(receiver);
     for (uint32 i = 0; m_items.size() < MAX_MAIL_ITEMS && i < max_slot; ++i)
     {
-        if (LootItem* lootitem = mailLoot.LootItemInSlot(i, receiver))
+        if (LootItem* lootitem = mailLoot.LootItemInSlot(i,receiver))
         {
-            if (Item* item = Item::CreateItem(lootitem->itemid, lootitem->count, receiver))
+            if (Item* item = Item::CreateItem(lootitem->itemid,lootitem->count,receiver))
             {
                 item->SaveToDB(trans);                           // save for prevent lost at next mail load, if send fail then item will deleted
                 AddItem(item);
@@ -123,7 +107,7 @@ void MailDraft::prepareItems(Player* receiver, CharacterDatabaseTransaction tran
     }
 }
 
-void MailDraft::deleteIncludedItems(CharacterDatabaseTransaction trans, bool inDB /*= false*/ )
+void MailDraft::deleteIncludedItems(SQLTransaction& trans, bool inDB /*= false*/ )
 {
     for (MailItemMap::iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)
     {
@@ -131,8 +115,8 @@ void MailDraft::deleteIncludedItems(CharacterDatabaseTransaction trans, bool inD
 
         if (inDB)
         {
-            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE);
-            stmt->setUInt32(0, item->GetGUID().GetCounter());
+            PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE);
+            stmt->setUInt32(0, item->GetGUIDLow());
             trans->Append(stmt);
         }
 
@@ -142,14 +126,15 @@ void MailDraft::deleteIncludedItems(CharacterDatabaseTransaction trans, bool inD
     m_items.clear();
 }
 
-void MailDraft::SendReturnToSender(uint32 sender_acc, ObjectGuid::LowType sender_guid, ObjectGuid::LowType receiver_guid, CharacterDatabaseTransaction trans)
+void MailDraft::SendReturnToSender(uint32 sender_acc, uint32 sender_guid, uint32 receiver_guid)
 {
-    ObjectGuid receiverGuid = ObjectGuid::Create<HighGuid::Player>(receiver_guid);
-    Player* receiver = ObjectAccessor::FindConnectedPlayer(receiverGuid);
+    Player *receiver = sObjectMgr->GetPlayer(MAKE_NEW_GUID(receiver_guid, 0, HIGHGUID_PLAYER));
 
     uint32 rc_account = 0;
     if (!receiver)
-        rc_account = sCharacterCache->GetCharacterAccountIdByGuid(receiverGuid);
+        rc_account = sObjectMgr->GetPlayerAccountIdByGUID(MAKE_NEW_GUID(receiver_guid, 0, HIGHGUID_PLAYER));
+
+    SQLTransaction trans = CharacterDatabase.BeginTransaction();
 
     if (!receiver && !rc_account)                            // sender not exist
     {
@@ -171,9 +156,9 @@ void MailDraft::SendReturnToSender(uint32 sender_acc, ObjectGuid::LowType sender
             Item* item = mailItemIter->second;
             item->SaveToDB(trans);                      // item not in inventory and can be save standalone
             // owner in data will set at mail receive and item extracting
-            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_ITEM_OWNER);
+            PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SET_ITEM_OWNER);
             stmt->setUInt32(0, receiver_guid);
-            stmt->setUInt32(1, item->GetGUID().GetCounter());
+            stmt->setUInt32(1, item->GetGUIDLow());
             trans->Append(stmt);
         }
     }
@@ -182,20 +167,102 @@ void MailDraft::SendReturnToSender(uint32 sender_acc, ObjectGuid::LowType sender
     uint32 deliver_delay = needItemDelay ? sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY) : 0;
 
     // will delete item or place to receiver mail list
-    SendMailTo(trans, MailReceiver(receiver, receiver_guid), MailSender(MAIL_NORMAL, sender_guid), MAIL_CHECK_MASK_RETURNED, deliver_delay);
+    SendMailTo(trans,MailReceiver(receiver,receiver_guid), MailSender(MAIL_NORMAL, sender_guid), MAIL_CHECK_MASK_RETURNED, deliver_delay);
+    CharacterDatabase.CommitTransaction(trans);
 }
 
-void MailDraft::SendMailTo(CharacterDatabaseTransaction trans, MailReceiver const& receiver, MailSender const& sender, MailCheckMask checked, uint32 deliver_delay)
+void WorldSession::SendExternalMails()
+{
+    sLog->outString("EXTERNAL MAIL> Sending mails in queue...");
+
+	SQLTransaction trans = CharacterDatabase.BeginTransaction();
+    CharacterDatabase.BeginTransaction();
+
+    QueryResult result = CharacterDatabase.Query("SELECT e.id, e.receiver, e.subject, e.message, e.money, i.item, i.count FROM mail_external e LEFT JOIN mail_external_items i ON e.id = i.mail_id ORDER BY e.id;");
+    if(!result)
+    {
+        sLog->outString("EXTERNAL MAIL> No mails in queue...");
+		CharacterDatabase.CommitTransaction(trans);
+        return;
+    }
+    else
+    {
+        uint32 last_id = 0;
+        MailDraft* mail = NULL;
+        uint32 last_receiver_guid;
+
+
+       do
+        {
+            Field *fields = result->Fetch();
+            uint32 id = fields[0].GetUInt32();
+            uint64 receiver_guid = fields[1].GetUInt64();
+            std::string subject = fields[2].GetString();
+            std::string message = fields[3].GetString();
+            uint32 money = fields[4].GetUInt32();
+            uint32 itemId = fields[5].GetUInt32();
+            uint32 itemCount = fields[6].GetUInt32();
+
+            Player *receiver = sObjectMgr->GetPlayer( receiver_guid );
+
+            if (id != last_id)
+            {
+                // send mail
+                if (last_id != 0)
+                {
+                    sLog->outString("EXTERNAL MAIL> Sending mail to character with guid %d", last_receiver_guid);
+                    mail->SendMailTo( trans, MailReceiver(last_receiver_guid),MailSender(MAIL_NORMAL, 0 , MAIL_STATIONERY_GM),MAIL_CHECK_MASK_RETURNED, NULL);
+                    delete mail;
+                    CharacterDatabase.PExecute("DELETE mail_external AS e, mail_external_items AS i FROM mail_external AS e, mail_external_items AS i WHERE i.mail_id = e.id AND e.id = %u;", last_id);
+                    sLog->outString("EXTERNAL MAIL> Mail sent");
+                }
+
+                // create new mail
+                mail = new MailDraft( subject, message );
+
+				if(money)
+                {
+                    sLog->outString("EXTERNAL MAIL> Adding money");
+                    mail->AddMoney(money);
+                }
+            }
+            if (itemId)
+            {
+                sLog->outString("EXTERNAL MAIL> Adding %u of item with id %u", itemCount, itemId);
+                Item* mailItem = Item::CreateItem( itemId, itemCount, receiver );
+                mailItem->SaveToDB(trans);
+                mail->AddItem(mailItem);
+            }
+
+            last_id = id;
+            last_receiver_guid = receiver_guid;
+        }
+        while( result->NextRow() );
+       // we only send a mail when mail_id!=last_mail_id, so we need to send the very last mail here:
+        if (last_id != 0)
+        {
+            // send last mail
+            sLog->outString("EXTERNAL MAIL> Sending mail to character with guid %d", last_receiver_guid);
+            mail->SendMailTo( trans, MailReceiver(last_receiver_guid),MailSender(MAIL_NORMAL, 0 , MAIL_STATIONERY_GM),MAIL_CHECK_MASK_RETURNED, NULL);
+            delete mail;
+            CharacterDatabase.PExecute("DELETE mail_external AS e, mail_external_items AS i FROM mail_external AS e, mail_external_items AS i WHERE i.mail_id = e.id AND e.id = %u;", last_id);
+            sLog->outString("EXTERNAL MAIL> Mail sent");
+        }
+    }
+	CharacterDatabase.CommitTransaction(trans);
+    sLog->outString("EXTERNAL MAIL> All Mails Sent...");
+}
+
+void MailDraft::SendMailTo(SQLTransaction& trans, MailReceiver const& receiver, MailSender const& sender, MailCheckMask checked, uint32 deliver_delay)
 {
     Player* pReceiver = receiver.GetPlayer();               // can be NULL
-    Player* pSender = ObjectAccessor::FindPlayerByLowGUID(sender.GetSenderId());
 
     if (pReceiver)
         prepareItems(pReceiver, trans);                            // generate mail template items
 
     uint32 mailId = sObjectMgr->GenerateMailID();
 
-    time_t deliver_time = GameTime::GetGameTime() + deliver_delay;
+    time_t deliver_time = time(NULL) + deliver_delay;
 
     //expire time if COD 3 days, if no COD 30 days, if auction sale pending 1 hour
     uint32 expire_delay;
@@ -206,20 +273,15 @@ void MailDraft::SendMailTo(CharacterDatabaseTransaction trans, MailReceiver cons
     // mail from battlemaster (rewardmarks) should last only one day
     else if (sender.GetMailMessageType() == MAIL_CREATURE && sBattlegroundMgr->GetBattleMasterBG(sender.GetSenderId()) != BATTLEGROUND_TYPE_NONE)
         expire_delay = DAY;
-     // default case: expire time if COD 3 days, if no COD 30 days (or 90 days if sender is a game master)
+     // default case: expire time if COD 3 days, if no COD 30 days
     else
-    {
-        if (m_COD)
-            expire_delay = 3 * DAY;
-        else
-            expire_delay = pSender && pSender->IsGameMaster() ? 90 * DAY : 30 * DAY;
-    }
+        expire_delay = (m_COD > 0) ? 3 * DAY : 30 * DAY;
 
     time_t expire_time = deliver_time + expire_delay;
 
     // Add to DB
     uint8 index = 0;
-    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_MAIL);
+    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_ADD_MAIL);
     stmt->setUInt32(  index, mailId);
     stmt->setUInt8 (++index, uint8(sender.GetMailMessageType()));
     stmt->setInt8  (++index, int8(sender.GetStationery()));
@@ -233,15 +295,15 @@ void MailDraft::SendMailTo(CharacterDatabaseTransaction trans, MailReceiver cons
     stmt->setUInt64(++index, uint64(deliver_time));
     stmt->setUInt32(++index, m_money);
     stmt->setUInt32(++index, m_COD);
-    stmt->setUInt32(++index, checked);
+    stmt->setUInt8 (++index, uint8(checked));
     trans->Append(stmt);
 
     for (MailItemMap::const_iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)
     {
         Item* pItem = mailItemIter->second;
-        stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_MAIL_ITEM);
+        stmt = CharacterDatabase.GetPreparedStatement(CHAR_ADD_MAIL_ITEM);
         stmt->setUInt32(0, mailId);
-        stmt->setUInt32(1, pItem->GetGUID().GetCounter());
+        stmt->setUInt32(1, pItem->GetGUIDLow());
         stmt->setUInt32(2, receiver.GetPlayerGUIDLow());
         trans->Append(stmt);
     }
@@ -251,40 +313,48 @@ void MailDraft::SendMailTo(CharacterDatabaseTransaction trans, MailReceiver cons
     {
         pReceiver->AddNewMailDeliverTime(deliver_time);
 
-        Mail* m = new Mail;
-        m->messageID = mailId;
-        m->mailTemplateId = GetMailTemplateId();
-        m->subject = GetSubject();
-        m->body = GetBody();
-        m->money = GetMoney();
-        m->COD = GetCOD();
-
-        for (MailItemMap::const_iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)
+        if (pReceiver->IsMailsLoaded())
         {
-            Item* item = mailItemIter->second;
-            m->AddItem(item->GetGUID().GetCounter(), item->GetEntry());
+            Mail * m = new Mail;
+            m->messageID = mailId;
+            m->mailTemplateId = GetMailTemplateId();
+            m->subject = GetSubject();
+            m->body = GetBody();
+            m->money = GetMoney();
+            m->COD = GetCOD();
+
+            for (MailItemMap::const_iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)
+            {
+                Item* item = mailItemIter->second;
+                m->AddItem(item->GetGUIDLow(), item->GetEntry());
+            }
+
+            m->messageType = sender.GetMailMessageType();
+            m->stationery = sender.GetStationery();
+            m->sender = sender.GetSenderId();
+            m->receiver = receiver.GetPlayerGUIDLow();
+            m->expire_time = expire_time;
+            m->deliver_time = deliver_time;
+            m->checked = checked;
+            m->state = MAIL_STATE_UNCHANGED;
+
+            pReceiver->AddMail(m);                           // to insert new mail to beginning of maillist
+
+            if (!m_items.empty())
+            {
+                for (MailItemMap::iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)
+                    pReceiver->AddMItem(mailItemIter->second);
+            }
         }
-
-        m->messageType = sender.GetMailMessageType();
-        m->stationery = sender.GetStationery();
-        m->sender = sender.GetSenderId();
-        m->receiver = receiver.GetPlayerGUIDLow();
-        m->expire_time = expire_time;
-        m->deliver_time = deliver_time;
-        m->checked = checked;
-        m->state = MAIL_STATE_UNCHANGED;
-
-        pReceiver->AddMail(m);                           // to insert new mail to beginning of maillist
-
-        if (!m_items.empty())
+        else if (!m_items.empty())
         {
-            for (MailItemMap::iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)
-                pReceiver->AddMItem(mailItemIter->second);
+            SQLTransaction temp = SQLTransaction(NULL);
+            deleteIncludedItems(temp);
         }
     }
     else if (!m_items.empty())
     {
-        CharacterDatabaseTransaction temp = CharacterDatabaseTransaction(nullptr);
+        SQLTransaction temp = SQLTransaction(NULL);
         deleteIncludedItems(temp);
     }
 }

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,469 +16,412 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* Timers requires to be revisited */
+/* ScriptData
+SDName: Boss_Warbringer_Omrogg
+SD%Complete: 85
+SDComment: Heroic enabled. Spell timing may need additional tweaks
+SDCategory: Hellfire Citadel, Shattered Halls
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "Containers.h"
-#include "InstanceScript.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellMgr.h"
-#include "SpellScript.h"
+/* ContentData
+mob_omrogg_heads
+boss_warbringer_omrogg
+EndContentData */
+
+#include "ScriptPCH.h"
 #include "shattered_halls.h"
 
-enum OmroggTexts
+enum eEnums
 {
-    EMOTE_ROAR                  = 0,
+    YELL_DIE_L                  = -1540039,
+    YELL_DIE_R                  = -1540040,
+    EMOTE_ENRAGE                = -1540041,
 
-    SAY_AGGRO_1                 = 0,
-    SAY_AGGRO_1_1               = 0,
-    SAY_AGGRO_1_2               = 1,
-
-    SAY_AGGRO_2                 = 2,
-    SAY_AGGRO_2_1               = 1,
-
-    SAY_AGGRO_3                 = 3,
-    SAY_AGGRO_3_1               = 2,
-
-    SAY_ATTACK_1                = 4,
-    SAY_ATTACK_1_1              = 3,
-    SAY_ATTACK_1_2              = 5,
-
-    SAY_ATTACK_2                = 6,
-    SAY_ATTACK_2_1              = 4,
-
-    SAY_ATTACK_3                = 7,
-    SAY_ATTACK_3_1              = 5,
-    SAY_ATTACK_3_2              = 8,
-
-    SAY_ATTACK_4                = 6,
-    SAY_ATTACK_4_1              = 9,
-    SAY_ATTACK_4_2              = 7,
-
-    SAY_SLAY_1                  = 8,
-
-    SAY_SLAY_2                  = 10,
-    SAY_SLAY_2_1                = 9,
-
-    SAY_DEATH_1                 = 11,
-    SAY_DEATH_1_1               = 10
-};
-
-enum OmroggSpells
-{
+    SPELL_BLAST_WAVE            = 30600,
     SPELL_FEAR                  = 30584,
     SPELL_THUNDERCLAP           = 30633,
-    SPELL_BEATDOWN              = 30618,
-    SPELL_BURNING_MAUL          = 30598,    // Triggers 30620, what it does? (no, it doesn't trigger 30600)
 
-    SPELL_BLAST_WAVE            = 30600
+    SPELL_BURNING_MAUL          = 30598,
+    H_SPELL_BURNING_MAUL        = 36056,
+
+    NPC_LEFT_HEAD               = 19523,
+    NPC_RIGHT_HEAD              = 19524
 };
 
-enum OmroggEvents
+struct Yell
 {
-    EVENT_FEAR                  = 1,
-    EVENT_THUNDERCLAP,
-    EVENT_BEATDOWN,
-    EVENT_BURNING_MAUL
+    int32 id;
+    uint32 creature;
 };
 
-enum OmroggActions
+static Yell GoCombat[]=
 {
-    ACTION_AGGRO_1              = 1,
-    ACTION_AGGRO_2              = 2,
-    ACTION_AGGRO_3              = 3,
-    ACTION_ATTACK_1             = 4,
-    ACTION_ATTACK_2             = 5,
-    ACTION_ATTACK_3             = 6,
-    ACTION_ATTACK_4             = 7,
-    ACTION_SLAY_1               = 8,
-    ACTION_SLAY_2               = 9,
-    ACTION_DEATH                = 10
+    {-1540018, NPC_LEFT_HEAD},
+    {-1540019, NPC_LEFT_HEAD},
+    {-1540020, NPC_LEFT_HEAD},
+};
+static Yell GoCombatDelay[]=
+{
+    {-1540021, NPC_RIGHT_HEAD},
+    {-1540022, NPC_RIGHT_HEAD},
+    {-1540023, NPC_RIGHT_HEAD},
 };
 
-enum OmroggEquips
+static Yell Threat[]=
 {
-    EQUIP_ID_BURNING_MAUL       = 2
+    {-1540024, NPC_LEFT_HEAD},
+    {-1540025, NPC_RIGHT_HEAD},
+    {-1540026, NPC_LEFT_HEAD},
+    {-1540027, NPC_LEFT_HEAD},
+};
+static Yell ThreatDelay1[]=
+{
+    {-1540028, NPC_RIGHT_HEAD},
+    {-1540029, NPC_LEFT_HEAD},
+    {-1540030, NPC_RIGHT_HEAD},
+    {-1540031, NPC_RIGHT_HEAD},
+};
+static Yell ThreatDelay2[]=
+{
+    {-1540032, NPC_LEFT_HEAD},
+    {-1540033, NPC_RIGHT_HEAD},
+    {-1540034, NPC_LEFT_HEAD},
+    {-1540035, NPC_LEFT_HEAD},
 };
 
-// 16809 - Warbringer O'mrogg
-struct boss_warbringer_omrogg : public BossAI
+static Yell Killing[]=
 {
-    boss_warbringer_omrogg(Creature* creature) : BossAI(creature, DATA_OMROGG) { }
+    {-1540036, NPC_LEFT_HEAD},
+    {-1540037, NPC_RIGHT_HEAD},
+};
 
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
+static Yell KillingDelay[]=
+{
+    {-1540038, NPC_RIGHT_HEAD},
+    {-1000000, NPC_LEFT_HEAD},
+};
 
-        events.ScheduleEvent(EVENT_FEAR, 20s, 30s);
-        events.ScheduleEvent(EVENT_THUNDERCLAP, 15s, 25s);
-        events.ScheduleEvent(EVENT_BEATDOWN, 25s, 30s);
-        events.ScheduleEvent(EVENT_BURNING_MAUL, 50s, 60s);
+class mob_omrogg_heads : public CreatureScript
+{
+    public:
 
-        if (Creature* leftHead = instance->GetCreature(DATA_LEFT_HEAD))
-            leftHead->AI()->DoAction(RAND(ACTION_AGGRO_1, ACTION_AGGRO_2, ACTION_AGGRO_3));
-    }
-
-    void OnSpellCast(SpellInfo const* spellInfo) override
-    {
-        // Apparently this and all other are handled by GameEvents since this spell sends GameEvent
-        if (spellInfo->Id == SPELL_BEATDOWN)
-            if (Creature* leftHead = instance->GetCreature(DATA_LEFT_HEAD))
-                leftHead->AI()->DoAction(RAND(ACTION_ATTACK_1, ACTION_ATTACK_2, ACTION_ATTACK_3, ACTION_ATTACK_4));
-
-        if (spellInfo->Id == sSpellMgr->GetSpellIdForDifficulty(SPELL_BURNING_MAUL, me))
-            Talk(EMOTE_ROAR);
-    }
-
-    void KilledUnit(Unit* /*victim*/) override
-    {
-        if (Creature* leftHead = instance->GetCreature(DATA_LEFT_HEAD))
-            leftHead->AI()->DoAction(RAND(ACTION_SLAY_1, ACTION_SLAY_2));
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-
-        if (Creature* leftHead = instance->GetCreature(DATA_LEFT_HEAD))
-            leftHead->AI()->DoAction(ACTION_DEATH);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        mob_omrogg_heads()
+            : CreatureScript("mob_omrogg_heads")
         {
-            switch (eventId)
+        }
+
+        struct mob_omrogg_headsAI : public ScriptedAI
+        {
+            mob_omrogg_headsAI(Creature* pCreature) : ScriptedAI(pCreature) {}
+
+            bool DeathYell;
+            uint32 Death_Timer;
+
+            void Reset()
             {
-                case EVENT_FEAR:
-                    DoCastSelf(SPELL_FEAR);
-                    events.Repeat(15s, 35s);
-                    break;
-                case EVENT_THUNDERCLAP:
-                    DoCastSelf(SPELL_THUNDERCLAP);
-                    events.Repeat(15s, 30s);
-                    break;
-                case EVENT_BEATDOWN:
-                    DoCastSelf(SPELL_BEATDOWN);
-                    events.Repeat(25s, 40s);
-                    break;
-                case EVENT_BURNING_MAUL:
-                    DoCastSelf(SPELL_BURNING_MAUL);
-                    events.Repeat(60s, 70s);
-                    break;
-                default:
-                    break;
+                Death_Timer = 4000;
+                DeathYell = false;
+            }
+            void EnterCombat(Unit* /*who*/) {}
+
+            void DoDeathYell()
+            {
+                DeathYell = true;
             }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
-        }
+            void UpdateAI(const uint32 diff)
+            {
+                if (!DeathYell)
+                    return;
 
-        DoMeleeAttackIfReady();
-    }
-};
+                if (Death_Timer <= diff)
+                {
+                    DoScriptText(YELL_DIE_R, me);
+                    Death_Timer = false;
+                    me->setDeathState(JUST_DIED);
+                } else Death_Timer -= diff;
+            }
+        };
 
-// 19523 - O'mrogg's Left Head
-// 19524 - O'mrogg's Right Head
-struct npc_omrogg_heads : public ScriptedAI
-{
-    npc_omrogg_heads(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void RightHeadTalk(uint32 text)
-    {
-        if (Creature* rightHead = _instance->GetCreature(DATA_RIGHT_HEAD))
-            rightHead->AI()->Talk(text);
-    }
-
-    void DoAction(int32 action) override
-    {
-        switch (action)
+        CreatureAI* GetAI(Creature* Creature) const
         {
-            case ACTION_AGGRO_1:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            Talk(SAY_AGGRO_1);
-                            task.Repeat(3s);
-                            break;
-                        case 1:
-                            RightHeadTalk(SAY_AGGRO_1_1);
-                            task.Repeat(3s);
-                            break;
-                        case 2:
-                            Talk(SAY_AGGRO_1_2);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            case ACTION_AGGRO_2:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            Talk(SAY_AGGRO_2);
-                            task.Repeat(3s);
-                            break;
-                        case 1:
-                            RightHeadTalk(SAY_AGGRO_2_1);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            case ACTION_AGGRO_3:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            Talk(SAY_AGGRO_3);
-                            task.Repeat(3s);
-                            break;
-                        case 1:
-                            RightHeadTalk(SAY_AGGRO_3_1);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            case ACTION_ATTACK_1:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            Talk(SAY_ATTACK_1);
-                            task.Repeat(3s);
-                            break;
-                        case 1:
-                            RightHeadTalk(SAY_ATTACK_1_1);
-                            task.Repeat(3s);
-                            break;
-                        case 2:
-                            Talk(SAY_ATTACK_1_2);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            case ACTION_ATTACK_2:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            Talk(SAY_ATTACK_2);
-                            task.Repeat(3s);
-                            break;
-                        case 1:
-                            RightHeadTalk(SAY_ATTACK_2_1);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            case ACTION_ATTACK_3:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            Talk(SAY_ATTACK_3);
-                            task.Repeat(3s);
-                            break;
-                        case 1:
-                            RightHeadTalk(SAY_ATTACK_3_1);
-                            task.Repeat(3s);
-                            break;
-                        case 2:
-                            Talk(SAY_ATTACK_3_2);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            case ACTION_ATTACK_4:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            RightHeadTalk(SAY_ATTACK_4);
-                            task.Repeat(2s);
-                            break;
-                        case 1:
-                            Talk(SAY_ATTACK_4_1);
-                            task.Repeat(2s);
-                            break;
-                        case 2:
-                            RightHeadTalk(SAY_ATTACK_4_2);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            case ACTION_SLAY_1:
-                _scheduler.Schedule(0s, [this](TaskContext /*task*/)
-                {
-                    RightHeadTalk(SAY_SLAY_1);
-                });
-                break;
-            case ACTION_SLAY_2:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            Talk(SAY_SLAY_2);
-                            task.Repeat(3s);
-                            break;
-                        case 1:
-                            RightHeadTalk(SAY_SLAY_2_1);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            case ACTION_DEATH:
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    switch (task.GetRepeatCounter())
-                    {
-                        case 0:
-                            Talk(SAY_DEATH_1);
-                            task.Repeat(3s);
-                            break;
-                        case 1:
-                            RightHeadTalk(SAY_DEATH_1_1);
-                            me->DespawnOrUnsummon(4s);
-                            if (Creature* rightHead = _instance->GetCreature(DATA_RIGHT_HEAD))
-                                rightHead->DespawnOrUnsummon(4s);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-                break;
-            default:
-                break;
+            return new mob_omrogg_headsAI (Creature);
         }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _scheduler.Update(diff);
-    }
-
-private:
-    TaskScheduler _scheduler;
-    InstanceScript* _instance;
 };
 
-// 30598, 36056 - Burning Maul
-class spell_omrogg_burning_maul : public AuraScript
+class boss_warbringer_omrogg : public CreatureScript
 {
-    PrepareAuraScript(spell_omrogg_burning_maul);
+    public:
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_BLAST_WAVE });
-    }
+        boss_warbringer_omrogg()
+            : CreatureScript("boss_warbringer_omrogg")
+        {
+        }
 
-    void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Creature* creature = GetTarget()->ToCreature())
-            creature->LoadEquipment(EQUIP_ID_BURNING_MAUL);
-    }
+        struct boss_warbringer_omroggAI : public ScriptedAI
+        {
+            boss_warbringer_omroggAI(Creature* pCreature) : ScriptedAI(pCreature)
+            {
+                LeftHeadGUID  = 0;
+                RightHeadGUID = 0;
+                pInstance = pCreature->GetInstanceScript();
+            }
 
-    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Creature* creature = GetTarget()->ToCreature())
-            creature->LoadEquipment(creature->GetOriginalEquipmentId());
-    }
+            InstanceScript* pInstance;
 
-    void OnProc(AuraEffect const* /*aurEff*/, ProcEventInfo& /*eventInfo*/)
-    {
-        /// @todo: This requires additional research. Is it handled correctly? Isn't it too over-powered?
-        /// That's a lot of damage if all melee attacks are successful so we cast it not always for now. No ProcCategoryRecovery for both spells
-        if (roll_chance_i(30))
-            GetTarget()->CastSpell(nullptr, SPELL_BLAST_WAVE);
-    }
+            uint64 LeftHeadGUID;
+            uint64 RightHeadGUID;
+            int iaggro;
+            int ithreat;
+            int ikilling;
 
-    void Register() override
-    {
-        OnEffectApply += AuraEffectApplyFn(spell_omrogg_burning_maul::OnApply, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
-        OnEffectRemove += AuraEffectRemoveFn(spell_omrogg_burning_maul::OnRemove, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL, AURA_EFFECT_HANDLE_REAL);
-        OnEffectProc += AuraEffectProcFn(spell_omrogg_burning_maul::OnProc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
-    }
+            bool AggroYell;
+            bool ThreatYell;
+            bool ThreatYell2;
+            bool KillingYell;
+
+            uint32 Delay_Timer;
+            uint32 BlastWave_Timer;
+            uint32 BlastCount;
+            uint32 Fear_Timer;
+            uint32 BurningMaul_Timer;
+            uint32 ThunderClap_Timer;
+            uint32 ResetThreat_Timer;
+
+            void Reset()
+            {
+                if (Unit* pLeftHead  = Unit::GetUnit(*me,LeftHeadGUID))
+                {
+                    pLeftHead->setDeathState(JUST_DIED);
+                    LeftHeadGUID = 0;
+                }
+
+                if (Unit* pRightHead  = Unit::GetUnit(*me,RightHeadGUID))
+                {
+                    pRightHead->setDeathState(JUST_DIED);
+                    RightHeadGUID = 0;
+                }
+
+                AggroYell = false;
+                ThreatYell = false;
+                ThreatYell2 = false;
+                KillingYell = false;
+
+                Delay_Timer = 4000;
+                BlastWave_Timer = 0;
+                BlastCount = 0;
+                Fear_Timer = 8000;
+                BurningMaul_Timer = 25000;
+                ThunderClap_Timer = 15000;
+                ResetThreat_Timer = 30000;
+
+                if (pInstance)
+                    pInstance->SetData(TYPE_OMROGG, NOT_STARTED);   //End boss can use this later. O'mrogg must be defeated(DONE) or he will come to aid.
+            }
+
+            void DoYellForThreat()
+            {
+                Unit *pLeftHead  = Unit::GetUnit(*me,LeftHeadGUID);
+                Unit *pRightHead = Unit::GetUnit(*me,RightHeadGUID);
+
+                if (!pLeftHead || !pRightHead)
+                    return;
+
+                ithreat = rand()%4;
+
+                Unit *source = (pLeftHead->GetEntry() == Threat[ithreat].creature ? pLeftHead : pRightHead);
+
+                DoScriptText(Threat[ithreat].id, source);
+
+                Delay_Timer = 3500;
+                ThreatYell = true;
+            }
+
+            void EnterCombat(Unit * /*who*/)
+            {
+                me->SummonCreature(NPC_LEFT_HEAD, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_DEAD_DESPAWN, 0);
+                me->SummonCreature(NPC_RIGHT_HEAD, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_DEAD_DESPAWN, 0);
+
+                if (Unit *pLeftHead = Unit::GetUnit(*me,LeftHeadGUID))
+                {
+                    iaggro = rand()%3;
+
+                    DoScriptText(GoCombat[iaggro].id, pLeftHead);
+
+                    Delay_Timer = 3500;
+                    AggroYell = true;
+                }
+
+                if (pInstance)
+                    pInstance->SetData(TYPE_OMROGG, IN_PROGRESS);
+            }
+
+            void JustSummoned(Creature *summoned)
+            {
+                if (summoned->GetEntry() == NPC_LEFT_HEAD)
+                    LeftHeadGUID = summoned->GetGUID();
+
+                if (summoned->GetEntry() == NPC_RIGHT_HEAD)
+                    RightHeadGUID = summoned->GetGUID();
+
+                //summoned->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                //summoned->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                summoned->SetVisible(false);
+            }
+
+            void KilledUnit(Unit* /*victim*/)
+            {
+                Unit* pLeftHead  = Unit::GetUnit(*me,LeftHeadGUID);
+                Unit* pRightHead = Unit::GetUnit(*me,RightHeadGUID);
+
+                if (!pLeftHead || !pRightHead)
+                    return;
+
+                ikilling = rand()%2;
+
+                Unit *source = (pLeftHead->GetEntry() == Killing[ikilling].creature ? pLeftHead : pRightHead);
+
+                switch(ikilling)
+                {
+                    case 0:
+                        DoScriptText(Killing[ikilling].id, source);
+                        Delay_Timer = 3500;
+                        KillingYell = true;
+                        break;
+                    case 1:
+                        DoScriptText(Killing[ikilling].id, source);
+                        KillingYell = false;
+                        break;
+                }
+            }
+
+            void JustDied(Unit* /*Killer*/)
+            {
+                Unit* pLeftHead  = Unit::GetUnit(*me,LeftHeadGUID);
+                Unit* pRightHead = Unit::GetUnit(*me,RightHeadGUID);
+
+                if (!pLeftHead || !pRightHead)
+                    return;
+
+                DoScriptText(YELL_DIE_L, pLeftHead);
+
+                CAST_AI(mob_omrogg_heads::mob_omrogg_headsAI, CAST_CRE(pRightHead)->AI())->DoDeathYell();
+
+                if (pInstance)
+                    pInstance->SetData(TYPE_OMROGG, DONE);
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                if (Delay_Timer <= diff)
+                {
+                    Delay_Timer = 3500;
+
+                    Unit* pLeftHead  = Unit::GetUnit(*me,LeftHeadGUID);
+                    Unit* pRightHead = Unit::GetUnit(*me,RightHeadGUID);
+
+                    if (!pLeftHead || !pRightHead)
+                        return;
+
+                    if (AggroYell)
+                    {
+                        DoScriptText(GoCombatDelay[iaggro].id, pRightHead);
+                        AggroYell = false;
+                    }
+
+                    if (ThreatYell2)
+                    {
+                        Unit *source = (pLeftHead->GetEntry() == ThreatDelay2[ithreat].creature ? pLeftHead : pRightHead);
+
+                        DoScriptText(ThreatDelay2[ithreat].id, source);
+                        ThreatYell2 = false;
+                    }
+
+                    if (ThreatYell)
+                    {
+                        Unit *source = (pLeftHead->GetEntry() == ThreatDelay1[ithreat].creature ? pLeftHead : pRightHead);
+
+                        DoScriptText(ThreatDelay1[ithreat].id, source);
+                        ThreatYell = false;
+                        ThreatYell2 = true;
+                    }
+
+                    if (KillingYell)
+                    {
+                        Unit *source = (pLeftHead->GetEntry() == KillingDelay[ikilling].creature ? pLeftHead : pRightHead);
+
+                        DoScriptText(KillingDelay[ikilling].id, source);
+                        KillingYell = false;
+                    }
+                } else Delay_Timer -= diff;
+
+                if (!UpdateVictim())
+                    return;
+
+                if (BlastCount && BlastWave_Timer <= diff)
+                {
+                    DoCast(me, SPELL_BLAST_WAVE);
+                    BlastWave_Timer = 5000;
+                    ++BlastCount;
+
+                    if (BlastCount == 3)
+                        BlastCount = 0;
+                }
+                else
+                    BlastWave_Timer -= diff;
+
+                if (BurningMaul_Timer <= diff)
+                {
+                    DoScriptText(EMOTE_ENRAGE, me);
+                    DoCast(me, SPELL_BURNING_MAUL);
+                    BurningMaul_Timer = 40000;
+                    BlastWave_Timer = 16000;
+                    BlastCount = 1;
+                }
+                else
+                    BurningMaul_Timer -= diff;
+
+                if (ResetThreat_Timer <= diff)
+                {
+                    if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                    {
+                        DoYellForThreat();
+                        DoResetThreat();
+                        me->AddThreat(pTarget, 0.0f);
+                    }
+                    ResetThreat_Timer = 25000+rand()%15000;
+                }
+                else
+                    ResetThreat_Timer -= diff;
+
+                if (Fear_Timer <= diff)
+                {
+                    DoCast(me, SPELL_FEAR);
+                    Fear_Timer = 15000+rand()%20000;
+                }
+                else
+                    Fear_Timer -= diff;
+
+                if (ThunderClap_Timer <= diff)
+                {
+                    DoCast(me, SPELL_THUNDERCLAP);
+                    ThunderClap_Timer = 15000+rand()%15000;
+                }
+                else
+                    ThunderClap_Timer -= diff;
+
+                DoMeleeAttackIfReady();
+            }
+        };
+
+        CreatureAI* GetAI(Creature* pCreature) const
+        {
+            return new boss_warbringer_omroggAI (pCreature);
+        }
 };
-
-// 30618 - Beatdown
-class spell_omrogg_beatdown : public SpellScript
-{
-    PrepareSpellScript(spell_omrogg_beatdown);
-
-    bool Load() override
-    {
-        return GetCaster()->IsCreature();
-    }
-
-    void FilterTargets(std::list<WorldObject*>& targets)
-    {
-        if (targets.empty())
-            return;
-
-        WorldObject* target = Trinity::Containers::SelectRandomContainerElement(targets);
-
-        _selectedTargetGuid = target->GetGUID();
-    }
-
-    void HandleDummy(SpellEffIndex /*effIndex*/)
-    {
-        Unit* target = GetHitUnit();
-        if (target->GetGUID() != _selectedTargetGuid)
-            return;
-
-        Unit* caster = GetCaster();
-        caster->GetThreatManager().ResetAllThreat();
-        caster->GetAI()->AttackStart(target);
-    }
-
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_omrogg_beatdown::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-        OnEffectHitTarget += SpellEffectFn(spell_omrogg_beatdown::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
-    }
-
-private:
-    ObjectGuid _selectedTargetGuid;
-};
-
 void AddSC_boss_warbringer_omrogg()
 {
-    RegisterShatteredHallsCreatureAI(boss_warbringer_omrogg);
-    RegisterShatteredHallsCreatureAI(npc_omrogg_heads);
-    RegisterSpellScript(spell_omrogg_burning_maul);
-    RegisterSpellScript(spell_omrogg_beatdown);
+    new boss_warbringer_omrogg();
+    new mob_omrogg_heads();
 }
+

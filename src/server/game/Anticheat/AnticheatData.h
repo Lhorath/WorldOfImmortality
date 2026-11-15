@@ -1,56 +1,59 @@
-#ifndef ANTICHEAT_DATA_H
-#define ANTICHEAT_DATA_H
+#ifndef SC_ACDATA_H
+#define SC_ACDATA_H
 
-#include "MovementInfo.h"
+#include "AnticheatMgr.h"
 
-#include <array>
+#define MAX_REPORT_TYPES 6
 
-enum AnticheatReportType : uint8
+class AnticheatData
 {
-    ANTICHEAT_REPORT_SPEED = 0,
-    ANTICHEAT_REPORT_FLY,
-    ANTICHEAT_REPORT_WATER_WALK,
-    ANTICHEAT_REPORT_JUMP,
-    ANTICHEAT_REPORT_TELEPORT_PLANE,
-    ANTICHEAT_REPORT_CLIMB,
-    ANTICHEAT_REPORT_COUNT
-};
-
-enum AnticheatDetectionType : uint32
-{
-    ANTICHEAT_DETECT_SPEED = 1,
-    ANTICHEAT_DETECT_FLY = 2,
-    ANTICHEAT_DETECT_WATER_WALK = 4,
-    ANTICHEAT_DETECT_JUMP = 8,
-    ANTICHEAT_DETECT_TELEPORT_PLANE = 16,
-    ANTICHEAT_DETECT_CLIMB = 32
-};
-
-struct AnticheatReportSummary
-{
-    uint32 guid = 0;
-    uint64 creationTime = 0;
-    float average = 0.0f;
-    uint64 totalReports = 0;
-    std::array<uint64, ANTICHEAT_REPORT_COUNT> typeReports{};
-};
-
-class Player;
-
-struct AnticheatData
-{
+public:
     AnticheatData();
+    ~AnticheatData();
 
-    void ResetReports();
-    void InitializeMovement(Player* player);
-    void SetLastMovementInfo(MovementInfo const& movementInfo, uint32 opcode);
+    void SetLastOpcode(uint32 opcode);
+    uint32 GetLastOpcode() const;
 
-    MovementInfo lastMovementInfo;
+    const MovementInfo& GetLastMovementInfo() const;
+    void SetLastMovementInfo(MovementInfo& moveInfo);
+
+    void SetPosition(float x, float y, float z, float o);
+
+    /*
+    bool GetDisableACCheck() const;
+    void SetDisableACCheck(bool check);
+
+    uint32 GetDisableACTimer() const;
+    void SetDisableACTimer(uint32 timer);*/
+
+    uint32 GetTotalReports() const;
+    void SetTotalReports(uint32 _totalReports);
+
+    uint32 GetTypeReports(uint32 type) const;
+    void SetTypeReports(uint32 type, uint32 amount);
+
+    float GetAverage() const;
+    void SetAverage(float _average);
+
+    uint32 GetCreationTime() const;
+    void SetCreationTime(uint32 creationTime);
+
+    void SetTempReports(uint32 amount, uint8 type);
+    uint32 GetTempReports(uint8 type);
+
+    void SetTempReportsTimer(uint32 time, uint8 type);
+    uint32 GetTempReportsTimer(uint8 type);
+private:
     uint32 lastOpcode;
-    bool hasLastMovementInfo;
-    AnticheatReportSummary summary;
-    std::array<uint32, ANTICHEAT_REPORT_COUNT> recentReports;
-    std::array<uint32, ANTICHEAT_REPORT_COUNT> recentReportStartTime;
+    MovementInfo lastMovementInfo;
+    //bool disableACCheck;
+    //uint32 disableACCheckTimer;
+    uint32 totalReports;
+    uint32 typeReports[MAX_REPORT_TYPES];
+    float average;
+    uint32 creationTime;
+    uint32 tempReports[MAX_REPORT_TYPES];
+    uint32 tempReportsTimer[MAX_REPORT_TYPES];
 };
 
 #endif

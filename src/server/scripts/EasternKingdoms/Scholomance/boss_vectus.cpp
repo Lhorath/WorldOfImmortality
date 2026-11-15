@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,87 +16,92 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Vectus
+SD%Complete: 100
+SDComment:
+SDCategory: Scholomance
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "scholomance.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 
-enum VectusSpells
+enum eEnums
 {
-    // Passive
-    SPELL_FIRE_SHIELD            = 13377,
-
-    // Combat
+    SPELL_FLAMESTRIKE            = 18399,
     SPELL_BLAST_WAVE             = 16046,
-    SPELL_FLAMESTRIKE            = 18399
+    SPELL_FIRESHIELD             = 19626,
+    SPELL_FRENZY                 = 8269 //28371,
 };
 
-enum VectusEvents
+class boss_vectus : public CreatureScript
 {
-    EVENT_BLAST_WAVE             = 1,
-    EVENT_FLAMESTRIKE
-};
+public:
+    boss_vectus() : CreatureScript("boss_vectus") { }
 
-// 10432 - Vectus
-struct boss_vectus : public ScriptedAI
-{
-    boss_vectus(Creature* creature) : ScriptedAI(creature) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _events.Reset();
-
-        DoCastSelf(SPELL_FIRE_SHIELD);
+        return new boss_vectusAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    struct boss_vectusAI : public ScriptedAI
     {
-        _events.ScheduleEvent(EVENT_BLAST_WAVE, 15s, 25s);
-        _events.ScheduleEvent(EVENT_FLAMESTRIKE, 10s, 15s);
-    }
+        boss_vectusAI(Creature *c) : ScriptedAI(c) {}
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
+        uint32 m_uiFireShield_Timer;
+        uint32 m_uiBlastWave_Timer;
+        uint32 m_uiFrenzy_Timer;
 
-        _events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = _events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_BLAST_WAVE:
-                    DoCastSelf(SPELL_BLAST_WAVE);
-                    _events.Repeat(20s, 30s);
-                    break;
-                case EVENT_FLAMESTRIKE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                        DoCast(target, SPELL_FLAMESTRIKE);
-                    _events.Repeat(10s, 15s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            m_uiFireShield_Timer = 2000;
+            m_uiBlastWave_Timer = 14000;
+            m_uiFrenzy_Timer = 0;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void UpdateAI(const uint32 uiDiff)
+        {
+            if (!UpdateVictim())
+                return;
 
-private:
-    EventMap _events;
+            //FireShield_Timer
+            if (m_uiFireShield_Timer <= uiDiff)
+            {
+                DoCast(me, SPELL_FIRESHIELD);
+                m_uiFireShield_Timer = 90000;
+            }
+            else
+                m_uiFireShield_Timer -= uiDiff;
+
+            //BlastWave_Timer
+            if (m_uiBlastWave_Timer <= uiDiff)
+            {
+                DoCast(me->getVictim(), SPELL_BLAST_WAVE);
+                m_uiBlastWave_Timer = 12000;
+            }
+            else
+                m_uiBlastWave_Timer -= uiDiff;
+
+            //Frenzy_Timer
+            if (HealthBelowPct(25))
+            {
+                if (m_uiFrenzy_Timer <= uiDiff)
+                {
+                    DoCast(me, SPELL_FRENZY);
+                    DoScriptText(EMOTE_GENERIC_FRENZY_KILL, me);
+
+                    m_uiFrenzy_Timer = 24000;
+                }
+                else
+                    m_uiFrenzy_Timer -= uiDiff;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_vectus()
 {
-    RegisterScholomanceCreatureAI(boss_vectus);
+    new boss_vectus();
 }

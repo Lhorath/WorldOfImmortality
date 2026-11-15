@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,127 +16,135 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires update
- */
+/* ScriptData
+SDName: Boss_Gatewatcher_Ironhand
+SD%Complete: 75
+SDComment:
+SDCategory: Tempest Keep, The Mechanar
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "mechanar.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellMgr.h"
+#include "ScriptPCH.h"
 
-enum IronHandTexts
+enum eSays
 {
-    SAY_AGGRO                      = 0,
-    SAY_HAMMER                     = 1,
-    SAY_SLAY                       = 2,
-    SAY_DEATH                      = 3,
-    EMOTE_HAMMER                   = 4,
-    EMOTE_DEATH                    = 5
+    SAY_AGGRO_1                    = -1554006,
+    SAY_HAMMER_1                   = -1554007,
+    SAY_HAMMER_2                   = -1554008,
+    SAY_SLAY_1                     = -1554009,
+    SAY_SLAY_2                     = -1554010,
+    SAY_DEATH_1                    = -1554011,
+    EMOTE_HAMMER                   = -1554012,
 };
 
-enum IronHandSpells
+enum eSpells
 {
-    SPELL_STREAM_OF_MACHINE_FLUID  = 35311,
+    // Spells to be casted
+    SPELL_SHADOW_POWER             = 35322,
+    H_SPELL_SHADOW_POWER           = 39193,
     SPELL_HAMMER_PUNCH             = 35326,
     SPELL_JACKHAMMER               = 35327,
-    SPELL_SHADOW_POWER             = 35322
+    H_SPELL_JACKHAMMER             = 39194,
+    SPELL_STREAM_OF_MACHINE_FLUID  = 35311,
 };
 
-enum IronHandEvents
+class boss_gatewatcher_iron_hand : public CreatureScript
 {
-    EVENT_STREAM_OF_MACHINE_FLUID  = 1,
-    EVENT_HAMMER_PUNCH,
-    EVENT_JACKHAMMER,
-    EVENT_SHADOW_POWER
-};
+    public:
 
-// 19710 - Gatewatcher Iron-Hand
-struct boss_gatewatcher_iron_hand : public BossAI
-{
-    boss_gatewatcher_iron_hand(Creature* creature) : BossAI(creature, DATA_GATEWATCHER_IRON_HAND) { }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-
-        Talk(SAY_AGGRO);
-
-        events.ScheduleEvent(EVENT_STREAM_OF_MACHINE_FLUID, 15s, 25s);
-        events.ScheduleEvent(EVENT_HAMMER_PUNCH, 15s, 25s);
-        events.ScheduleEvent(EVENT_JACKHAMMER, 10s, 30s);
-        events.ScheduleEvent(EVENT_SHADOW_POWER, 20s, 25s);
-    }
-
-    void OnSpellStart(SpellInfo const* spellInfo) override
-    {
-        if (spellInfo->Id == sSpellMgr->GetSpellIdForDifficulty(SPELL_JACKHAMMER, me))
-            Talk(EMOTE_HAMMER);
-    }
-
-    void OnSpellCast(SpellInfo const* spellInfo) override
-    {
-        // Only in normal mode
-        if (spellInfo->Id == SPELL_JACKHAMMER)
-            Talk(SAY_HAMMER);
-    }
-
-    void KilledUnit(Unit* /*victim*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-        Talk(EMOTE_DEATH);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_gatewatcher_iron_hand()
+            : CreatureScript("boss_gatewatcher_iron_hand")
         {
-            switch (eventId)
-            {
-                case EVENT_STREAM_OF_MACHINE_FLUID:
-                    DoCastSelf(SPELL_STREAM_OF_MACHINE_FLUID);
-                    events.Repeat(35s, 50s);
-                    break;
-                case EVENT_HAMMER_PUNCH:
-                    DoCastVictim(SPELL_HAMMER_PUNCH);
-                    events.Repeat(25s, 35s);
-                    break;
-                case EVENT_JACKHAMMER:
-                    DoCastSelf(SPELL_JACKHAMMER);
-                    events.Repeat(30s);
-                    break;
-                case EVENT_SHADOW_POWER:
-                    DoCastSelf(SPELL_SHADOW_POWER);
-                    events.Repeat(25s, 35s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
         }
+            // Gatewatcher Iron-Hand AI
+            struct boss_gatewatcher_iron_handAI : public ScriptedAI
+            {
+                boss_gatewatcher_iron_handAI(Creature* pCreature) : ScriptedAI(pCreature)
+                {
+                }
 
-        DoMeleeAttackIfReady();
-    }
+                uint32 Shadow_Power_Timer;
+                uint32 Jackhammer_Timer;
+                uint32 Stream_of_Machine_Fluid_Timer;
+
+                void Reset()
+                {
+                    Shadow_Power_Timer = 25000;
+                    Jackhammer_Timer = 45000;
+                    Stream_of_Machine_Fluid_Timer = 55000;
+
+                }
+                void EnterCombat(Unit * /*who*/)
+                {
+                    DoScriptText(SAY_AGGRO_1, me);
+                }
+
+                void KilledUnit(Unit* /*victim*/)
+                {
+                    if (rand()%2)
+                        return;
+
+                    DoScriptText(RAND(SAY_SLAY_1,SAY_SLAY_2), me);
+                }
+
+                void JustDied(Unit* /*Killer*/)
+                {
+                    DoScriptText(SAY_DEATH_1, me);
+                    //TODO: Add door check/open code
+                }
+
+                void UpdateAI(const uint32 diff)
+                {
+                    //Return since we have no target
+                    if (!UpdateVictim())
+                        return;
+
+                    //Shadow Power
+                    if (Shadow_Power_Timer <= diff)
+                    {
+                        DoCast(me, SPELL_SHADOW_POWER);
+                        Shadow_Power_Timer = 20000 + rand()%8000;
+                    }
+                    else
+                        Shadow_Power_Timer -= diff;
+
+                    //Jack Hammer
+                    if (Jackhammer_Timer <= diff)
+                    {
+                        //TODO: expect cast this about 5 times in a row (?), announce it by emote only once
+                        DoScriptText(EMOTE_HAMMER, me);
+                        DoCast(me->getVictim(), SPELL_JACKHAMMER);
+
+                        //chance to yell, but not same time as emote (after spell in fact casted)
+                        if (rand()%2)
+                                            return;
+
+                        DoScriptText(RAND(SAY_HAMMER_1,SAY_HAMMER_2), me);
+                        Jackhammer_Timer = 30000;
+                    }
+                    else
+                        Jackhammer_Timer -= diff;
+
+                    //Stream of Machine Fluid
+                    if (Stream_of_Machine_Fluid_Timer <= diff)
+                    {
+                        DoCast(me->getVictim(), SPELL_STREAM_OF_MACHINE_FLUID);
+                        Stream_of_Machine_Fluid_Timer = 35000 + rand()%15000;
+                    }
+                    else
+                        Stream_of_Machine_Fluid_Timer -= diff;
+
+                    DoMeleeAttackIfReady();
+                }
+            };
+
+            CreatureAI* GetAI(Creature* creature) const
+            {
+                return new boss_gatewatcher_iron_handAI(creature);
+            }
 };
 
 void AddSC_boss_gatewatcher_iron_hand()
 {
-    RegisterMechanarCreatureAI(boss_gatewatcher_iron_hand);
+    new boss_gatewatcher_iron_hand();
 }
+

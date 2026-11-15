@@ -1,15 +1,15 @@
-#ifndef ANTICHEAT_SCRIPTS_H
-#define ANTICHEAT_SCRIPTS_H
+#ifndef SC_ACSCRIPTS_H
+#define SC_ACSCRIPTS_H
 
-#include "ScriptMgr.h"
+#include "ScriptPCH.h"
 
-class AnticheatScripts : public PlayerScript
+class AnticheatScripts: public PlayerScript
 {
-public:
-    AnticheatScripts();
+    public:
+        AnticheatScripts();
 
-    void OnLogin(Player* player, bool firstLogin) override;
-    void OnLogout(Player* player) override;
+        void OnLogout(Player* player);
+        void OnLogin(Player* player);
 };
 
 #endif

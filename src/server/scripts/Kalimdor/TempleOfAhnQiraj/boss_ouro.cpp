@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,48 +23,29 @@ SDComment: No model for submerging. Currently just invisible.
 SDCategory: Temple of Ahn'Qiraj
 EndScriptData */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "temple_of_ahnqiraj.h"
 
-enum Spells
-{
-    SPELL_SWEEP                 = 26103,
-    SPELL_SANDBLAST             = 26102,
-    SPELL_GROUND_RUPTURE        = 26100,
-    SPELL_BIRTH                 = 26262, // The Birth Animation
-    SPELL_DIRTMOUND_PASSIVE     = 26092
-};
+#define SPELL_SWEEP             26103
+#define SPELL_SANDBLAST         26102
+#define SPELL_GROUND_RUPTURE    26100
+#define SPELL_BIRTH             26262                       //The Birth Animation
+
+#define SPELL_DIRTMOUND_PASSIVE 26092
 
 class boss_ouro : public CreatureScript
 {
 public:
     boss_ouro() : CreatureScript("boss_ouro") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetAQ40AI<boss_ouroAI>(creature);
+        return new boss_ouroAI (pCreature);
     }
 
-    struct boss_ouroAI : public BossAI
+    struct boss_ouroAI : public ScriptedAI
     {
-        boss_ouroAI(Creature* creature) : BossAI(creature, DATA_OURO)
-        {
-            Initialize();
-        }
-
-        void Initialize()
-        {
-            Sweep_Timer = urand(5000, 10000);
-            SandBlast_Timer = urand(20000, 35000);
-            Submerge_Timer = urand(90000, 150000);
-            Back_Timer = urand(30000, 45000);
-            ChangeTarget_Timer = urand(5000, 8000);
-            Spawn_Timer = urand(10000, 20000);
-
-            Enrage = false;
-            Submerged = false;
-        }
+        boss_ouroAI(Creature *c) : ScriptedAI(c) {}
 
         uint32 Sweep_Timer;
         uint32 SandBlast_Timer;
@@ -75,19 +57,25 @@ public:
         bool Enrage;
         bool Submerged;
 
-        void Reset() override
+        void Reset()
         {
-            Initialize();
-            _Reset();
+            Sweep_Timer = 5000 + rand()%5000;
+            SandBlast_Timer = 20000 + rand()%15000;
+            Submerge_Timer = 90000 + rand()%60000;
+            Back_Timer = 30000 + rand()%15000;
+            ChangeTarget_Timer = 5000 + rand()%3000;
+            Spawn_Timer = 10000 + rand()%10000;
+
+            Enrage = false;
+            Submerged = false;
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit * /*who*/)
         {
-            DoCastVictim(SPELL_BIRTH);
-            BossAI::JustEngagedWith(who);
+            DoCast(me->getVictim(), SPELL_BIRTH);
         }
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             //Return since we have no target
             if (!UpdateVictim())
@@ -96,15 +84,15 @@ public:
             //Sweep_Timer
             if (!Submerged && Sweep_Timer <= diff)
             {
-                DoCastVictim(SPELL_SWEEP);
-                Sweep_Timer = urand(15000, 30000);
+                DoCast(me->getVictim(), SPELL_SWEEP);
+                Sweep_Timer = 15000 + rand()%15000;
             } else Sweep_Timer -= diff;
 
             //SandBlast_Timer
             if (!Submerged && SandBlast_Timer <= diff)
             {
-                DoCastVictim(SPELL_SANDBLAST);
-                SandBlast_Timer = urand(20000, 35000);
+                DoCast(me->getVictim(), SPELL_SANDBLAST);
+                SandBlast_Timer = 20000 + rand()%15000;
             } else SandBlast_Timer -= diff;
 
             //Submerge_Timer
@@ -112,33 +100,36 @@ public:
             {
                 //Cast
                 me->HandleEmoteCommand(EMOTE_ONESHOT_SUBMERGE);
-                me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
-                me->SetFaction(FACTION_FRIENDLY);
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                me->setFaction(35);
                 DoCast(me, SPELL_DIRTMOUND_PASSIVE);
 
                 Submerged = true;
-                Back_Timer = urand(30000, 45000);
+                Back_Timer = 30000 + rand()%15000;
             } else Submerge_Timer -= diff;
 
             //ChangeTarget_Timer
             if (Submerged && ChangeTarget_Timer <= diff)
             {
-                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                    DoTeleportTo(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ());
+                Unit *pTarget = NULL;
+                pTarget = SelectTarget(SELECT_TARGET_RANDOM,0);
 
-                ChangeTarget_Timer = urand(10000, 20000);
+                if (pTarget)
+                    DoTeleportTo(pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ());
+
+                ChangeTarget_Timer = 10000 + rand()%10000;
             } else ChangeTarget_Timer -= diff;
 
             //Back_Timer
             if (Submerged && Back_Timer <= diff)
             {
-                me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
-                me->SetFaction(FACTION_MONSTER);
+                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                me->setFaction(14);
 
-                DoCastVictim(SPELL_GROUND_RUPTURE);
+                DoCast(me->getVictim(), SPELL_GROUND_RUPTURE);
 
                 Submerged = false;
-                Submerge_Timer = urand(60000, 120000);
+                Submerge_Timer = 60000 + rand()%60000;
             } else Back_Timer -= diff;
 
             DoMeleeAttackIfReady();

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,39 +16,48 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "Common.h"
+#include "ByteBuffer.h"
+#include "WorldPacket.h"
 #include "UpdateData.h"
-#include "Errors.h"
 #include "Log.h"
 #include "Opcodes.h"
 #include "World.h"
-#include "WorldPacket.h"
-#include <zlib.h>
+#include "zlib.h"
 
-UpdateData::UpdateData() : m_blockCount(0) { }
-
-void UpdateData::AddOutOfRangeGUID(GuidSet& guids)
+UpdateData::UpdateData() : m_blockCount(0)
 {
-    m_outOfRangeGUIDs.insert(guids.begin(), guids.end());
 }
 
-void UpdateData::AddOutOfRangeGUID(ObjectGuid guid)
+void UpdateData::AddOutOfRangeGUID(std::set<uint64>& guids)
+{
+    m_outOfRangeGUIDs.insert(guids.begin(),guids.end());
+}
+
+void UpdateData::AddOutOfRangeGUID(const uint64 &guid)
 {
     m_outOfRangeGUIDs.insert(guid);
+}
+
+void UpdateData::AddUpdateBlock(const ByteBuffer &block)
+{
+    m_data.append(block);
+    ++m_blockCount;
 }
 
 void UpdateData::Compress(void* dst, uint32 *dst_size, void* src, int src_size)
 {
     z_stream c_stream;
 
-    c_stream.zalloc = (alloc_func)nullptr;
-    c_stream.zfree = (free_func)nullptr;
-    c_stream.opaque = (voidpf)nullptr;
+    c_stream.zalloc = (alloc_func)0;
+    c_stream.zfree = (free_func)0;
+    c_stream.opaque = (voidpf)0;
 
     // default Z_BEST_SPEED (1)
     int z_res = deflateInit(&c_stream, sWorld->getIntConfig(CONFIG_COMPRESSION));
     if (z_res != Z_OK)
     {
-        TC_LOG_ERROR("misc", "Can't compress update packet (zlib: deflateInit) Error code: {} ({})", z_res, zError(z_res));
+        sLog->outError("Can't compress update packet (zlib: deflateInit) Error code: %i (%s)",z_res,zError(z_res));
         *dst_size = 0;
         return;
     }
@@ -60,14 +70,14 @@ void UpdateData::Compress(void* dst, uint32 *dst_size, void* src, int src_size)
     z_res = deflate(&c_stream, Z_NO_FLUSH);
     if (z_res != Z_OK)
     {
-        TC_LOG_ERROR("misc", "Can't compress update packet (zlib: deflate) Error code: {} ({})", z_res, zError(z_res));
+        sLog->outError("Can't compress update packet (zlib: deflate) Error code: %i (%s)",z_res,zError(z_res));
         *dst_size = 0;
         return;
     }
 
     if (c_stream.avail_in != 0)
     {
-        TC_LOG_ERROR("misc", "Can't compress update packet (zlib: deflate not greedy)");
+        sLog->outError("Can't compress update packet (zlib: deflate not greedy)");
         *dst_size = 0;
         return;
     }
@@ -75,7 +85,7 @@ void UpdateData::Compress(void* dst, uint32 *dst_size, void* src, int src_size)
     z_res = deflate(&c_stream, Z_FINISH);
     if (z_res != Z_STREAM_END)
     {
-        TC_LOG_ERROR("misc", "Can't compress update packet (zlib: deflate should report Z_STREAM_END instead {} ({})", z_res, zError(z_res));
+        sLog->outError("Can't compress update packet (zlib: deflate should report Z_STREAM_END instead %i (%s)",z_res,zError(z_res));
         *dst_size = 0;
         return;
     }
@@ -83,7 +93,7 @@ void UpdateData::Compress(void* dst, uint32 *dst_size, void* src, int src_size)
     z_res = deflateEnd(&c_stream);
     if (z_res != Z_OK)
     {
-        TC_LOG_ERROR("misc", "Can't compress update packet (zlib: deflateEnd) Error code: {} ({})", z_res, zError(z_res));
+        sLog->outError("Can't compress update packet (zlib: deflateEnd) Error code: %i (%s)",z_res,zError(z_res));
         *dst_size = 0;
         return;
     }
@@ -91,7 +101,7 @@ void UpdateData::Compress(void* dst, uint32 *dst_size, void* src, int src_size)
     *dst_size = c_stream.total_out;
 }
 
-bool UpdateData::BuildPacket(WorldPacket* packet)
+bool UpdateData::BuildPacket(WorldPacket *packet)
 {
     ASSERT(packet->empty());                                // shouldn't happen
 
@@ -101,11 +111,13 @@ bool UpdateData::BuildPacket(WorldPacket* packet)
 
     if (!m_outOfRangeGUIDs.empty())
     {
-        buf << uint8(UPDATETYPE_OUT_OF_RANGE_OBJECTS);
-        buf << uint32(m_outOfRangeGUIDs.size());
+        buf << (uint8) UPDATETYPE_OUT_OF_RANGE_OBJECTS;
+        buf << (uint32) m_outOfRangeGUIDs.size();
 
-        for (GuidSet::const_iterator i = m_outOfRangeGUIDs.begin(); i != m_outOfRangeGUIDs.end(); ++i)
-            buf << i->WriteAsPacked();
+        for (std::set<uint64>::const_iterator i = m_outOfRangeGUIDs.begin(); i != m_outOfRangeGUIDs.end(); ++i)
+        {
+            buf.appendPackGUID(*i);
+        }
     }
 
     buf.append(m_data);
@@ -140,3 +152,4 @@ void UpdateData::Clear()
     m_outOfRangeGUIDs.clear();
     m_blockCount = 0;
 }
+

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,46 +20,46 @@
 #define TRINITY_POINTMOVEMENTGENERATOR_H
 
 #include "MovementGenerator.h"
-#include "Optional.h"
-
-class Creature;
+#include "DestinationHolder.h"
+#include "Traveller.h"
+#include "FollowerReference.h"
 
 template<class T>
-class PointMovementGenerator : public MovementGeneratorMedium<T, PointMovementGenerator<T>>
+class PointMovementGenerator
+: public MovementGeneratorMedium< T, PointMovementGenerator<T> >
 {
     public:
-        explicit PointMovementGenerator(uint32 id, float x, float y, float z, bool generatePath, float speed = 0.0f, Optional<float> finalOrient = {});
+        PointMovementGenerator(uint32 _id, float _x, float _y, float _z) : id(_id),
+            i_x(_x), i_y(_y), i_z(_z), i_nextMoveTime(0), arrived(false) {}
 
-        MovementGeneratorType GetMovementGeneratorType() const override;
+        void Initialize(T &);
+        void Finalize(T &unit);
+        void Reset(T &unit){unit.StopMoving();}
+        bool Update(T &, const uint32 &diff);
 
-        bool DoInitialize(T*);
-        bool DoReset(T*);
-        bool DoUpdate(T*, uint32);
-        void DoDeactivate(T*);
-        void DoFinalize(T*, bool, bool);
+        void MovementInform(T &);
 
-        void UnitSpeedChanged() override { PointMovementGenerator<T>::AddFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING); }
+        MovementGeneratorType GetMovementGeneratorType() { return POINT_MOTION_TYPE; }
 
-        uint32 GetId() const { return _movementId; }
-
+        bool GetDestination(float& x, float& y, float& z) const { x=i_x; y=i_y; z=i_z; return true; }
     private:
-        void MovementInform(T*);
-
-        uint32 _movementId;
-        float _x, _y, _z;
-        float _speed;
-        bool _generatePath;
-        //! if set then unit will turn to specified _orient in provided _pos
-        Optional<float> _finalOrient;
+        uint32 id;
+        float i_x,i_y,i_z;
+        TimeTracker i_nextMoveTime;
+        DestinationHolder< Traveller<T> > i_destinationHolder;
+        bool arrived;
 };
 
-class AssistanceMovementGenerator : public PointMovementGenerator<Creature>
+class AssistanceMovementGenerator
+: public PointMovementGenerator<Creature>
 {
     public:
-        explicit AssistanceMovementGenerator(uint32 id, float x, float y, float z) : PointMovementGenerator<Creature>(id, x, y, z, true) { }
+        AssistanceMovementGenerator(float _x, float _y, float _z) :
+            PointMovementGenerator<Creature>(0, _x, _y, _z) {}
 
-        void Finalize(Unit*, bool, bool) override;
-        MovementGeneratorType GetMovementGeneratorType() const override;
+        MovementGeneratorType GetMovementGeneratorType() { return ASSISTANCE_MOTION_TYPE; }
+        void Finalize(Unit &);
 };
 
 #endif
+

@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,150 +15,108 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "GameObject.h"
-#include "Map.h"
-#include "ObjectAccessor.h"
-#include "OutdoorPvPMgr.h"
 #include "OutdoorPvPTF.h"
+#include "OutdoorPvPMgr.h"
+#include "OutdoorPvP.h"
+#include "WorldPacket.h"
 #include "Player.h"
-#include "ScriptMgr.h"
-#include "WorldStatePackets.h"
-
-uint8 const OutdoorPvPTFBuffZonesNum = 5;
-uint32 const OutdoorPvPTFBuffZones[OutdoorPvPTFBuffZonesNum] =
-{
-    3519 /*Terokkar Forest*/,
-    3791 /*Sethekk Halls*/,
-    3789 /*Shadow Labyrinth*/,
-    3792 /*Mana-Tombs*/,
-    3790 /*Auchenai Crypts*/
-};
-
-// locked for 6 hours after capture
-uint32 const TF_LOCK_TIME = 3600 * 6 * 1000;
-
-// update lock timer every 1/4 minute (overkill, but this way it's sure the timer won't "jump" 2 minutes at once.)
-uint32 const TF_LOCK_TIME_UPDATE = 15000;
-
-// blessing of auchindoun, used in TeamCastSpell which uses signed int, so signed
-int32 const TF_CAPTURE_BUFF = 33377;
-
-uint32 const TF_ALLY_QUEST = 11505;
-uint32 const TF_HORDE_QUEST = 11506;
-
-go_type const TFCapturePoints[TF_TOWER_NUM] =
-{
-    { 183104, 530, { -3081.65f, 5335.03f, 17.1853f, -2.146750f }, { 0.0f, 0.0f, 0.878817f, -0.477159f } },
-    { 183411, 530, { -2939.90f, 4788.73f, 18.9870f,  2.775070f }, { 0.0f, 0.0f, 0.983255f,  0.182236f } },
-    { 183412, 530, { -3174.94f, 4440.97f, 16.2281f,  1.867500f }, { 0.0f, 0.0f, 0.803857f,  0.594823f } },
-    { 183413, 530, { -3603.31f, 4529.15f, 20.9077f,  0.994838f }, { 0.0f, 0.0f, 0.477159f,  0.878817f } },
-    { 183414, 530, { -3812.37f, 4899.30f, 17.7249f,  0.087266f }, { 0.0f, 0.0f, 0.043619f,  0.999048f } }
-};
-
-struct tf_tower_world_state
-{
-    uint32 n;
-    uint32 h;
-    uint32 a;
-};
-
-tf_tower_world_state const TFTowerWorldStates[TF_TOWER_NUM] =
-{
-    { 0xa79, 0xa7a, 0xa7b },
-    { 0xa7e, 0xa7d, 0xa7c },
-    { 0xa82, 0xa81, 0xa80 },
-    { 0xa88, 0xa87, 0xa86 },
-    { 0xa85, 0xa84, 0xa83 }
-};
-
-/*
-uint32 const TFTowerPlayerEnterEvents[TF_TOWER_NUM] =
-{
-    12226,
-    12497,
-    12486,
-    12499,
-    12501
-};
-
-uint32 const TFTowerPlayerLeaveEvents[TF_TOWER_NUM] =
-{
-    12225,
-    12496,
-    12487,
-    12498,
-    12500
-};
-*/
+#include "ObjectMgr.h"
+#include "Language.h"
+#include "World.h"
+#include "ScriptPCH.h"
 
 OutdoorPvPTF::OutdoorPvPTF()
 {
     m_TypeId = OUTDOOR_PVP_TF;
-    m_IsLocked = false;
-    m_LockTimer = TF_LOCK_TIME;
-    m_LockTimerUpdate = 0;
-    m_AllianceTowersControlled = 0;
-    m_HordeTowersControlled = 0;
-    hours_left = 6;
-    second_digit = 0;
-    first_digit = 0;
 }
 
-OPvPCapturePointTF::OPvPCapturePointTF(OutdoorPvP* pvp, OutdoorPvPTF_TowerType type) : OPvPCapturePoint(pvp), m_TowerType(type), m_TowerState(TF_TOWERSTATE_N)
+OPvPCapturePointTF::OPvPCapturePointTF(OutdoorPvP *pvp, OutdoorPvPTF_TowerType type)
+: OPvPCapturePoint(pvp), m_TowerType(type), m_TowerState(TF_TOWERSTATE_N)
 {
-    SetCapturePointData(TFCapturePoints[type].entry, TFCapturePoints[type].map, TFCapturePoints[type].pos, TFCapturePoints[type].rot);
+    SetCapturePointData(TFCapturePoints[type].entry,TFCapturePoints[type].map,TFCapturePoints[type].x,TFCapturePoints[type].y,TFCapturePoints[type].z,TFCapturePoints[type].o,TFCapturePoints[type].rot0,TFCapturePoints[type].rot1,TFCapturePoints[type].rot2,TFCapturePoints[type].rot3);
 }
 
-void OPvPCapturePointTF::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
+void OPvPCapturePointTF::FillInitialWorldStates(WorldPacket &data)
 {
-    packet.Worldstates.emplace_back(TFTowerWorldStates[m_TowerType].n, (m_TowerState & TF_TOWERSTATE_N) != 0 ? 1 : 0);
-    packet.Worldstates.emplace_back(TFTowerWorldStates[m_TowerType].h, (m_TowerState & TF_TOWERSTATE_H) != 0 ? 1 : 0);
-    packet.Worldstates.emplace_back(TFTowerWorldStates[m_TowerType].a, (m_TowerState & TF_TOWERSTATE_A) != 0 ? 1 : 0);
+    data << uint32(TFTowerWorldStates[m_TowerType].n) << uint32(bool(m_TowerState & TF_TOWERSTATE_N));
+    data << uint32(TFTowerWorldStates[m_TowerType].h) << uint32(bool(m_TowerState & TF_TOWERSTATE_H));
+    data << uint32(TFTowerWorldStates[m_TowerType].a) << uint32(bool(m_TowerState & TF_TOWERSTATE_A));
 }
 
-void OutdoorPvPTF::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
+void OutdoorPvPTF::FillInitialWorldStates(WorldPacket &data)
 {
-    packet.Worldstates.emplace_back(TF_UI_TOWER_COUNT_H, m_HordeTowersControlled);
-    packet.Worldstates.emplace_back(TF_UI_TOWER_COUNT_A, m_AllianceTowersControlled);
-    packet.Worldstates.emplace_back(TF_UI_TOWERS_CONTROLLED_DISPLAY, !m_IsLocked);
-    packet.Worldstates.emplace_back(TF_UI_LOCKED_TIME_MINUTES_FIRST_DIGIT, first_digit);
-    packet.Worldstates.emplace_back(TF_UI_LOCKED_TIME_MINUTES_SECOND_DIGIT, second_digit);
-    packet.Worldstates.emplace_back(TF_UI_LOCKED_TIME_HOURS, hours_left);
-    packet.Worldstates.emplace_back(TF_UI_LOCKED_DISPLAY_NEUTRAL, (m_IsLocked && !m_HordeTowersControlled && !m_AllianceTowersControlled) ? 1 : 0);
-    packet.Worldstates.emplace_back(TF_UI_LOCKED_DISPLAY_HORDE, (m_IsLocked && (m_HordeTowersControlled > m_AllianceTowersControlled)) ? 1 : 0);
-    packet.Worldstates.emplace_back(TF_UI_LOCKED_DISPLAY_ALLIANCE, (m_IsLocked && (m_HordeTowersControlled < m_AllianceTowersControlled)) ? 1 : 0);
+    data << TF_UI_TOWER_SLIDER_POS << uint32(50);
+    data << TF_UI_TOWER_SLIDER_N << uint32(100);
+    data << TF_UI_TOWER_SLIDER_DISPLAY << uint32(0);
+
+    data << TF_UI_TOWER_COUNT_H << m_HordeTowersControlled;
+    data << TF_UI_TOWER_COUNT_A << m_AllianceTowersControlled;
+    data << TF_UI_TOWERS_CONTROLLED_DISPLAY << uint32(!m_IsLocked);
+
+    data << TF_UI_LOCKED_TIME_MINUTES_FIRST_DIGIT << first_digit;
+    data << TF_UI_LOCKED_TIME_MINUTES_SECOND_DIGIT << second_digit;
+    data << TF_UI_LOCKED_TIME_HOURS << hours_left;
+
+    data << TF_UI_LOCKED_DISPLAY_NEUTRAL << uint32(m_IsLocked && !m_HordeTowersControlled && !m_AllianceTowersControlled);
+    data << TF_UI_LOCKED_DISPLAY_HORDE << uint32(m_IsLocked && (m_HordeTowersControlled > m_AllianceTowersControlled));
+    data << TF_UI_LOCKED_DISPLAY_ALLIANCE << uint32(m_IsLocked && (m_HordeTowersControlled < m_AllianceTowersControlled));
 
     for (OPvPCapturePointMap::iterator itr = m_capturePoints.begin(); itr != m_capturePoints.end(); ++itr)
-        itr->second->FillInitialWorldStates(packet);
+    {
+        itr->second->FillInitialWorldStates(data);
+    }
 }
 
-void OutdoorPvPTF::SendRemoveWorldStates(Player* player)
+void OutdoorPvPTF::SendRemoveWorldStates(Player * plr)
 {
-    player->SendUpdateWorldState(TF_UI_TOWER_COUNT_H, uint32(0));
-    player->SendUpdateWorldState(TF_UI_TOWER_COUNT_A, uint32(0));
-    player->SendUpdateWorldState(TF_UI_TOWERS_CONTROLLED_DISPLAY, uint32(0));
+    plr->SendUpdateWorldState(TF_UI_TOWER_SLIDER_POS,uint32(0));
+    plr->SendUpdateWorldState(TF_UI_TOWER_SLIDER_N,uint32(0));
+    plr->SendUpdateWorldState(TF_UI_TOWER_SLIDER_DISPLAY,uint32(0));
 
-    player->SendUpdateWorldState(TF_UI_LOCKED_TIME_MINUTES_FIRST_DIGIT, uint32(0));
-    player->SendUpdateWorldState(TF_UI_LOCKED_TIME_MINUTES_SECOND_DIGIT, uint32(0));
-    player->SendUpdateWorldState(TF_UI_LOCKED_TIME_HOURS, uint32(0));
+    plr->SendUpdateWorldState(TF_UI_TOWER_COUNT_H,uint32(0));
+    plr->SendUpdateWorldState(TF_UI_TOWER_COUNT_A,uint32(0));
+    plr->SendUpdateWorldState(TF_UI_TOWERS_CONTROLLED_DISPLAY,uint32(0));
 
-    player->SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_NEUTRAL, uint32(0));
-    player->SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_HORDE, uint32(0));
-    player->SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_ALLIANCE, uint32(0));
+    plr->SendUpdateWorldState(TF_UI_LOCKED_TIME_MINUTES_FIRST_DIGIT,uint32(0));
+    plr->SendUpdateWorldState(TF_UI_LOCKED_TIME_MINUTES_SECOND_DIGIT,uint32(0));
+    plr->SendUpdateWorldState(TF_UI_LOCKED_TIME_HOURS,uint32(0));
+
+    plr->SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_NEUTRAL,uint32(0));
+    plr->SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_HORDE,uint32(0));
+    plr->SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_ALLIANCE,uint32(0));
 
     for (int i = 0; i < TF_TOWER_NUM; ++i)
     {
-        player->SendUpdateWorldState(uint32(TFTowerWorldStates[i].n), uint32(0));
-        player->SendUpdateWorldState(uint32(TFTowerWorldStates[i].h), uint32(0));
-        player->SendUpdateWorldState(uint32(TFTowerWorldStates[i].a), uint32(0));
+        plr->SendUpdateWorldState(uint32(TFTowerWorldStates[i].n),uint32(0));
+        plr->SendUpdateWorldState(uint32(TFTowerWorldStates[i].h),uint32(0));
+        plr->SendUpdateWorldState(uint32(TFTowerWorldStates[i].a),uint32(0));
     }
 }
 
 void OPvPCapturePointTF::UpdateTowerState()
 {
-    m_PvP->SendUpdateWorldState(uint32(TFTowerWorldStates[m_TowerType].n), uint32((m_TowerState & TF_TOWERSTATE_N) != 0));
-    m_PvP->SendUpdateWorldState(uint32(TFTowerWorldStates[m_TowerType].h), uint32((m_TowerState & TF_TOWERSTATE_H) != 0));
-    m_PvP->SendUpdateWorldState(uint32(TFTowerWorldStates[m_TowerType].a), uint32((m_TowerState & TF_TOWERSTATE_A) != 0));
+    m_PvP->SendUpdateWorldState(uint32(TFTowerWorldStates[m_TowerType].n),uint32(bool(m_TowerState & TF_TOWERSTATE_N)));
+    m_PvP->SendUpdateWorldState(uint32(TFTowerWorldStates[m_TowerType].h),uint32(bool(m_TowerState & TF_TOWERSTATE_H)));
+    m_PvP->SendUpdateWorldState(uint32(TFTowerWorldStates[m_TowerType].a),uint32(bool(m_TowerState & TF_TOWERSTATE_A)));
+}
+
+bool OPvPCapturePointTF::HandlePlayerEnter(Player *plr)
+{
+    if (OPvPCapturePoint::HandlePlayerEnter(plr))
+    {
+        plr->SendUpdateWorldState(TF_UI_TOWER_SLIDER_DISPLAY, 1);
+        uint32 phase = (uint32)ceil((m_value + m_maxValue) / (2 * m_maxValue) * 100.0f);
+        plr->SendUpdateWorldState(TF_UI_TOWER_SLIDER_POS, phase);
+        plr->SendUpdateWorldState(TF_UI_TOWER_SLIDER_N, m_neutralValuePct);
+        return true;
+    }
+    return false;
+}
+
+void OPvPCapturePointTF::HandlePlayerLeave(Player *plr)
+{
+    plr->SendUpdateWorldState(TF_UI_TOWER_SLIDER_DISPLAY, 0);
+    OPvPCapturePoint::HandlePlayerLeave(plr);
 }
 
 bool OutdoorPvPTF::Update(uint32 diff)
@@ -171,18 +129,18 @@ bool OutdoorPvPTF::Update(uint32 diff)
         {
             TeamApplyBuff(TEAM_ALLIANCE, TF_CAPTURE_BUFF);
             m_IsLocked = true;
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_NEUTRAL, uint32(0));
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_HORDE, uint32(0));
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_ALLIANCE, uint32(1));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_NEUTRAL,uint32(0));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_HORDE,uint32(0));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_ALLIANCE,uint32(1));
             SendUpdateWorldState(TF_UI_TOWERS_CONTROLLED_DISPLAY, uint32(0));
         }
         else if (m_HordeTowersControlled == TF_TOWER_NUM)
         {
             TeamApplyBuff(TEAM_HORDE, TF_CAPTURE_BUFF);
             m_IsLocked = true;
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_NEUTRAL, uint32(0));
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_HORDE, uint32(1));
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_ALLIANCE, uint32(0));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_NEUTRAL,uint32(0));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_HORDE,uint32(1));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_ALLIANCE,uint32(0));
             SendUpdateWorldState(TF_UI_TOWERS_CONTROLLED_DISPLAY, uint32(0));
         }
         else
@@ -202,9 +160,9 @@ bool OutdoorPvPTF::Update(uint32 diff)
             m_LockTimerUpdate = 0;
             m_IsLocked = false;
             SendUpdateWorldState(TF_UI_TOWERS_CONTROLLED_DISPLAY, uint32(1));
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_NEUTRAL, uint32(0));
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_HORDE, uint32(0));
-            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_ALLIANCE, uint32(0));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_NEUTRAL,uint32(0));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_HORDE,uint32(0));
+            SendUpdateWorldState(TF_UI_LOCKED_DISPLAY_ALLIANCE,uint32(0));
         }
         else
         {
@@ -218,9 +176,9 @@ bool OutdoorPvPTF::Update(uint32 diff)
                 second_digit = minutes_left % 10;
                 first_digit = minutes_left / 10;
 
-                SendUpdateWorldState(TF_UI_LOCKED_TIME_MINUTES_FIRST_DIGIT, first_digit);
-                SendUpdateWorldState(TF_UI_LOCKED_TIME_MINUTES_SECOND_DIGIT, second_digit);
-                SendUpdateWorldState(TF_UI_LOCKED_TIME_HOURS, hours_left);
+                SendUpdateWorldState(TF_UI_LOCKED_TIME_MINUTES_FIRST_DIGIT,first_digit);
+                SendUpdateWorldState(TF_UI_LOCKED_TIME_MINUTES_SECOND_DIGIT,second_digit);
+                SendUpdateWorldState(TF_UI_LOCKED_TIME_HOURS,hours_left);
             } else m_LockTimerUpdate -= diff;
             m_LockTimer -= diff;
         }
@@ -228,51 +186,26 @@ bool OutdoorPvPTF::Update(uint32 diff)
     return changed;
 }
 
-void OutdoorPvPTF::HandlePlayerEnterZone(Player* player, uint32 zone)
+void OutdoorPvPTF::HandlePlayerEnterZone(Player * plr, uint32 zone)
 {
-    if (player->GetTeam() == ALLIANCE)
+    if (plr->GetTeam() == ALLIANCE)
     {
         if (m_AllianceTowersControlled >= TF_TOWER_NUM)
-            player->CastSpell(player, TF_CAPTURE_BUFF, true);
+            plr->CastSpell(plr,TF_CAPTURE_BUFF,true);
     }
     else
     {
         if (m_HordeTowersControlled >= TF_TOWER_NUM)
-            player->CastSpell(player, TF_CAPTURE_BUFF, true);
+            plr->CastSpell(plr,TF_CAPTURE_BUFF,true);
     }
-    OutdoorPvP::HandlePlayerEnterZone(player, zone);
+    OutdoorPvP::HandlePlayerEnterZone(plr,zone);
 }
 
-void OutdoorPvPTF::HandlePlayerLeaveZone(Player* player, uint32 zone)
+void OutdoorPvPTF::HandlePlayerLeaveZone(Player * plr, uint32 zone)
 {
     // remove buffs
-    player->RemoveAurasDueToSpell(TF_CAPTURE_BUFF);
-    OutdoorPvP::HandlePlayerLeaveZone(player, zone);
-}
-
-uint32 OutdoorPvPTF::GetAllianceTowersControlled() const
-{
-    return m_AllianceTowersControlled;
-}
-
-void OutdoorPvPTF::SetAllianceTowersControlled(uint32 count)
-{
-    m_AllianceTowersControlled = count;
-}
-
-uint32 OutdoorPvPTF::GetHordeTowersControlled() const
-{
-    return m_HordeTowersControlled;
-}
-
-void OutdoorPvPTF::SetHordeTowersControlled(uint32 count)
-{
-    m_HordeTowersControlled = count;
-}
-
-bool OutdoorPvPTF::IsLocked() const
-{
-    return m_IsLocked;
+    plr->RemoveAurasDueToSpell(TF_CAPTURE_BUFF);
+    OutdoorPvP::HandlePlayerLeaveZone(plr, zone);
 }
 
 bool OutdoorPvPTF::SetupOutdoorPvP()
@@ -287,17 +220,15 @@ bool OutdoorPvPTF::SetupOutdoorPvP()
     second_digit = 0;
     first_digit = 0;
 
-    SetMapFromZone(OutdoorPvPTFBuffZones[0]);
-
     // add the zones affected by the pvp buff
     for (uint8 i = 0; i < OutdoorPvPTFBuffZonesNum; ++i)
         RegisterZone(OutdoorPvPTFBuffZones[i]);
 
-    AddCapturePoint(new OPvPCapturePointTF(this, TF_TOWER_NW));
-    AddCapturePoint(new OPvPCapturePointTF(this, TF_TOWER_N));
-    AddCapturePoint(new OPvPCapturePointTF(this, TF_TOWER_NE));
-    AddCapturePoint(new OPvPCapturePointTF(this, TF_TOWER_SE));
-    AddCapturePoint(new OPvPCapturePointTF(this, TF_TOWER_S));
+    AddCapturePoint(new OPvPCapturePointTF(this,TF_TOWER_NW));
+    AddCapturePoint(new OPvPCapturePointTF(this,TF_TOWER_N));
+    AddCapturePoint(new OPvPCapturePointTF(this,TF_TOWER_NE));
+    AddCapturePoint(new OPvPCapturePointTF(this,TF_TOWER_SE));
+    AddCapturePoint(new OPvPCapturePointTF(this,TF_TOWER_S));
 
     return true;
 }
@@ -305,10 +236,10 @@ bool OutdoorPvPTF::SetupOutdoorPvP()
 bool OPvPCapturePointTF::Update(uint32 diff)
 {
     // can update even in locked state if gathers the controlling faction
-    bool canupdate = ((((OutdoorPvPTF*)m_PvP)->GetAllianceTowersControlled() > 0) && m_activePlayers[0].size() > m_activePlayers[1].size()) ||
-            ((((OutdoorPvPTF*)m_PvP)->GetHordeTowersControlled() > 0) && m_activePlayers[0].size() < m_activePlayers[1].size());
+    bool canupdate = ((((OutdoorPvPTF*)m_PvP)->m_AllianceTowersControlled > 0) && m_activePlayers[0].size() > m_activePlayers[1].size()) ||
+            ((((OutdoorPvPTF*)m_PvP)->m_HordeTowersControlled > 0) && m_activePlayers[0].size() < m_activePlayers[1].size());
     // if gathers the other faction, then only update if the pvp is unlocked
-    canupdate = canupdate || !((OutdoorPvPTF*)m_PvP)->IsLocked();
+    canupdate = canupdate || !((OutdoorPvPTF*)m_PvP)->m_IsLocked;
     return canupdate && OPvPCapturePoint::Update(diff);
 }
 
@@ -317,74 +248,77 @@ void OPvPCapturePointTF::ChangeState()
     // if changing from controlling alliance to horde
     if (m_OldState == OBJECTIVESTATE_ALLIANCE)
     {
-        if (uint32 alliance_towers = ((OutdoorPvPTF*)m_PvP)->GetAllianceTowersControlled())
-            ((OutdoorPvPTF*)m_PvP)->SetAllianceTowersControlled(--alliance_towers);
-        m_PvP->SendDefenseMessage(OutdoorPvPTFBuffZones[0], TEXT_SPIRIT_TOWER_LOSE_ALLIANCE);
+        if (((OutdoorPvPTF*)m_PvP)->m_AllianceTowersControlled)
+            ((OutdoorPvPTF*)m_PvP)->m_AllianceTowersControlled--;
+        sWorld->SendZoneText(OutdoorPvPTFBuffZones[0],sObjectMgr->GetTrinityStringForDBCLocale(LANG_OPVP_TF_LOSE_A));
     }
     // if changing from controlling horde to alliance
     else if (m_OldState == OBJECTIVESTATE_HORDE)
     {
-        if (uint32 horde_towers = ((OutdoorPvPTF*)m_PvP)->GetHordeTowersControlled())
-            ((OutdoorPvPTF*)m_PvP)->SetHordeTowersControlled(--horde_towers);
-        m_PvP->SendDefenseMessage(OutdoorPvPTFBuffZones[0], TEXT_SPIRIT_TOWER_LOSE_HORDE);
+        if (((OutdoorPvPTF*)m_PvP)->m_HordeTowersControlled)
+            ((OutdoorPvPTF*)m_PvP)->m_HordeTowersControlled--;
+        sWorld->SendZoneText(OutdoorPvPTFBuffZones[0],sObjectMgr->GetTrinityStringForDBCLocale(LANG_OPVP_TF_LOSE_H));
     }
 
     uint32 artkit = 21;
 
-    switch (m_State)
+    switch(m_State)
     {
-        case OBJECTIVESTATE_ALLIANCE:
-        {
-            m_TowerState = TF_TOWERSTATE_A;
-            artkit = 2;
-            uint32 alliance_towers = ((OutdoorPvPTF*)m_PvP)->GetAllianceTowersControlled();
-            if (alliance_towers < TF_TOWER_NUM)
-                ((OutdoorPvPTF*)m_PvP)->SetAllianceTowersControlled(++alliance_towers);
-
-            m_PvP->SendDefenseMessage(OutdoorPvPTFBuffZones[0], TEXT_SPIRIT_TOWER_TAKEN_ALLIANCE);
-
-            for (GuidSet::iterator itr = m_activePlayers[0].begin(); itr != m_activePlayers[0].end(); ++itr)
-                if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                    player->AreaExploredOrEventHappens(TF_ALLY_QUEST);
-            break;
-        }
-        case OBJECTIVESTATE_HORDE:
-        {
-            m_TowerState = TF_TOWERSTATE_H;
-            artkit = 1;
-            uint32 horde_towers = ((OutdoorPvPTF*)m_PvP)->GetHordeTowersControlled();
-            if (horde_towers < TF_TOWER_NUM)
-                ((OutdoorPvPTF*)m_PvP)->SetHordeTowersControlled(++horde_towers);
-
-            m_PvP->SendDefenseMessage(OutdoorPvPTFBuffZones[0], TEXT_SPIRIT_TOWER_TAKEN_HORDE);
-
-            for (GuidSet::iterator itr = m_activePlayers[1].begin(); itr != m_activePlayers[1].end(); ++itr)
-                if (Player* player = ObjectAccessor::FindPlayer(*itr))
-                    player->AreaExploredOrEventHappens(TF_HORDE_QUEST);
-            break;
-        }
-        case OBJECTIVESTATE_NEUTRAL:
-        case OBJECTIVESTATE_NEUTRAL_ALLIANCE_CHALLENGE:
-        case OBJECTIVESTATE_NEUTRAL_HORDE_CHALLENGE:
-        case OBJECTIVESTATE_ALLIANCE_HORDE_CHALLENGE:
-        case OBJECTIVESTATE_HORDE_ALLIANCE_CHALLENGE:
-            m_TowerState = TF_TOWERSTATE_N;
-            break;
+    case OBJECTIVESTATE_ALLIANCE:
+        m_TowerState = TF_TOWERSTATE_A;
+        artkit = 2;
+        if (((OutdoorPvPTF*)m_PvP)->m_AllianceTowersControlled<TF_TOWER_NUM)
+            ((OutdoorPvPTF*)m_PvP)->m_AllianceTowersControlled++;
+        sWorld->SendZoneText(OutdoorPvPTFBuffZones[0],sObjectMgr->GetTrinityStringForDBCLocale(LANG_OPVP_TF_CAPTURE_A));
+        for (PlayerSet::iterator itr = m_activePlayers[0].begin(); itr != m_activePlayers[0].end(); ++itr)
+            (*itr)->AreaExploredOrEventHappens(TF_ALLY_QUEST);
+        break;
+    case OBJECTIVESTATE_HORDE:
+        m_TowerState = TF_TOWERSTATE_H;
+        artkit = 1;
+        if (((OutdoorPvPTF*)m_PvP)->m_HordeTowersControlled<TF_TOWER_NUM)
+            ((OutdoorPvPTF*)m_PvP)->m_HordeTowersControlled++;
+        sWorld->SendZoneText(OutdoorPvPTFBuffZones[0],sObjectMgr->GetTrinityStringForDBCLocale(LANG_OPVP_TF_CAPTURE_H));
+        for (PlayerSet::iterator itr = m_activePlayers[1].begin(); itr != m_activePlayers[1].end(); ++itr)
+            (*itr)->AreaExploredOrEventHappens(TF_HORDE_QUEST);
+        break;
+    case OBJECTIVESTATE_NEUTRAL:
+    case OBJECTIVESTATE_NEUTRAL_ALLIANCE_CHALLENGE:
+    case OBJECTIVESTATE_NEUTRAL_HORDE_CHALLENGE:
+    case OBJECTIVESTATE_ALLIANCE_HORDE_CHALLENGE:
+    case OBJECTIVESTATE_HORDE_ALLIANCE_CHALLENGE:
+        m_TowerState = TF_TOWERSTATE_N;
+        break;
     }
 
-    auto bounds = m_PvP->GetMap()->GetGameObjectBySpawnIdStore().equal_range(m_capturePointSpawnId);
-    for (auto itr = bounds.first; itr != bounds.second; ++itr)
-        itr->second->SetGoArtKit(artkit);
+    GameObject* flag = HashMapHolder<GameObject>::Find(m_capturePointGUID);
+    if (flag)
+        flag->SetGoArtKit(artkit);
 
     UpdateTowerState();
+}
+
+void OPvPCapturePointTF::SendChangePhase()
+{
+    // send this too, sometimes the slider disappears, dunno why :(
+    SendUpdateWorldState(TF_UI_TOWER_SLIDER_DISPLAY, 1);
+    // send these updates to only the ones in this objective
+    uint32 phase = (uint32)ceil((m_value + m_maxValue) / (2 * m_maxValue) * 100.0f);
+    SendUpdateWorldState(TF_UI_TOWER_SLIDER_POS, phase);
+    // send this too, sometimes it resets :S
+    SendUpdateWorldState(TF_UI_TOWER_SLIDER_N, m_neutralValuePct);
 }
 
 class OutdoorPvP_terokkar_forest : public OutdoorPvPScript
 {
     public:
-        OutdoorPvP_terokkar_forest() : OutdoorPvPScript("outdoorpvp_tf") { }
 
-        OutdoorPvP* GetOutdoorPvP() const override
+        OutdoorPvP_terokkar_forest()
+            : OutdoorPvPScript("outdoorpvp_tf")
+        {
+        }
+
+        OutdoorPvP* GetOutdoorPvP() const
         {
             return new OutdoorPvPTF();
         }

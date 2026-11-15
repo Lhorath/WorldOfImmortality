@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,78 +16,85 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "maraudon.h"
-#include "ScriptedCreature.h"
+/* ScriptData
+SDName: Boss_Landslide
+SD%Complete: 100
+SDComment:
+SDCategory: Maraudon
+EndScriptData */
 
-enum LandslideSpells
+#include "ScriptPCH.h"
+
+#define SPELL_KNOCKAWAY         18670
+#define SPELL_TRAMPLE           5568
+#define SPELL_LANDSLIDE         21808
+
+class boss_landslide : public CreatureScript
 {
-    SPELL_KNOCK_AWAY        = 18670,
-    SPELL_TRAMPLE           = 5568,
-    SPELL_LANDSLIDE         = 21808
-};
+public:
+    boss_landslide() : CreatureScript("boss_landslide") { }
 
-// 12203 - Landslide
-struct boss_landslide : public ScriptedAI
-{
-    boss_landslide(Creature* creature) : ScriptedAI(creature), _landslide(false) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _scheduler.CancelAll();
-        _landslide = false;
+        return new boss_landslideAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    struct boss_landslideAI : public ScriptedAI
     {
-        _scheduler
-            .SetValidator([this]
-            {
-                return !me->HasUnitState(UNIT_STATE_CASTING);
-            })
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                DoCastVictim(SPELL_KNOCK_AWAY);
-                task.Repeat(15s, 25s);
-            })
-            .Schedule(10s, 15s, [this](TaskContext task)
-            {
-                DoCastSelf(SPELL_TRAMPLE);
-                task.Repeat(10s, 20s);
-            });
-    }
+        boss_landslideAI(Creature *c) : ScriptedAI(c) {}
 
-    void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (!_landslide && me->HealthBelowPctDamaged(50, damage))
+        uint32 KnockAway_Timer;
+        uint32 Trample_Timer;
+        uint32 Landslide_Timer;
+
+        void Reset()
         {
-            _landslide = true;
-
-            _scheduler.Schedule(0s, [this](TaskContext task)
-            {
-                DoCastSelf(SPELL_LANDSLIDE);
-                task.Repeat(30s, 40s);
-            });
+            KnockAway_Timer = 8000;
+            Trample_Timer = 2000;
+            Landslide_Timer = 0;
         }
-    }
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        _scheduler.Update(diff, [this]
+        void EnterCombat(Unit * /*who*/)
         {
-            DoMeleeAttackIfReady();
-        });
-    }
+        }
 
-private:
-    TaskScheduler _scheduler;
-    bool _landslide;
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //KnockAway_Timer
+            if (KnockAway_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_KNOCKAWAY);
+                KnockAway_Timer = 15000;
+            } else KnockAway_Timer -= diff;
+
+            //Trample_Timer
+            if (Trample_Timer <= diff)
+            {
+                DoCast(me, SPELL_TRAMPLE);
+                Trample_Timer = 8000;
+            } else Trample_Timer -= diff;
+
+            //Landslide
+            if (HealthBelowPct(50))
+            {
+                if (Landslide_Timer <= diff)
+                {
+                    me->InterruptNonMeleeSpells(false);
+                    DoCast(me, SPELL_LANDSLIDE);
+                    Landslide_Timer = 60000;
+                } else Landslide_Timer -= diff;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_landslide()
 {
-    RegisterMaraudonCreatureAI(boss_landslide);
+    new boss_landslide();
 }

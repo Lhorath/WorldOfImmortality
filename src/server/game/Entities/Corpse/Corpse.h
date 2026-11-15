@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,10 +20,9 @@
 #define TRINITYCORE_CORPSE_H
 
 #include "Object.h"
-#include "GridObject.h"
-#include "DatabaseEnvFwd.h"
+#include "DatabaseEnv.h"
 #include "GridDefines.h"
-#include "Loot.h"
+#include "LootMgr.h"
 
 enum CorpseType
 {
@@ -46,80 +46,49 @@ enum CorpseFlags
     CORPSE_FLAG_LOOTABLE    = 0x20
 };
 
-DEFINE_ENUM_FLAG(CorpseFlags);
-
-class TC_GAME_API Corpse : public WorldObject, public GridObject<Corpse>
+class Corpse : public WorldObject, public GridObject<Corpse>
 {
     public:
         explicit Corpse(CorpseType type = CORPSE_BONES);
         ~Corpse();
 
-        void AddToWorld() override;
-        void RemoveFromWorld() override;
+        void AddToWorld();
+        void RemoveFromWorld();
 
-        bool Create(ObjectGuid::LowType guidlow);
-        bool Create(ObjectGuid::LowType guidlow, Player* owner);
+        bool Create(uint32 guidlow, Map *map);
+        bool Create(uint32 guidlow, Player *owner);
 
         void SaveToDB();
-        bool LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields);
+        bool LoadFromDB(uint32 guid, Field *fields);
 
-        void DeleteFromDB(CharacterDatabaseTransaction trans);
-        static void DeleteFromDB(ObjectGuid const& ownerGuid, CharacterDatabaseTransaction trans);
+        void DeleteBonesFromWorld();
+        void DeleteFromDB(SQLTransaction& trans);
 
-        CorpseFlags GetCorpseFlags() const { return CorpseFlags(GetUInt32Value(CORPSE_FIELD_FLAGS)); }
-        bool HasCorpseFlag(CorpseFlags flags) const { return (GetUInt32Value(CORPSE_FIELD_FLAGS) & flags) != 0; }
-        void SetCorpseFlag(CorpseFlags flags) { SetFlag(CORPSE_FIELD_FLAGS, flags); }
-        void RemoveCorpseFlag(CorpseFlags flags) { RemoveFlag(CORPSE_FIELD_FLAGS, flags); }
-        void ReplaceAllCorpseFlags(CorpseFlags flags) { SetUInt32Value(CORPSE_FIELD_FLAGS, flags); }
-
-        CorpseDynFlags GetCorpseDynamicFlags() const { return CorpseDynFlags(GetUInt32Value(CORPSE_FIELD_DYNAMIC_FLAGS)); }
-        bool HasCorpseDynamicFlag(CorpseDynFlags flags) const { return (GetUInt32Value(CORPSE_FIELD_DYNAMIC_FLAGS) & flags) != 0; }
-        void SetCorpseDynamicFlag(CorpseDynFlags flag) { SetFlag(CORPSE_FIELD_DYNAMIC_FLAGS, flag); }
-        void RemoveCorpseDynamicFlag(CorpseDynFlags flag) { RemoveFlag(CORPSE_FIELD_DYNAMIC_FLAGS, flag); }
-        void ReplaceAllCorpseDynamicFlags(CorpseDynFlags flag) { SetUInt32Value(CORPSE_FIELD_DYNAMIC_FLAGS, flag); }
-
-        ObjectGuid GetOwnerGUID() const override { return GetGuidValue(CORPSE_FIELD_OWNER); }
-        void SetOwnerGUID(ObjectGuid owner) { SetGuidValue(CORPSE_FIELD_OWNER, owner); }
-        ObjectGuid GetPartyGUID() const { return GetGuidValue(CORPSE_FIELD_PARTY); }
-        void SetPartyGUID(ObjectGuid partyGuid) { SetGuidValue(CORPSE_FIELD_PARTY, partyGuid); }
-        uint32 GetGuildId() const { return GetUInt32Value(CORPSE_FIELD_GUILD); }
-        void SetGuildId(uint32 guildId) { SetUInt32Value(CORPSE_FIELD_GUILD, guildId); }
-        uint32 GetDisplayId() const { return GetUInt32Value(CORPSE_FIELD_DISPLAY_ID); }
-        void SetDisplayId(uint32 displayId) { SetUInt32Value(CORPSE_FIELD_DISPLAY_ID, displayId); }
-        uint8 GetRace() const { return GetByteValue(CORPSE_FIELD_BYTES_1, 1); }
-        void SetRace(uint8 race) { SetByteValue(CORPSE_FIELD_BYTES_1, 1, race); }
-        uint8 GetSex() const { return GetByteValue(CORPSE_FIELD_BYTES_1, 2); }
-        void SetSex(uint8 sex) { SetByteValue(CORPSE_FIELD_BYTES_1, 2, sex); }
-        uint32 GetFaction() const override;
-        uint32 GetItem(uint32 slot) const { return GetUInt32Value(CORPSE_FIELD_ITEM + slot); }
-        void SetItem(uint32 slot, uint32 item) { SetUInt32Value(CORPSE_FIELD_ITEM + slot, item); }
-
-        uint8 GetSkinId() const { return GetByteValue(CORPSE_FIELD_BYTES_1, 3); }
-        void SetSkinId(uint8 skin) { SetByteValue(CORPSE_FIELD_BYTES_1, 3, skin); }
-        uint8 GetFaceId() const { return GetByteValue(CORPSE_FIELD_BYTES_2, 0); }
-        void SetFaceId(uint8 face) { SetByteValue(CORPSE_FIELD_BYTES_2, 0, face); }
-        uint8 GetHairStyleId() const { return GetByteValue(CORPSE_FIELD_BYTES_2, 1); }
-        void SetHairStyleId(uint8 hairStyle) { SetByteValue(CORPSE_FIELD_BYTES_2, 1, hairStyle); }
-        uint8 GetHairColorId() const { return GetByteValue(CORPSE_FIELD_BYTES_2, 2); }
-        void SetHairColorId(uint8 hairColor) { SetByteValue(CORPSE_FIELD_BYTES_2, 2, hairColor); }
-        uint8 GetFacialStyle() const { return GetByteValue(CORPSE_FIELD_BYTES_2, 3); }
-        void SetFacialStyle(uint8 facialStyle) { SetByteValue(CORPSE_FIELD_BYTES_2, 3, facialStyle); }
+        uint64 const& GetOwnerGUID() const { return GetUInt64Value(CORPSE_FIELD_OWNER); }
 
         time_t const& GetGhostTime() const { return m_time; }
-        void ResetGhostTime();
+        void ResetGhostTime() { m_time = time(NULL); }
         CorpseType GetType() const { return m_type; }
 
-        CellCoord const& GetCellCoord() const { return _cellCoord; }
-        void SetCellCoord(CellCoord const& cellCoord) { _cellCoord = cellCoord; }
+        GridPair const& GetGrid() const { return m_grid; }
+        void SetGrid(GridPair const& grid) { m_grid = grid; }
 
         Loot loot;                                          // remove insignia ONLY at BG
         Player* lootRecipient;
+        bool lootForBody;
+
+        void Say(int32 textId, uint32 language, uint64 TargetGuid) { MonsterSay(textId,language,TargetGuid); }
+        void Yell(int32 textId, uint32 language, uint64 TargetGuid) { MonsterYell(textId,language,TargetGuid); }
+        void TextEmote(int32 textId, uint64 TargetGuid) { MonsterTextEmote(textId,TargetGuid); }
+        void Whisper(int32 textId,uint64 receiver) { MonsterWhisper(textId,receiver); }
+        void YellToZone(int32 textId, uint32 language, uint64 TargetGuid) { MonsterYellToZone(textId,language,TargetGuid); }
 
         bool IsExpired(time_t t) const;
 
     private:
         CorpseType m_type;
         time_t m_time;
-        CellCoord _cellCoord;
+        GridPair m_grid;                                    // gride for corpse position for fast search
 };
 #endif
+

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,119 +16,100 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Combat timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Ironaya
+SD%Complete: 100
+SDComment:
+SDCategory: Uldaman
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ScriptedCreature.h"
-#include "uldaman.h"
+#include "ScriptPCH.h"
 
-enum IronayaTexts
+#define SAY_AGGRO                   -1070000
+
+#define SPELL_ARCINGSMASH           8374
+#define SPELL_KNOCKAWAY             10101
+#define SPELL_WSTOMP                11876
+
+class boss_ironaya : public CreatureScript
 {
-    SAY_INTRO              = 0
-};
+    public:
 
-enum IronayaSpells
-{
-    SPELL_ARCING_SMASH     = 8374,
-    SPELL_KNOCK_AWAY       = 10101,
-    SPELL_WAR_STOMP        = 11876
-};
-
-enum IronayaEvents
-{
-    EVENT_INTRO            = 1,
-
-    EVENT_ARCING_SMASH,
-    EVENT_KNOCK_AWAY,
-    EVENT_WAR_STOMP
-};
-
-enum IronayaMisc
-{
-    PATH_INTRO             = 6
-};
-
-// 7228 - Ironaya
-struct boss_ironaya : public BossAI
-{
-    boss_ironaya(Creature* creature) : BossAI(creature, DATA_IRONAYA) { }
-
-    void JustAppeared() override
-    {
-        events.ScheduleEvent(EVENT_INTRO, 25s);
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_ARCING_SMASH, 0s, 5s);
-        events.ScheduleEvent(EVENT_KNOCK_AWAY, 20s, 30s);
-        events.ScheduleEvent(EVENT_WAR_STOMP, 20s, 30s);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
+        boss_ironaya()
+            : CreatureScript("boss_ironaya")
         {
-            events.Update(diff);
+        }
 
-            while (uint32 eventId = events.ExecuteEvent())
+        struct boss_ironayaAI : public ScriptedAI
+        {
+            boss_ironayaAI(Creature* pCreature) : ScriptedAI(pCreature) {}
+
+            uint32 uiArcingTimer;
+            bool bHasCastedWstomp;
+            bool bHasCastedKnockaway;
+
+            void Reset()
             {
-                switch (eventId)
+                uiArcingTimer = 3000;
+                bHasCastedKnockaway = false;
+                bHasCastedWstomp = false;
+            }
+
+            void EnterCombat(Unit * /*who*/)
+            {
+                DoScriptText(SAY_AGGRO, me);
+            }
+
+            void UpdateAI(const uint32 uiDiff)
+            {
+                //Return since we have no target
+                if (!UpdateVictim())
+                    return;
+
+                //If we are <50% hp do knockaway ONCE
+                if (!bHasCastedKnockaway && HealthBelowPct(50))
                 {
-                    case EVENT_INTRO:
-                        Talk(SAY_INTRO);
-                        me->SetFaction(FACTION_TITAN);
-                        me->GetMotionMaster()->MovePath(PATH_INTRO, false);
+                    DoCast(me->getVictim(), SPELL_KNOCKAWAY, true);
 
-                        instance->SetData(DATA_IRONAYA_INTRO, DONE);
-                        break;
-                    default:
-                        break;
+                    // current aggro target is knocked away pick new target
+                    Unit* pTarget = SelectTarget(SELECT_TARGET_TOPAGGRO, 0);
+
+                    if (!pTarget || pTarget == me->getVictim())
+                        pTarget = SelectTarget(SELECT_TARGET_TOPAGGRO, 1);
+
+                    if (pTarget)
+                        me->TauntApply(pTarget);
+
+                    //Shouldn't cast this agian
+                    bHasCastedKnockaway = true;
                 }
+
+                //uiArcingTimer
+                if (uiArcingTimer <= uiDiff)
+                {
+                    DoCast(me, SPELL_ARCINGSMASH);
+                    uiArcingTimer = 13000;
+                } else uiArcingTimer -= uiDiff;
+
+                if (!bHasCastedWstomp && HealthBelowPct(25))
+                {
+                    DoCast(me, SPELL_WSTOMP);
+                    bHasCastedWstomp = true;
+                }
+
+                DoMeleeAttackIfReady();
             }
-            return;
-        }
+        };
 
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        CreatureAI* GetAI(Creature* creature) const
         {
-            switch (eventId)
-            {
-                case EVENT_ARCING_SMASH:
-                    DoCastSelf(SPELL_ARCING_SMASH);
-                    events.Repeat(0s, 5s);
-                    break;
-                case EVENT_KNOCK_AWAY:
-                    DoCastVictim(SPELL_KNOCK_AWAY);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_WAR_STOMP:
-                    DoCastSelf(SPELL_WAR_STOMP);
-                    events.Repeat(20s, 30s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            return new boss_ironayaAI(creature);
         }
-
-        DoMeleeAttackIfReady();
-    }
 };
 
+//This is the actual function called only once durring InitScripts()
+//It must define all handled functions that are to be run in this script
 void AddSC_boss_ironaya()
 {
-    RegisterUldamanCreatureAI(boss_ironaya);
+    new boss_ironaya();
 }

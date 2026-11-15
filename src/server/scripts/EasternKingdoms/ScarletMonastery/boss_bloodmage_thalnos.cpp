@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,101 +16,113 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "scarlet_monastery.h"
-#include "ScriptedCreature.h"
-#include "ScriptMgr.h"
+/* ScriptData
+SDName: Boss_Bloodmage_Thalnos
+SD%Complete: 100
+SDComment:
+SDCategory: Scarlet Monastery
+EndScriptData */
 
-enum BloodmageThalnosYells
+#include "ScriptPCH.h"
+
+enum eEnums
 {
-    SAY_AGGRO = 0,
-    SAY_HEALTH = 1,
-    SAY_KILL = 2
+    SAY_AGGRO               = -1189016,
+    SAY_HEALTH              = -1189017,
+    SAY_KILL                = -1189018,
+
+    SPELL_FLAMESHOCK        = 8053,
+    SPELL_SHADOWBOLT        = 1106,
+    SPELL_FLAMESPIKE        = 8814,
+    SPELL_FIRENOVA          = 16079,
 };
 
-enum BloodmageThalnosSpells
+class boss_bloodmage_thalnos : public CreatureScript
 {
-    SPELL_FLAMESHOCK = 8053,
-    SPELL_SHADOWBOLT = 1106,
-    SPELL_FLAMESPIKE = 8814,
-    SPELL_FIRENOVA = 16079
-};
+public:
+    boss_bloodmage_thalnos() : CreatureScript("boss_bloodmage_thalnos") { }
 
-enum BloodmageThalnosEvents
-{
-    EVENT_FLAME_SHOCK = 1,
-    EVENT_SHADOW_BOLT,
-    EVENT_FLAME_SPIKE,
-    EVENT_FIRE_NOVA
-};
-
-struct boss_bloodmage_thalnos : public BossAI
-{
-    boss_bloodmage_thalnos(Creature* creature) : BossAI(creature, DATA_BLOODMAGE_THALNOS)
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _hpYell = false;
+        return new boss_bloodmage_thalnosAI (pCreature);
     }
 
-    void Reset() override
+    struct boss_bloodmage_thalnosAI : public ScriptedAI
     {
-        _hpYell = false;
-        _Reset();
-    }
+        boss_bloodmage_thalnosAI(Creature *c) : ScriptedAI(c) {}
 
-    void JustEngagedWith(Unit* who) override
-    {
-        Talk(SAY_AGGRO);
-        BossAI::JustEngagedWith(who);
-        events.ScheduleEvent(EVENT_FLAME_SHOCK, 10s);
-        events.ScheduleEvent(EVENT_SHADOW_BOLT, 2s);
-        events.ScheduleEvent(EVENT_FLAME_SPIKE, 8s);
-        events.ScheduleEvent(EVENT_FIRE_NOVA, 40s);
-    }
+        bool HpYell;
+        uint32 FlameShock_Timer;
+        uint32 ShadowBolt_Timer;
+        uint32 FlameSpike_Timer;
+        uint32 FireNova_Timer;
 
-    void KilledUnit(Unit* victim) override
-    {
-        if (victim->GetTypeId() == TYPEID_PLAYER)
-            Talk(SAY_KILL);
-    }
-
-    void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (!_hpYell && me->HealthBelowPctDamaged(35, damage))
+        void Reset()
         {
-            Talk(SAY_HEALTH);
-            _hpYell = true;
+            HpYell = false;
+            FlameShock_Timer = 10000;
+            ShadowBolt_Timer = 2000;
+            FlameSpike_Timer = 8000;
+            FireNova_Timer = 40000;
         }
-    }
 
-    void ExecuteEvent(uint32 eventId) override
-    {
-        switch (eventId)
+        void EnterCombat(Unit * /*who*/)
         {
-            case EVENT_FLAME_SHOCK:
-                DoCastVictim(SPELL_FLAMESHOCK);
-                events.Repeat(10s, 15s);
-                break;
-            case EVENT_SHADOW_BOLT:
-                DoCastVictim(SPELL_SHADOWBOLT);
-                events.Repeat(2s);
-                break;
-            case EVENT_FLAME_SPIKE:
-                DoCastVictim(SPELL_FLAMESPIKE);
-                events.Repeat(30s);
-                break;
-            case EVENT_FIRE_NOVA:
-                DoCastVictim(SPELL_FIRENOVA);
-                events.Repeat(40s);
-                break;
-            default:
-                break;
+            DoScriptText(SAY_AGGRO, me);
         }
-    }
 
-private:
-    bool _hpYell;
+        void KilledUnit(Unit* /*Victim*/)
+        {
+            DoScriptText(SAY_KILL, me);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //If we are <35% hp
+            if (!HpYell && !HealthAbovePct(35))
+            {
+                DoScriptText(SAY_HEALTH, me);
+                HpYell = true;
+            }
+
+            //FlameShock_Timer
+            if (FlameShock_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FLAMESHOCK);
+                FlameShock_Timer = 10000 + rand()%5000;
+            } else FlameShock_Timer -= diff;
+
+            //FlameSpike_Timer
+            if (FlameSpike_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FLAMESPIKE);
+                FlameSpike_Timer = 30000;
+            } else FlameSpike_Timer -= diff;
+
+            //FireNova_Timer
+            if (FireNova_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FIRENOVA);
+                FireNova_Timer = 40000;
+            } else FireNova_Timer -= diff;
+
+            //ShadowBolt_Timer
+            if (ShadowBolt_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_SHADOWBOLT);
+                ShadowBolt_Timer = 2000;
+            } else ShadowBolt_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_bloodmage_thalnos()
 {
-    RegisterScarletMonasteryCreatureAI(boss_bloodmage_thalnos);
+    new boss_bloodmage_thalnos();
 }

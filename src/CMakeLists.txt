@@ -1,4 +1,4 @@
-# This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+# Copyright (C) 2008-2010 Trinity <http://www.trinitycore.org/>
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -9,12 +9,9 @@
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 add_subdirectory(genrev)
-add_subdirectory(common)
-
-if(SERVERS)
-  add_subdirectory(server)
-endif(SERVERS)
+add_subdirectory(server)
 
 if(TOOLS)
   add_subdirectory(tools)
 endif(TOOLS)
+

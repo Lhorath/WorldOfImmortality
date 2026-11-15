@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,43 +18,35 @@
 #ifndef __TRINITY_CHANNELMGR_H
 #define __TRINITY_CHANNELMGR_H
 
-#include "Define.h"
-#include "Hash.h"
+#include "Common.h"
+#include "Channel.h"
+#include <ace/Singleton.h>
+
+#include <map>
 #include <string>
-#include <unordered_map>
 
-class Channel;
-class Player;
-class WorldPacket;
-struct AreaTableEntry;
+#include "World.h"
 
-class TC_GAME_API ChannelMgr
+class ChannelMgr
 {
-    typedef std::unordered_map<std::wstring, Channel*> CustomChannelContainer; // custom channels only differ in name
-    typedef std::unordered_map<std::pair<uint32 /*channelId*/, uint32 /*zoneId*/>, Channel*> BuiltinChannelContainer; //identify builtin (DBC) channels by zoneId instead, since name changes by client locale
-
-    protected:
-        explicit ChannelMgr(uint32 team) : _team(team) { }
+    public:
+        uint32 team;
+        typedef std::map<std::wstring,Channel*> ChannelMap;
+        ChannelMgr() {team = 0;}
         ~ChannelMgr();
 
-    public:
-        static void LoadFromDB();
-        static ChannelMgr* ForTeam(uint32 team);
-        static Channel* GetChannelForPlayerByNamePart(std::string const& namePart, Player* playerSearcher);
-
-        void SaveToDB();
-        Channel* GetSystemChannel(uint32 channelId, AreaTableEntry const* zoneEntry = nullptr);
-        Channel* CreateCustomChannel(std::string const& name);
-        Channel* GetCustomChannel(std::string const& name) const;
-        Channel* GetChannel(uint32 channelId, std::string const& name, Player* player, bool pkt = true, AreaTableEntry const* zoneEntry = nullptr) const;
-        void LeftChannel(uint32 channelId, AreaTableEntry const* zoneEntry);
-
+        Channel *GetJoinChannel(std::string name, uint32 channel_id);
+        Channel *GetChannel(std::string name, Player *p, bool pkt = true);
+        void LeftChannel(std::string name);
     private:
-        CustomChannelContainer _customChannels;
-        BuiltinChannelContainer _channels;
-        uint32 const _team;
-
-        static void SendNotOnChannelNotify(Player const* player, std::string const& name);
+        ChannelMap channels;
+        void MakeNotOnPacket(WorldPacket *data, std::string name);
 };
 
+class AllianceChannelMgr : public ChannelMgr {};
+class HordeChannelMgr    : public ChannelMgr {};
+
+ChannelMgr* channelMgr(uint32 team);
+
 #endif
+

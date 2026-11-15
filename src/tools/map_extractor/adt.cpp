@@ -1,35 +1,10 @@
-/*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
-
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include "adt.h"
 
 // Helper
-int holetab_h[4] = { 0x1111, 0x2222, 0x4444, 0x8888 };
-int holetab_v[4] = { 0x000F, 0x00F0, 0x0F00, 0xF000 };
-
-u_map_fcc MHDRMagic = { { 'R','D','H','M' } };
-u_map_fcc MCINMagic = { { 'N','I','C','M' } };
-u_map_fcc MH2OMagic = { { 'O','2','H','M' } };
-u_map_fcc MCNKMagic = { { 'K','N','C','M' } };
-u_map_fcc MCVTMagic = { { 'T','V','C','M' } };
-u_map_fcc MCLQMagic = { { 'Q','L','C','M' } };
-u_map_fcc MFBOMagic = { { 'O','B','F','M' } };
+int holetab_h[4] = {0x1111, 0x2222, 0x4444, 0x8888};
+int holetab_v[4] = {0x000F, 0x00F0, 0x0F00, 0xF000};
 
 bool isHole(int holes, int i, int j)
 {
@@ -69,7 +44,7 @@ bool ADT_file::prepareLoadedData()
         return false;
 
     // Check and prepare MHDR
-    a_grid = (adt_MHDR*)(GetData()+8+version->size);
+    a_grid = (adt_MHDR *)(GetData()+8+version->size);
     if (!a_grid->prepareLoadedData())
         return false;
 
@@ -78,10 +53,10 @@ bool ADT_file::prepareLoadedData()
 
 bool adt_MHDR::prepareLoadedData()
 {
-    if (fcc != MHDRMagic.fcc)
+    if (fcc != 'MHDR')
         return false;
 
-    if (size != sizeof(adt_MHDR) - 8)
+    if (size!=sizeof(adt_MHDR)-8)
         return false;
 
     // Check and prepare MCIN
@@ -92,15 +67,12 @@ bool adt_MHDR::prepareLoadedData()
     if (offsMH2O && !getMH2O()->prepareLoadedData())
         return false;
 
-    if (offsMFBO && flags & 1 && !getMFBO()->prepareLoadedData())
-        return false;
-
     return true;
 }
 
 bool adt_MCIN::prepareLoadedData()
 {
-    if (fcc != MCINMagic.fcc)
+    if (fcc != 'MCIN')
         return false;
 
     // Check cells data
@@ -114,7 +86,7 @@ bool adt_MCIN::prepareLoadedData()
 
 bool adt_MH2O::prepareLoadedData()
 {
-    if (fcc != MH2OMagic.fcc)
+    if (fcc != 'MH2O')
         return false;
 
     // Check liquid data
@@ -126,7 +98,7 @@ bool adt_MH2O::prepareLoadedData()
 
 bool adt_MCNK::prepareLoadedData()
 {
-    if (fcc != MCNKMagic.fcc)
+    if (fcc != 'MCNK')
         return false;
 
     // Check height map
@@ -141,7 +113,7 @@ bool adt_MCNK::prepareLoadedData()
 
 bool adt_MCVT::prepareLoadedData()
 {
-    if (fcc != MCVTMagic.fcc)
+    if (fcc != 'MCVT')
         return false;
 
     if (size != sizeof(adt_MCVT)-8)
@@ -152,13 +124,8 @@ bool adt_MCVT::prepareLoadedData()
 
 bool adt_MCLQ::prepareLoadedData()
 {
-    if (fcc != MCLQMagic.fcc)
+    if (fcc != 'MCLQ')
         return false;
 
     return true;
-}
-
-bool adt_MFBO::prepareLoadedData()
-{
-    return fcc == MFBOMagic.fcc;
 }

@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,19 +18,24 @@
 #ifndef TRINITY_CREATURE_TEXT_MGR_H
 #define TRINITY_CREATURE_TEXT_MGR_H
 
-#include "Common.h"
+#include "Creature.h"
 #include "SharedDefines.h"
-#include <map>
-#include <unordered_map>
-#include <vector>
 
-class Creature;
-class Player;
-class Unit;
-class WorldObject;
-class WorldPacket;
+struct CreatureTextEntry
+{
+    uint32 entry;
+    uint8 group;
+    uint8 id;
+    std::string text;
+    ChatType type;
+    Language lang;
+    float probability;
+    Emote emote;
+    uint32 duration;
+    uint32 sound;
+};
 
-enum CreatureTextRange
+enum TextRange
 {
     TEXT_RANGE_NORMAL   = 0,
     TEXT_RANGE_AREA     = 1,
@@ -39,76 +44,40 @@ enum CreatureTextRange
     TEXT_RANGE_WORLD    = 4
 };
 
-struct CreatureTextEntry
+typedef std::vector<CreatureTextEntry> CreatureTextGroup;              //texts in a group
+typedef UNORDERED_MAP<uint8, CreatureTextGroup> CreatureTextHolder;    //groups for a creature by groupid
+typedef UNORDERED_MAP<uint32, CreatureTextHolder> CreatureTextMap;     //all creatures by entry
+
+//used for handling non-repeatable random texts
+typedef std::vector<uint8> CreatureTextRepeatIds;
+typedef UNORDERED_MAP<uint8, CreatureTextRepeatIds> CreatureTextRepeatGroup;
+typedef UNORDERED_MAP<uint64, CreatureTextRepeatGroup> CreatureTextRepeatMap;//guid based
+
+class CreatureTextMgr
 {
-    uint32 creatureId;
-    uint8 groupId;
-    uint8 id;
-    std::string text;
-    ChatMsg type;
-    Language lang;
-    float probability;
-    Emote emote;
-    uint32 duration;
-    uint32 sound;
-    uint32 BroadcastTextId;
-    CreatureTextRange TextRange;
-};
-
-struct CreatureTextLocale
-{
-    std::vector<std::string> Text;
-};
-
-struct CreatureTextId
-{
-    CreatureTextId(uint32 e, uint32 g, uint32 i) : entry(e), textGroup(g), textId(i) { }
-
-    friend std::strong_ordering operator<=>(CreatureTextId const& left, CreatureTextId const& right) = default;
-
-    uint32 entry;
-    uint32 textGroup;
-    uint32 textId;
-};
-
-typedef std::vector<CreatureTextEntry> CreatureTextGroup;                   // texts in a group
-typedef std::unordered_map<uint8, CreatureTextGroup> CreatureTextHolder;    // groups for a creature by groupid
-typedef std::unordered_map<uint32, CreatureTextHolder> CreatureTextMap;     // all creatures by entry
-
-typedef std::map<CreatureTextId, CreatureTextLocale> LocaleCreatureTextMap;
-
-class TC_GAME_API CreatureTextMgr
-{
-    private:
-        CreatureTextMgr() { }
-        ~CreatureTextMgr() { }
-
+    friend class ACE_Singleton<CreatureTextMgr, ACE_Null_Mutex>;
+    CreatureTextMgr() {};
     public:
-        static CreatureTextMgr* instance();
-
+        ~CreatureTextMgr() {};
         void LoadCreatureTexts();
-        void LoadCreatureTextLocales();
-        CreatureTextMap const& GetTextMap() const { return mTextMap; }
+        CreatureTextMap  const& GetTextMap() const { return mTextMap; }
 
-        static void SendSound(Creature* source, uint32 sound, ChatMsg msgType, WorldObject const* whisperTarget = nullptr, CreatureTextRange range = TEXT_RANGE_NORMAL, Team team = TEAM_OTHER, bool gmOnly = false);
-        static void SendEmote(Unit* source, Emote emote);
+        void SendSound(Creature* source,uint32 sound, ChatType msgtype, uint64 whisperGuid, TextRange range, Team team, bool gmOnly);
+        void SendEmote(Unit* source, uint32 emote);
 
         //if sent, returns the 'duration' of the text else 0 if error
-        uint32 SendChat(Creature* source, uint8 textGroup, WorldObject const* whisperTarget = nullptr, ChatMsg msgType = CHAT_MSG_ADDON, Language language = LANG_ADDON, CreatureTextRange range = TEXT_RANGE_NORMAL, uint32 sound = 0, Team team = TEAM_OTHER, bool gmOnly = false, Player* srcPlr = nullptr);
-        bool TextExist(uint32 sourceEntry, uint8 textGroup) const;
-        std::string GetLocalizedChatString(uint32 entry, uint8 gender, uint8 textGroup, uint32 id, LocaleConstant locale) const;
-
-        template<class Builder>
-        static void SendChatPacket(WorldObject* source, Builder const& builder, ChatMsg msgType, WorldObject const* whisperTarget = nullptr, CreatureTextRange range = TEXT_RANGE_NORMAL, Team team = TEAM_OTHER, bool gmOnly = false);
-
+        uint32 SendChat(Creature* source, uint8 textGroup, uint64 whisperGuid = 0, ChatType msgtype = CHAT_TYPE_END, Language language = LANG_ADDON, TextRange range = TEXT_RANGE_NORMAL, uint32 sound = 0, Team team = TEAM_OTHER, bool gmOnly = false, Player* srcPlr = NULL);
+        void SendChatString(WorldObject* source, char const* text, ChatType msgtype = CHAT_TYPE_SAY, Language language = LANG_UNIVERSAL, uint64 whisperGuid = 0, TextRange range = TEXT_RANGE_NORMAL, Team team = TEAM_OTHER, bool gmOnly = false) const;
+        bool TextExist(uint32 sourceEntry, uint8 textGroup);
     private:
-        static void SendNonChatPacket(WorldObject* source, WorldPacket const* data, ChatMsg msgType, WorldObject const* whisperTarget, CreatureTextRange range, Team team, bool gmOnly);
-        static float GetRangeForChatType(ChatMsg msgType);
+        CreatureTextRepeatIds GetRepeatGroup(Creature* source, uint8 textGroup);
+        void SetRepeatId(Creature* source, uint8 textGroup, uint8 id);
+        void BuildMonsterChat(WorldPacket *data, WorldObject* source, ChatType msgtype, char const* text, Language language, uint64 whisperGuid) const;
+        void SendChatPacket(WorldPacket *data, WorldObject* source, ChatType msgtype, uint64 whisperGuid, TextRange range, Team team, bool gmOnly) const;
 
         CreatureTextMap mTextMap;
-        LocaleCreatureTextMap mLocaleTextMap;
+        CreatureTextRepeatMap mTextRepeatMap;
 };
 
-#define sCreatureTextMgr CreatureTextMgr::instance()
-
+#define sCreatureTextMgr ACE_Singleton<CreatureTextMgr, ACE_Null_Mutex>::instance()
 #endif

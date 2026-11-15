@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,82 +16,73 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: boss_timmy_the_cruel
+SD%Complete: 100
+SDComment:
+SDCategory: Stratholme
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
-#include "stratholme.h"
+#include "ScriptPCH.h"
 
-enum TimmyTexts
+#define SAY_SPAWN   "TIMMY!"
+
+#define SPELL_RAVENOUSCLAW    17470
+
+class boss_timmy_the_cruel : public CreatureScript
 {
-    SAY_AGGRO               = 0
-};
+public:
+    boss_timmy_the_cruel() : CreatureScript("boss_timmy_the_cruel") { }
 
-enum TimmySpells
-{
-    SPELL_THRASH            = 12787,
-    SPELL_RAVENOUS_CLAW     = 17470
-};
-
-enum TimmyEvents
-{
-    EVENT_RAVENOUS_CLAW     = 1
-};
-
-// 10808 - Timmy the Cruel
-struct boss_timmy_the_cruel : public BossAI
-{
-    boss_timmy_the_cruel(Creature* creature) : BossAI(creature, BOSS_TIMMY_THE_CRUEL) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::Reset();
-
-        DoCastSelf(SPELL_THRASH);
+        return new boss_timmy_the_cruelAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_timmy_the_cruelAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
+        boss_timmy_the_cruelAI(Creature *c) : ScriptedAI(c) {}
 
-        Talk(SAY_AGGRO);
+        uint32 RavenousClaw_Timer;
+        bool HasYelled;
 
-        events.ScheduleEvent(EVENT_RAVENOUS_CLAW, 10s, 15s);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_RAVENOUS_CLAW:
-                    DoCastVictim(SPELL_RAVENOUS_CLAW);
-                    events.Repeat(10s, 15s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            RavenousClaw_Timer = 10000;
+            HasYelled = false;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void EnterCombat(Unit * /*who*/)
+        {
+            if (!HasYelled)
+            {
+                me->MonsterYell(SAY_SPAWN,LANG_UNIVERSAL,NULL);
+                HasYelled = true;
+            }
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            //RavenousClaw
+            if (RavenousClaw_Timer <= diff)
+            {
+                //Cast
+                DoCast(me->getVictim(), SPELL_RAVENOUSCLAW);
+                //15 seconds until we should cast this again
+                RavenousClaw_Timer = 15000;
+            } else RavenousClaw_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_timmy_the_cruel()
 {
-    RegisterStratholmeCreatureAI(boss_timmy_the_cruel);
+    new boss_timmy_the_cruel();
 }

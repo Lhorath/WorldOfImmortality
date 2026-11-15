@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2007 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,938 +16,933 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * SAY_BERSERK is NYI, is it used?
- * Combat timers requires to be revisited, mainly player class abilities, half of timers are guessed
- * Currently we generate random companions after every wipe, doubt it is correct
- * We interrupt Siphon Soul instantly to allow casting player class abilities, that's a hack
- */
+/* ScriptData
+SDName: Boss_Hex_Lord_Malacrass
+SD%Complete:
+SDComment:
+SDCategory: Zul'Aman
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "Containers.h"
-#include "InstanceScript.h"
-#include "Map.h"
-#include "ScriptedCreature.h"
-#include "SpellAuraEffects.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
+#include "ScriptPCH.h"
 #include "zulaman.h"
 
-enum MalacrassTexts
+#define YELL_AGGRO              "Da shadow gonna fall on you... "
+#define SOUND_YELL_AGGRO        12041
+#define YELL_SPIRIT_BOLTS       "Your soul gonna bleed!"
+#define SOUND_YELL_SPIRIT_BOLTS 12047
+#define YELL_DRAIN_POWER        "Darkness comin\' for you"
+#define SOUND_YELL_DRAIN_POWER  12046
+#define YELL_KILL_ONE           "Dis a nightmare ya don\' wake up from!"
+#define SOUND_YELL_KILL_ONE     12043
+#define YELL_KILL_TWO           "Azzaga choogo zinn!"
+#define SOUND_YELL_KILL_TWO     12044
+#define YELL_DEATH              "Dis not... da end of me..."
+#define SOUND_YELL_DEATH        12051
+
+#define SPELL_SPIRIT_BOLTS      43383
+#define SPELL_DRAIN_POWER       44131
+#define SPELL_SIPHON_SOUL       43501
+
+#define MOB_TEMP_TRIGGER        23920
+
+//Defines for various powers he uses after using soul drain
+
+//Druid
+#define SPELL_DR_LIFEBLOOM      43421
+#define SPELL_DR_THORNS         43420
+#define SPELL_DR_MOONFIRE       43545
+
+//Hunter
+#define SPELL_HU_EXPLOSIVE_TRAP 43444
+#define SPELL_HU_FREEZING_TRAP  43447
+#define SPELL_HU_SNAKE_TRAP     43449
+
+//Mage
+#define SPELL_MG_FIREBALL       41383
+#define SPELL_MG_FROSTBOLT      43428
+#define SPELL_MG_FROST_NOVA     43426
+#define SPELL_MG_ICE_LANCE      43427
+
+//Paladin
+#define SPELL_PA_CONSECRATION   43429
+#define SPELL_PA_HOLY_LIGHT     43451
+#define SPELL_PA_AVENGING_WRATH 43430
+
+//Priest
+#define SPELL_PR_HEAL           41372
+#define SPELL_PR_MIND_CONTROL   43550
+#define SPELL_PR_MIND_BLAST     41374
+#define SPELL_PR_SW_DEATH       41375
+#define SPELL_PR_PSYCHIC_SCREAM 43432
+#define SPELL_PR_PAIN_SUPP      44416
+
+//Rogue
+#define SPELL_RO_BLIND          43433
+#define SPELL_RO_SLICE_DICE     43457
+#define SPELL_RO_WOUND_POISON   39665
+
+//Shaman
+#define SPELL_SH_FIRE_NOVA      43436
+#define SPELL_SH_HEALING_WAVE   43548
+#define SPELL_SH_CHAIN_LIGHT    43435
+
+//Warlock
+#define SPELL_WL_CURSE_OF_DOOM  43439
+#define SPELL_WL_RAIN_OF_FIRE   43440
+#define SPELL_WL_UNSTABLE_AFFL  35183
+
+//Warrior
+#define SPELL_WR_SPELL_REFLECT  43443
+#define SPELL_WR_WHIRLWIND      43442
+#define SPELL_WR_MORTAL_STRIKE  43441
+
+#define ORIENT                  1.5696f
+#define POS_Y                   921.2795f
+#define POS_Z                   33.8883f
+
+static float Pos_X[4] = {112.8827f, 107.8827f, 122.8827f, 127.8827f};
+
+static uint32 AddEntryList[8]=
 {
-    SAY_AGGRO                     = 0,
-    SAY_BERSERK                   = 1,
-    SAY_SLAY                      = 2,
-    SAY_CHARM                     = 3,
-    SAY_DRAIN_POWER               = 4,
-    SAY_SPIRIT_BOLTS              = 5,
-    SAY_PET_DIES                  = 6,
-    SAY_DEATH                     = 7
+    24240, //Alyson Antille
+    24241, //Thurg
+    24242, //Slither
+    24243, //Lord Raadan
+    24244, //Gazakroth
+    24245, //Fenstalker
+    24246, //Darkheart
+    24247  //Koragg
 };
 
-enum MalacrassSpells
+enum AbilityTarget
 {
-    // Malacrass
-    SPELL_SPIRIT_BOLTS            = 43383,
-    SPELL_SIPHON_SOUL             = 43498,
-    SPELL_DRAIN_POWER             = 44131,
-
-    // Warrior
-    SPELL_WR_MORTAL_STRIKE        = 43441,
-    SPELL_WR_WHIRLWIND            = 43442,
-    SPELL_WR_SPELL_REFLECTION     = 43443,
-
-    // Paladin
-    SPELL_PA_CONSECRATION         = 43429,
-    SPELL_PA_AVENGING_WRATH       = 43430,
-    SPELL_PA_HOLY_LIGHT           = 43451,
-
-    // Hunter
-    SPELL_HU_EXPLOSIVE_TRAP       = 43444,
-    SPELL_HU_FREEZING_TRAP        = 43447,
-    SPELL_HU_SNAKE_TRAP           = 43449,
-
-    // Rogue
-    SPELL_RO_BLIND                = 43433,
-    SPELL_RO_WOUND_POISON         = 43461,
-    SPELL_RO_SLICE_AND_DICE       = 43547,
-
-    // Priest
-    SPELL_PR_FLASH_HEAL           = 43431,
-    SPELL_PR_PSYCHIC_SCREAM       = 43432,
-    SPELL_PR_MIND_CONTROL         = 43550,
-
-    // Death Knight
-    SPELL_DK_PLAGUE_STRIKE        = 61600,
-    SPELL_DK_DEATH_AND_DECAY      = 61603,
-    SPELL_DK_MARK_OF_BLOOD        = 61606,
-
-    // Shaman
-    SPELL_SH_CHAIN_LIGHTNING      = 43435,
-    SPELL_SH_FIRE_NOVA_TOTEM      = 43436,
-    SPELL_SH_HEALING_WAVE         = 43548,
-
-    // Mage
-    SPELL_MG_FROST_NOVA           = 43426,
-    SPELL_MG_ICE_LANCE            = 43427,
-    SPELL_MG_FROSTBOLT            = 43428,
-
-    // Warlock
-    SPELL_WL_CURSE_OF_DOOM        = 43439,
-    SPELL_WL_RAIN_OF_FIRE         = 43440,
-    SPELL_WL_UNSTABLE_AFFLICTION  = 43522,
-
-    // Druid
-    SPELL_DR_THORNS               = 43420,
-    SPELL_DR_LIFEBLOOM            = 43421,
-    SPELL_DR_MOONFIRE             = 43545,
-
-    // Alyson Antille
-    SPELL_ARCANE_TORRENT          = 33390,
-    SPELL_FLASH_HEAL              = 43575,
-    SPELL_DISPEL_MAGIC            = 43577,
-
-    // Thurg
-    SPELL_CLEAVE                  = 15496,
-    SPELL_BLOODLUST               = 43578,
-
-    // Slither
-    SPELL_VENOM_SPIT              = 43579,
-    SPELL_DEADLY_POISON           = 43580,
-
-    // Lord Raadan
-    SPELL_FLAME_BREATH            = 43582,
-    SPELL_THUNDERCLAP             = 43583,
-
-    // Gazakroth
-    SPELL_FIREBOLT                = 43584,
-
-    // Fenstalker
-    SPELL_VOLATILE_INFECTION      = 43586,
-
-    // Darkheart
-    SPELL_PSYCHIC_WAIL            = 43590,
-
-    // Koragg
-    SPELL_MIGHTY_BLOW             = 43592,
-    SPELL_COLD_STARE              = 43593,
-
-    // Scripts
-    SPELL_LIFEBLOOM_FINAL_HEAL    = 43422,
-    SPELL_UNSTABLE_AFFL_DISPEL    = 43523,
-    SPELL_SIPHON_SOUL_EFFECT      = 43501,
-    SPELL_MARK_OF_BLOOD_HEAL      = 61607
+    ABILITY_TARGET_SELF = 0,
+    ABILITY_TARGET_VICTIM = 1,
+    ABILITY_TARGET_ENEMY = 2,
+    ABILITY_TARGET_HEAL = 3,
+    ABILITY_TARGET_BUFF = 4,
+    ABILITY_TARGET_SPECIAL = 5
 };
 
-enum MalacrassEvents
+struct PlayerAbilityStruct
 {
-    EVENT_SPIRIT_BOLTS            = 1,
-    EVENT_SIPHON_SOUL,
-    EVENT_DRAIN_POWER,
-    EVENT_CANCEL_CLASS_ABILITIES,
-
-    // Warrior
-    EVENT_WR_MORTAL_STRIKE,
-    EVENT_WR_WHIRLWIND,
-    EVENT_WR_SPELL_REFLECTION,
-
-    // Paladin
-    EVENT_PA_CONSECRATION,
-    EVENT_PA_AVENGING_WRATH,
-    EVENT_PA_HOLY_LIGHT,
-
-    // Hunter
-    EVENT_HU_EXPLOSIVE_TRAP,
-    EVENT_HU_FREEZING_TRAP,
-    EVENT_HU_SNAKE_TRAP,
-
-    // Rogue
-    EVENT_RO_BLIND,
-    EVENT_RO_WOUND_POISON,
-    EVENT_RO_SLICE_AND_DICE,
-
-    // Priest
-    EVENT_PR_FLASH_HEAL,
-    EVENT_PR_PSYCHIC_SCREAM,
-    EVENT_PR_MIND_CONTROL,
-
-    // Death Knight
-    EVENT_DK_PLAGUE_STRIKE,
-    EVENT_DK_DEATH_AND_DECAY,
-    EVENT_DK_MARK_OF_BLOOD,
-
-    // Shaman
-    EVENT_SH_CHAIN_LIGHTNING,
-    EVENT_SH_FIRE_NOVA_TOTEM,
-    EVENT_SH_HEALING_WAVE,
-
-    // Mage
-    EVENT_MG_FROST_NOVA,
-    EVENT_MG_ICE_LANCE,
-    EVENT_MG_FROSTBOLT,
-
-    // Warlock
-    EVENT_WL_CURSE_OF_DOOM,
-    EVENT_WL_RAIN_OF_FIRE,
-    EVENT_WL_UNSTABLE_AFFLICTION,
-
-    // Druid
-    EVENT_DR_THORNS,
-    EVENT_DR_LIFEBLOOM,
-    EVENT_DR_MOONFIRE
+    uint32 spell;
+    AbilityTarget target;
+    uint32 cooldown; //FIXME - it's never used
 };
 
-enum MalacrassEventGroups
+static PlayerAbilityStruct PlayerAbility[][3] =
 {
-    EVENT_GROUP_PLAYER_ABILITY    = 1
+    // 1 warrior
+    {{SPELL_WR_SPELL_REFLECT, ABILITY_TARGET_SELF, 10000},
+    {SPELL_WR_WHIRLWIND, ABILITY_TARGET_SELF, 10000},
+    {SPELL_WR_MORTAL_STRIKE, ABILITY_TARGET_VICTIM, 6000}},
+    // 2 paladin
+    {{SPELL_PA_CONSECRATION, ABILITY_TARGET_SELF, 10000},
+    {SPELL_PA_HOLY_LIGHT, ABILITY_TARGET_HEAL, 10000},
+    {SPELL_PA_AVENGING_WRATH, ABILITY_TARGET_SELF, 10000}},
+    // 3 hunter
+    {{SPELL_HU_EXPLOSIVE_TRAP, ABILITY_TARGET_SELF, 10000},
+    {SPELL_HU_FREEZING_TRAP, ABILITY_TARGET_SELF, 10000},
+    {SPELL_HU_SNAKE_TRAP, ABILITY_TARGET_SELF, 10000}},
+    // 4 rogue
+    {{SPELL_RO_WOUND_POISON, ABILITY_TARGET_VICTIM, 3000},
+    {SPELL_RO_SLICE_DICE, ABILITY_TARGET_SELF, 10000},
+    {SPELL_RO_BLIND, ABILITY_TARGET_ENEMY, 10000}},
+    // 5 priest
+    {{SPELL_PR_PAIN_SUPP, ABILITY_TARGET_HEAL, 10000},
+    {SPELL_PR_HEAL, ABILITY_TARGET_HEAL, 10000},
+    {SPELL_PR_PSYCHIC_SCREAM, ABILITY_TARGET_SELF, 10000}},
+    // 5* shadow priest
+    {{SPELL_PR_MIND_CONTROL, ABILITY_TARGET_ENEMY, 15000},
+    {SPELL_PR_MIND_BLAST, ABILITY_TARGET_ENEMY, 5000},
+    {SPELL_PR_SW_DEATH, ABILITY_TARGET_ENEMY, 10000}},
+    // 7 shaman
+    {{SPELL_SH_FIRE_NOVA, ABILITY_TARGET_SELF, 10000},
+    {SPELL_SH_HEALING_WAVE, ABILITY_TARGET_HEAL, 10000},
+    {SPELL_SH_CHAIN_LIGHT, ABILITY_TARGET_ENEMY, 8000}},
+    // 8 mage
+    {{SPELL_MG_FIREBALL, ABILITY_TARGET_ENEMY, 5000},
+    {SPELL_MG_FROSTBOLT, ABILITY_TARGET_ENEMY, 5000},
+    {SPELL_MG_ICE_LANCE, ABILITY_TARGET_SPECIAL, 2000}},
+    // 9 warlock
+    {{SPELL_WL_CURSE_OF_DOOM, ABILITY_TARGET_ENEMY, 10000},
+    {SPELL_WL_RAIN_OF_FIRE, ABILITY_TARGET_ENEMY, 10000},
+    {SPELL_WL_UNSTABLE_AFFL, ABILITY_TARGET_ENEMY, 10000}},
+    // 11 druid
+    {{SPELL_DR_LIFEBLOOM, ABILITY_TARGET_HEAL, 10000},
+    {SPELL_DR_THORNS, ABILITY_TARGET_SELF, 10000},
+    {SPELL_DR_MOONFIRE, ABILITY_TARGET_ENEMY, 8000}}
 };
 
-enum MalacrassMisc
+struct boss_hexlord_addAI : public ScriptedAI
 {
-    ACTION_COMPANION_DEATH        = 0,
-    DATA_PLAYER_CLASS             = 0
-};
+    InstanceScript* pInstance;
 
-static constexpr std::array<std::array<uint32, 2>, 4> MalacrassSpawnGroups =
-{{
-    {{ 368, 369 }},
-    {{ 370, 371 }},
-    {{ 372, 373 }},
-    {{ 374, 375 }},
-}};
-
-// 24239 - Hex Lord Malacrass
-struct boss_hexlord_malacrass : public BossAI
-{
-    boss_hexlord_malacrass(Creature* creature) : BossAI(creature, BOSS_HEXLORD), _canUseDrainPower(false) { }
-
-    void JustAppeared() override
+    boss_hexlord_addAI(Creature* c) : ScriptedAI(c)
     {
-        DoSpawnCompanions();
+        pInstance = c->GetInstanceScript();
     }
 
-    void JustEngagedWith(Unit* who) override
+    void Reset() {}
+
+    void EnterCombat(Unit* /*who*/) {DoZoneInCombat();}
+
+    void UpdateAI(const uint32 /*diff*/)
     {
-        BossAI::JustEngagedWith(who);
-
-        Talk(SAY_AGGRO);
-
-        events.ScheduleEvent(EVENT_SPIRIT_BOLTS, 30s);
-        events.ScheduleEvent(EVENT_SIPHON_SOUL, 40s);
-    }
-
-    void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (!_canUseDrainPower && me->HealthBelowPctDamaged(80, damage))
+        if (pInstance && pInstance->GetData(DATA_HEXLORDEVENT) != IN_PROGRESS)
         {
-            _canUseDrainPower = true;
-            _specialEvents.ScheduleEvent(EVENT_DRAIN_POWER, 0s);
+            EnterEvadeMode();
+            return;
         }
-    }
 
-    void DoAction(int32 action) override
-    {
-        if (action == ACTION_COMPANION_DEATH)
-            Talk(SAY_PET_DIES);
+        DoMeleeAttackIfReady();
     }
+};
 
-    void SetData(uint32 type, uint32 data) override
-    {
-        if (type == DATA_PLAYER_CLASS)
+class boss_hexlord_malacrass : public CreatureScript
+{
+    public:
+
+        boss_hexlord_malacrass()
+            : CreatureScript("boss_hexlord_malacrass")
         {
-            if (data > CLASS_NONE && data <= CLASS_DRUID)
+        }
+
+        struct boss_hex_lord_malacrassAI : public ScriptedAI
+        {
+            boss_hex_lord_malacrassAI(Creature *c) : ScriptedAI(c)
             {
-                switch (data)
+                pInstance = c->GetInstanceScript();
+                SelectAddEntry();
+                for (uint8 i = 0; i < 4; ++i)
+                    AddGUID[i] = 0;
+            }
+
+            InstanceScript *pInstance;
+
+            uint64 AddGUID[4];
+            uint32 AddEntry[4];
+
+            uint64 PlayerGUID;
+
+            uint32 SpiritBolts_Timer;
+            uint32 DrainPower_Timer;
+            uint32 SiphonSoul_Timer;
+            uint32 PlayerAbility_Timer;
+            uint32 CheckAddState_Timer;
+            uint32 ResetTimer;
+
+            uint32 PlayerClass;
+
+            void Reset()
+            {
+                if (pInstance)
+                    pInstance->SetData(DATA_HEXLORDEVENT, NOT_STARTED);
+
+                SpiritBolts_Timer = 20000;
+                DrainPower_Timer = 60000;
+                SiphonSoul_Timer = 100000;
+                PlayerAbility_Timer = 99999;
+                CheckAddState_Timer = 5000;
+                ResetTimer = 5000;
+
+                SpawnAdds();
+
+                me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID, 46916);
+                me->SetByteValue(UNIT_FIELD_BYTES_2, 0, SHEATH_STATE_MELEE);
+            }
+
+            void EnterCombat(Unit* /*who*/)
+            {
+                if (pInstance)
+                    pInstance->SetData(DATA_HEXLORDEVENT, IN_PROGRESS);
+
+                DoZoneInCombat();
+                me->MonsterYell(YELL_AGGRO, LANG_UNIVERSAL, NULL);
+                DoPlaySoundToSet(me, SOUND_YELL_AGGRO);
+
+                for (uint8 i = 0; i < 4; ++i)
                 {
-                    case CLASS_WARRIOR:
-                        _specialEvents.ScheduleEvent(EVENT_WR_MORTAL_STRIKE, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_WR_WHIRLWIND, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_WR_SPELL_REFLECTION, 10s, EVENT_GROUP_PLAYER_ABILITY);
+                    Unit* Temp = Unit::GetUnit((*me),AddGUID[i]);
+                    if (Temp && Temp->isAlive())
+                        CAST_CRE(Temp)->AI()->AttackStart(me->getVictim());
+                    else
+                    {
+                        EnterEvadeMode();
                         break;
-                    case CLASS_PALADIN:
-                        _specialEvents.ScheduleEvent(EVENT_PA_CONSECRATION, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_PA_AVENGING_WRATH, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_PA_HOLY_LIGHT, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
+                    }
+                }
+            }
+
+            void KilledUnit(Unit* /*victim*/)
+            {
+                switch (urand(0,1))
+                {
+                    case 0:
+                        me->MonsterYell(YELL_KILL_ONE, LANG_UNIVERSAL, NULL);
+                        DoPlaySoundToSet(me, SOUND_YELL_KILL_ONE);
                         break;
-                    case CLASS_HUNTER:
-                        _specialEvents.ScheduleEvent(EVENT_HU_EXPLOSIVE_TRAP, 5s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_HU_FREEZING_TRAP, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_HU_SNAKE_TRAP, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
+                    case 1:
+                        me->MonsterYell(YELL_KILL_TWO, LANG_UNIVERSAL, NULL);
+                        DoPlaySoundToSet(me, SOUND_YELL_KILL_TWO);
                         break;
-                    case CLASS_ROGUE:
-                        _specialEvents.ScheduleEvent(EVENT_RO_BLIND, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_RO_WOUND_POISON, 0s, 5s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_RO_SLICE_AND_DICE, 0s, EVENT_GROUP_PLAYER_ABILITY);
+                }
+            }
+
+            void JustDied(Unit* /*victim*/)
+            {
+                if (pInstance)
+                    pInstance->SetData(DATA_HEXLORDEVENT, DONE);
+
+                me->MonsterYell(YELL_DEATH, LANG_UNIVERSAL, NULL);
+                DoPlaySoundToSet(me, SOUND_YELL_DEATH);
+
+                for (uint8 i = 0; i < 4 ; ++i)
+                {
+                    Unit* Temp = Unit::GetUnit((*me),AddGUID[i]);
+                    if (Temp && Temp->isAlive())
+                        Temp->DealDamage(Temp, Temp->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+                }
+            }
+
+            void SelectAddEntry()
+            {
+                std::vector<uint32> AddList;
+
+                for (uint8 i = 0; i < 8; ++i)
+                    AddList.push_back(AddEntryList[i]);
+
+                while (AddList.size() > 4)
+                    AddList.erase(AddList.begin()+rand()%AddList.size());
+
+                uint8 i = 0;
+                for (std::vector<uint32>::const_iterator itr = AddList.begin(); itr != AddList.end(); ++itr, ++i)
+                    AddEntry[i] = *itr;
+            }
+
+            void SpawnAdds()
+            {
+                for (uint8 i = 0; i < 4; ++i)
+                {
+                    Creature *pCreature = (Unit::GetCreature((*me), AddGUID[i]));
+                    if (!pCreature || !pCreature->isAlive())
+                    {
+                        if (pCreature) pCreature->setDeathState(DEAD);
+                        pCreature = me->SummonCreature(AddEntry[i], Pos_X[i], POS_Y, POS_Z, ORIENT, TEMPSUMMON_DEAD_DESPAWN, 0);
+                        if (pCreature) AddGUID[i] = pCreature->GetGUID();
+                    }
+                    else
+                    {
+                        pCreature->AI()->EnterEvadeMode();
+                        pCreature->GetMap()->CreatureRelocation(me, Pos_X[i], POS_Y, POS_Z, ORIENT);
+                        pCreature->StopMoving();
+                    }
+                }
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
+
+                if (ResetTimer <= diff)
+                {
+                    if (me->IsWithinDist3d(119.223f, 1035.45f, 29.4481f, 10))
+                    {
+                        EnterEvadeMode();
+                        return;
+                    }
+                    ResetTimer = 5000;
+                } else ResetTimer -= diff;
+
+                if (CheckAddState_Timer <= diff)
+                {
+                    for (uint8 i = 0; i < 4; ++i)
+                        if (Creature *pTemp = Unit::GetCreature(*me, AddGUID[i]))
+                            if (pTemp->isAlive() && !pTemp->getVictim())
+                                pTemp->AI()->AttackStart(me->getVictim());
+
+                    CheckAddState_Timer = 5000;
+                } else CheckAddState_Timer -= diff;
+
+                if (DrainPower_Timer <= diff)
+                {
+                    DoCast(me, SPELL_DRAIN_POWER, true);
+                    me->MonsterYell(YELL_DRAIN_POWER, LANG_UNIVERSAL, NULL);
+                    DoPlaySoundToSet(me, SOUND_YELL_DRAIN_POWER);
+                    DrainPower_Timer = urand(40000,55000);    // must cast in 60 sec, or buff/debuff will disappear
+                } else DrainPower_Timer -= diff;
+
+                if (SpiritBolts_Timer <= diff)
+                {
+                    if (DrainPower_Timer < 12000)    // channel 10 sec
+                        SpiritBolts_Timer = 13000;   // cast drain power first
+                    else
+                    {
+                        DoCast(me, SPELL_SPIRIT_BOLTS, false);
+                        me->MonsterYell(YELL_SPIRIT_BOLTS, LANG_UNIVERSAL, NULL);
+                        DoPlaySoundToSet(me, SOUND_YELL_SPIRIT_BOLTS);
+                        SpiritBolts_Timer = 40000;
+                        SiphonSoul_Timer = 10000;    // ready to drain
+                        PlayerAbility_Timer = 99999;
+                    }
+                } else SpiritBolts_Timer -= diff;
+
+                if (SiphonSoul_Timer <= diff)
+                {
+                    Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 70, true);
+                    Unit *trigger = DoSpawnCreature(MOB_TEMP_TRIGGER, 0, 0, 0, 0, TEMPSUMMON_TIMED_DESPAWN, 30000);
+                    if (!pTarget || !trigger)
+                    {
+                        EnterEvadeMode();
+                        return;
+                    }
+                    else
+                    {
+                        trigger->SetDisplayId(11686);
+                        trigger->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                        trigger->CastSpell(pTarget, SPELL_SIPHON_SOUL, true);
+                        trigger->GetMotionMaster()->MoveChase(me);
+
+                        //DoCast(pTarget, SPELL_SIPHON_SOUL, true);
+                        //me->SetUInt64Value(UNIT_FIELD_CHANNEL_OBJECT, pTarget->GetGUID());
+                        //me->SetUInt32Value(UNIT_CHANNEL_SPELL, SPELL_SIPHON_SOUL);
+
+                        PlayerGUID = pTarget->GetGUID();
+                        PlayerAbility_Timer = urand(8000,10000);
+                        PlayerClass = pTarget->getClass() - 1;
+
+                        if (PlayerClass == CLASS_DRUID-1)
+                            PlayerClass = CLASS_DRUID;
+                        else if (PlayerClass == CLASS_PRIEST-1 && pTarget->HasSpell(15473))
+                            PlayerClass = CLASS_PRIEST; // shadow priest
+
+                        SiphonSoul_Timer = 99999;   // buff lasts 30 sec
+                    }
+                } else SiphonSoul_Timer -= diff;
+
+                if (PlayerAbility_Timer <= diff)
+                {
+                    //Unit *pTarget = Unit::GetUnit(*me, PlayerGUID);
+                    //if (pTarget && pTarget->isAlive())
+                    //{
+                        UseAbility();
+                        PlayerAbility_Timer = urand(8000,10000);
+                    //}
+                } else PlayerAbility_Timer -= diff;
+
+                DoMeleeAttackIfReady();
+            }
+
+            void UseAbility()
+            {
+                uint8 random = urand(0,2);
+                Unit *pTarget = NULL;
+                switch(PlayerAbility[PlayerClass][random].target)
+                {
+                    case ABILITY_TARGET_SELF:
+                        pTarget = me;
                         break;
-                    case CLASS_PRIEST:
-                        _specialEvents.ScheduleEvent(EVENT_PR_FLASH_HEAL, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_PR_PSYCHIC_SCREAM, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_PR_MIND_CONTROL, 0s, EVENT_GROUP_PLAYER_ABILITY);
+                    case ABILITY_TARGET_VICTIM:
+                        pTarget = me->getVictim();
                         break;
-                    case CLASS_DEATH_KNIGHT:
-                        _specialEvents.ScheduleEvent(EVENT_DK_PLAGUE_STRIKE, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_DK_DEATH_AND_DECAY, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_DK_MARK_OF_BLOOD, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        break;
-                    case CLASS_SHAMAN:
-                        _specialEvents.ScheduleEvent(EVENT_SH_CHAIN_LIGHTNING, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_SH_FIRE_NOVA_TOTEM, 10s, 20s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_SH_HEALING_WAVE, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        break;
-                    case CLASS_MAGE:
-                        _specialEvents.ScheduleEvent(EVENT_MG_FROST_NOVA, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_MG_ICE_LANCE, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_MG_FROSTBOLT, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        break;
-                    case CLASS_WARLOCK:
-                        _specialEvents.ScheduleEvent(EVENT_WL_CURSE_OF_DOOM, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_WL_RAIN_OF_FIRE, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_WL_UNSTABLE_AFFLICTION, 5s, 10s, EVENT_GROUP_PLAYER_ABILITY);
-                        break;
-                    case CLASS_DRUID:
-                        _specialEvents.ScheduleEvent(EVENT_DR_THORNS, 0s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_DR_LIFEBLOOM, 10s, 15s, EVENT_GROUP_PLAYER_ABILITY);
-                        _specialEvents.ScheduleEvent(EVENT_DR_MOONFIRE, 3s, 4s, EVENT_GROUP_PLAYER_ABILITY);
-                        break;
+                    case ABILITY_TARGET_ENEMY:
                     default:
+                        pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true);
+                        break;
+                    case ABILITY_TARGET_HEAL:
+                        pTarget = DoSelectLowestHpFriendly(50, 0);
+                        break;
+                    case ABILITY_TARGET_BUFF:
+                        {
+                            std::list<Creature*> templist = DoFindFriendlyMissingBuff(50, PlayerAbility[PlayerClass][random].spell);
+                            if (!templist.empty())
+                                pTarget = *(templist.begin());
+                        }
                         break;
                 }
-
-                _specialEvents.ScheduleEvent(EVENT_CANCEL_CLASS_ABILITIES, 30s);
+                if (pTarget)
+                    DoCast(pTarget, PlayerAbility[PlayerClass][random].spell, false);
             }
-        }
-    }
+        };
 
-    void DoSpawnCompanions()
-    {
-        for (std::array<uint32, 2> const& spawnGroupsForSlot : MalacrassSpawnGroups)
-            me->GetMap()->SpawnGroupSpawn(Trinity::Containers::SelectRandomContainerElement(spawnGroupsForSlot), true);
-    }
-
-    void DoDespawnCompanions()
-    {
-        for (std::array<uint32, 2> const& spawnGroupsForSlot : MalacrassSpawnGroups)
-            for (uint32 spawnGroupId : spawnGroupsForSlot)
-                me->GetMap()->SpawnGroupDespawn(spawnGroupId);
-    }
-
-    void OnSpellCast(SpellInfo const* spellInfo) override
-    {
-        switch (spellInfo->Id)
+        CreatureAI* GetAI(Creature* creature) const
         {
-            case SPELL_SPIRIT_BOLTS:
-                Talk(SAY_SPIRIT_BOLTS);
-                break;
-            case SPELL_SIPHON_SOUL:
-                Talk(SAY_CHARM);
-                me->InterruptNonMeleeSpells(false);
-                break;
-            case SPELL_DRAIN_POWER:
-                Talk(SAY_DRAIN_POWER);
-                break;
-            default:
-                break;
+            return new boss_hex_lord_malacrassAI(creature);
         }
-    }
-
-    void EnterEvadeMode(EvadeReason /*why*/) override
-    {
-        summons.DespawnAll();
-        _DespawnAtEvade();
-
-        DoDespawnCompanions();
-    }
-
-    void KilledUnit(Unit* /*victim*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-
-        DoDespawnCompanions();
-    }
-
-    void UpdateSpecialEvents(uint32 diff)
-    {
-        _specialEvents.Update(diff);
-
-        if (me->FindCurrentSpellBySpellId(SPELL_SPIRIT_BOLTS) ||
-            me->FindCurrentSpellBySpellId(SPELL_WR_WHIRLWIND) ||
-            me->FindCurrentSpellBySpellId(SPELL_PA_HOLY_LIGHT) ||
-            me->FindCurrentSpellBySpellId(SPELL_PR_FLASH_HEAL) ||
-            me->FindCurrentSpellBySpellId(SPELL_SH_CHAIN_LIGHTNING) ||
-            me->FindCurrentSpellBySpellId(SPELL_SH_HEALING_WAVE) ||
-            me->FindCurrentSpellBySpellId(SPELL_MG_FROSTBOLT))
-            return;
-
-        while (uint32 eventId = _specialEvents.ExecuteEvent())
-        {
-            switch (eventId)
-            {
-                case EVENT_DRAIN_POWER:
-                    DoCastSelf(SPELL_DRAIN_POWER);
-                    _specialEvents.Repeat(30s);
-                    break;
-
-                case EVENT_WR_MORTAL_STRIKE:
-                    DoCastVictim(SPELL_WR_MORTAL_STRIKE);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-                case EVENT_WR_WHIRLWIND:
-                    DoCastSelf(SPELL_WR_WHIRLWIND);
-                    _specialEvents.Repeat(15s, 20s);
-                    break;
-                case EVENT_WR_SPELL_REFLECTION:
-                    DoCastSelf(SPELL_WR_SPELL_REFLECTION);
-                    _specialEvents.Repeat(10s);
-                    break;
-
-                case EVENT_PA_CONSECRATION:
-                    DoCastSelf(SPELL_PA_CONSECRATION);
-                    _specialEvents.Repeat(20s, 25s);
-                    break;
-                case EVENT_PA_AVENGING_WRATH:
-                    DoCastSelf(SPELL_PA_AVENGING_WRATH);
-                    _specialEvents.Repeat(15s, 20s);
-                    break;
-                case EVENT_PA_HOLY_LIGHT:
-                    if (Unit* target = DoSelectLowestHpFriendly(40.0f))
-                        DoCast(target, SPELL_PA_HOLY_LIGHT);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-
-                case EVENT_HU_EXPLOSIVE_TRAP:
-                    DoCastSelf(SPELL_HU_EXPLOSIVE_TRAP);
-                    _specialEvents.Repeat(15s, 20s);
-                    break;
-                case EVENT_HU_FREEZING_TRAP:
-                    DoCastSelf(SPELL_HU_FREEZING_TRAP);
-                    _specialEvents.Repeat(10s, 20s);
-                    break;
-                case EVENT_HU_SNAKE_TRAP:
-                    DoCastSelf(SPELL_HU_SNAKE_TRAP);
-                    _specialEvents.Repeat(10s, 20s);
-                    break;
-
-                case EVENT_RO_BLIND:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 10.0f))
-                        DoCast(target, SPELL_RO_BLIND);
-                    _specialEvents.Repeat(15s, 20s);
-                    break;
-                case EVENT_RO_WOUND_POISON:
-                    DoCastVictim(SPELL_RO_WOUND_POISON);
-                    _specialEvents.Repeat(0s, 5s);
-                    break;
-                case EVENT_RO_SLICE_AND_DICE:
-                    DoCastSelf(SPELL_RO_SLICE_AND_DICE);
-                    _specialEvents.Repeat(40s);
-                    break;
-
-                case EVENT_PR_FLASH_HEAL:
-                    DoCastSelf(SPELL_PR_FLASH_HEAL);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-                case EVENT_PR_PSYCHIC_SCREAM:
-                    DoCastSelf(SPELL_PR_PSYCHIC_SCREAM);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-                case EVENT_PR_MIND_CONTROL:
-                    DoCastSelf(SPELL_PR_MIND_CONTROL);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-
-                case EVENT_DK_PLAGUE_STRIKE:
-                    DoCastVictim(SPELL_DK_PLAGUE_STRIKE);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-                case EVENT_DK_DEATH_AND_DECAY:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f))
-                        DoCast(target, SPELL_DK_DEATH_AND_DECAY);
-                    _specialEvents.Repeat(15s, 20s);
-                    break;
-                case EVENT_DK_MARK_OF_BLOOD:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f))
-                        DoCast(target, SPELL_DK_MARK_OF_BLOOD);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-
-                case EVENT_SH_CHAIN_LIGHTNING:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f))
-                        DoCast(target, SPELL_SH_CHAIN_LIGHTNING);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-                case EVENT_SH_FIRE_NOVA_TOTEM:
-                    DoCastSelf(SPELL_SH_FIRE_NOVA_TOTEM);
-                    _specialEvents.Repeat(15s, 20s);
-                    break;
-                case EVENT_SH_HEALING_WAVE:
-                    DoCastSelf(SPELL_SH_HEALING_WAVE);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-
-                case EVENT_MG_FROST_NOVA:
-                    DoCastSelf(SPELL_MG_FROST_NOVA);
-                    _specialEvents.Repeat(15s, 20s);
-                    break;
-                case EVENT_MG_ICE_LANCE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f))
-                        DoCast(target, SPELL_MG_ICE_LANCE);
-                    _specialEvents.Repeat(5s, 10s);
-                    break;
-                case EVENT_MG_FROSTBOLT:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f))
-                        DoCast(target, SPELL_MG_FROSTBOLT);
-                    _specialEvents.Repeat(5s, 10s);
-                    break;
-
-                case EVENT_WL_CURSE_OF_DOOM:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true, true, -SPELL_WL_CURSE_OF_DOOM))
-                        DoCast(target, SPELL_WL_CURSE_OF_DOOM);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-                case EVENT_WL_RAIN_OF_FIRE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.0f))
-                        DoCast(target, SPELL_WL_RAIN_OF_FIRE);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-                case EVENT_WL_UNSTABLE_AFFLICTION:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true, true, -SPELL_WL_UNSTABLE_AFFLICTION))
-                        DoCast(target, SPELL_WL_UNSTABLE_AFFLICTION);
-                    _specialEvents.Repeat(5s, 10s);
-                    break;
-
-                case EVENT_DR_THORNS:
-                    DoCastSelf(SPELL_DR_THORNS);
-                    _specialEvents.Repeat(40s);
-                    break;
-                case EVENT_DR_LIFEBLOOM:
-                    DoCastSelf(SPELL_DR_LIFEBLOOM);
-                    _specialEvents.Repeat(10s, 15s);
-                    break;
-                case EVENT_DR_MOONFIRE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f))
-                        DoCast(target, SPELL_DR_MOONFIRE);
-                    _specialEvents.Repeat(3s, 4s);
-                    break;
-
-                case EVENT_CANCEL_CLASS_ABILITIES:
-                    _specialEvents.CancelEventGroup(EVENT_GROUP_PLAYER_ABILITY);
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        UpdateSpecialEvents(diff);
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
-        {
-            switch (eventId)
-            {
-                case EVENT_SPIRIT_BOLTS:
-                    DoCastSelf(SPELL_SPIRIT_BOLTS);
-                    events.Repeat(40s);
-                    break;
-                case EVENT_SIPHON_SOUL:
-                    DoCastSelf(SPELL_SIPHON_SOUL);
-                    events.Repeat(40s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
-        }
-
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    bool _canUseDrainPower;
-    EventMap _specialEvents;
 };
 
-struct MalacrassCompanionBaseAI : public ScriptedAI
+#define SPELL_BLOODLUST       43578
+#define SPELL_CLEAVE          15496
+
+class boss_thurg : public CreatureScript
 {
-    MalacrassCompanionBaseAI(Creature* creature) : ScriptedAI(creature), Instance(creature->GetInstanceScript()) { }
+    public:
 
-    void InitializeAI() override
-    {
-        me->SetCorpseDelay(5, true);
-
-        Scheduler.SetValidator([this]
+        boss_thurg()
+            : CreatureScript("boss_thurg")
         {
-            return !me->HasUnitState(UNIT_STATE_CASTING);
-        });
+        }
 
-        ScriptedAI::InitializeAI();
-    }
+        struct boss_thurgAI : public boss_hexlord_addAI
+        {
 
-    void Reset() override
-    {
-        Scheduler.CancelAll();
-    }
+            boss_thurgAI(Creature *c) : boss_hexlord_addAI(c) {}
 
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        ScheduleEvents();
-    }
+            uint32 bloodlust_timer;
+            uint32 cleave_timer;
 
-    virtual void ScheduleEvents() = 0;
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        if (Creature* malacrass = Instance->GetCreature(BOSS_HEXLORD))
-            malacrass->AI()->DoAction(ACTION_COMPANION_DEATH);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        Scheduler.Update(diff);
-
-        DoMeleeAttackIfReady();
-    }
-
-protected:
-    InstanceScript* Instance;
-    TaskScheduler Scheduler;
-};
-
-// 24240 - Alyson Antille
-struct boss_alyson_antille : public MalacrassCompanionBaseAI
-{
-    using MalacrassCompanionBaseAI::MalacrassCompanionBaseAI;
-
-    void ScheduleEvents() override
-    {
-        Scheduler
-            .Schedule(10s, 20s, [this](TaskContext task)
+            void Reset()
             {
-                DoCastSelf(SPELL_ARCANE_TORRENT);
-                task.Repeat(10s, 20s);
-            })
-            .Schedule(0s, 5s, [this](TaskContext task)
-            {
-                if (Unit* target = DoSelectLowestHpFriendly(40.0f))
-                    DoCast(target, SPELL_FLASH_HEAL);
-                task.Repeat(5s, 10s);
-            })
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                Unit* target = nullptr;
+                bloodlust_timer = 15000;
+                cleave_timer = 10000;
 
-                if (urand(0, 1))
-                    target = DoSelectLowestHpFriendly(40.0f, 0);
-                else
-                    target = SelectTarget(SelectTargetMethod::Random, 0);
-                if (target)
-                    DoCast(target, SPELL_DISPEL_MAGIC);
-                task.Repeat(10s, 15s);
-            });
-    }
-};
+                boss_hexlord_addAI::Reset();
+            }
 
-// 24241 - Thurg
-struct boss_thurg : public MalacrassCompanionBaseAI
-{
-    using MalacrassCompanionBaseAI::MalacrassCompanionBaseAI;
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
 
-    void ScheduleEvents() override
-    {
-        Scheduler
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                DoCastVictim(SPELL_CLEAVE);
-                task.Repeat(10s, 15s);
-            })
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                std::list<Creature*> creatureList = DoFindFriendlyMissingBuff(50.0f, SPELL_BLOODLUST);
-                if (!creatureList.empty())
+                if (bloodlust_timer <= diff)
                 {
-                    if (Unit* target = *(creatureList.begin()))
-                        DoCast(target, SPELL_BLOODLUST);
-                }
-                task.Repeat(10s, 15s);
-            });
-    }
-};
+                    std::list<Creature*> templist = DoFindFriendlyMissingBuff(50, SPELL_BLOODLUST);
+                    if (!templist.empty())
+                    {
+                        if (Unit *pTarget = *(templist.begin()))
+                            DoCast(pTarget, SPELL_BLOODLUST, false);
+                    }
+                    bloodlust_timer = 12000;
+                } else bloodlust_timer -= diff;
 
-// 24242 - Slither
-struct boss_slither : public MalacrassCompanionBaseAI
-{
-    using MalacrassCompanionBaseAI::MalacrassCompanionBaseAI;
+                if (cleave_timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_CLEAVE, false);
+                    cleave_timer = 12000; //3 sec cast
+                } else cleave_timer -= diff;
 
-    void JustAppeared() override
-    {
-        DoCastSelf(SPELL_DEADLY_POISON);
-    }
+                boss_hexlord_addAI::UpdateAI(diff);
+            }
+        };
 
-    void ScheduleEvents() override
-    {
-        Scheduler
-            .Schedule(0s, 5s, [this](TaskContext task)
-            {
-                DoCastVictim(SPELL_VENOM_SPIT);
-                task.Repeat(5s, 10s);
-            });
-    }
-};
-
-// 24243 - Lord Raadan
-struct boss_lord_raadan : public MalacrassCompanionBaseAI
-{
-    using MalacrassCompanionBaseAI::MalacrassCompanionBaseAI;
-
-    void ScheduleEvents() override
-    {
-        Scheduler
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                DoCastSelf(SPELL_FLAME_BREATH);
-                task.Repeat(10s, 15s);
-            })
-            .Schedule(0s, 5s, [this](TaskContext task)
-            {
-                DoCastSelf(SPELL_THUNDERCLAP);
-                task.Repeat(10s, 15s);
-            });
-    }
-};
-
-// 24244 - Gazakroth
-struct boss_gazakroth : public MalacrassCompanionBaseAI
-{
-    using MalacrassCompanionBaseAI::MalacrassCompanionBaseAI;
-
-    void ScheduleEvents() override
-    {
-        Scheduler
-            .Schedule(0s, [this](TaskContext task)
-            {
-                DoCastVictim(SPELL_FIREBOLT);
-                task.Repeat(1200ms);
-            });
-    }
-};
-
-// 24245 - Fenstalker
-struct boss_fenstalker : public MalacrassCompanionBaseAI
-{
-    using MalacrassCompanionBaseAI::MalacrassCompanionBaseAI;
-
-    void ScheduleEvents() override
-    {
-        Scheduler
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.0f, true, true, -SPELL_VOLATILE_INFECTION))
-                    DoCast(target, SPELL_VOLATILE_INFECTION);
-                task.Repeat(15s, 20s);
-            });
-    }
-};
-
-// 24246 - Darkheart
-struct boss_darkheart : public MalacrassCompanionBaseAI
-{
-    using MalacrassCompanionBaseAI::MalacrassCompanionBaseAI;
-
-    void ScheduleEvents() override
-    {
-        Scheduler
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                DoCastSelf(SPELL_PSYCHIC_WAIL);
-                task.Repeat(15s, 20s);
-            });
-    }
-};
-
-// 24247 - Koragg
-struct boss_koragg : public MalacrassCompanionBaseAI
-{
-    using MalacrassCompanionBaseAI::MalacrassCompanionBaseAI;
-
-    void ScheduleEvents() override
-    {
-        Scheduler
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                DoCastVictim(SPELL_MIGHTY_BLOW);
-                task.Repeat(10s, 15s);
-            })
-            .Schedule(10s, 15s, [this](TaskContext task)
-            {
-                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
-                    DoCast(target, SPELL_COLD_STARE);
-                task.Repeat(15s, 20s);
-            });
-    }
-};
-
-// 43421 - Lifebloom
-class spell_malacrass_lifebloom : public AuraScript
-{
-    PrepareAuraScript(spell_malacrass_lifebloom);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_LIFEBLOOM_FINAL_HEAL });
-    }
-
-    void AfterRemove(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
-    {
-        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE && GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_ENEMY_SPELL)
-            return;
-
-        GetTarget()->CastSpell(nullptr, SPELL_LIFEBLOOM_FINAL_HEAL, CastSpellExtraArgs(aurEff).SetOriginalCaster(GetCasterGUID()));
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(spell_malacrass_lifebloom::AfterRemove, EFFECT_0, SPELL_AURA_PERIODIC_HEAL, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
-// 43498 - Siphon Soul
-class spell_malacrass_siphon_soul : public SpellScript
-{
-    PrepareSpellScript(spell_malacrass_siphon_soul);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SIPHON_SOUL_EFFECT });
-    }
-
-    void FilterTargets(std::list<WorldObject*>& targets)
-    {
-        if (targets.empty())
-            return;
-
-        WorldObject* target = Trinity::Containers::SelectRandomContainerElement(targets);
-
-        _selectedTargetGuid = target->GetGUID();
-    }
-
-    void HandleDummy(SpellEffIndex /*effIndex*/)
-    {
-        Unit* target = GetHitUnit();
-
-        if (target->GetGUID() != _selectedTargetGuid)
-            return;
-
-        if (Creature* caster = GetCaster()->ToCreature())
+        CreatureAI* GetAI(Creature* creature) const
         {
-            caster->CastSpell(target, SPELL_SIPHON_SOUL_EFFECT);
-            caster->GetAI()->SetData(DATA_PLAYER_CLASS, target->GetClass());
+            return new boss_thurgAI(creature);
+        }
+};
+
+#define SPELL_FLASH_HEAL     43575
+#define SPELL_DISPEL_MAGIC   43577
+
+class boss_alyson_antille : public CreatureScript
+{
+    public:
+
+        boss_alyson_antille()
+            : CreatureScript("boss_alyson_antille")
+        {
+        }
+
+        struct boss_alyson_antilleAI : public boss_hexlord_addAI
+        {
+            //Holy Priest
+            boss_alyson_antilleAI(Creature *c) : boss_hexlord_addAI(c) {}
+
+            uint32 flashheal_timer;
+            uint32 dispelmagic_timer;
+
+            void Reset()
+            {
+                flashheal_timer = 2500;
+                dispelmagic_timer = 10000;
+
+                //AcquireGUID();
+
+                boss_hexlord_addAI::Reset();
+            }
+
+            void AttackStart(Unit* who)
+            {
+                if (!who)
+                    return;
+
+                if (who->isTargetableForAttack())
+                {
+                    if (me->Attack(who, false))
+                    {
+                        me->GetMotionMaster()->MoveChase(who, 20);
+                        me->AddThreat(who, 0.0f);
+                    }
+                }
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
+
+                if (flashheal_timer <= diff)
+                {
+                    Unit *pTarget = DoSelectLowestHpFriendly(99, 30000);
+                    if (pTarget)
+                    {
+                        if (pTarget->IsWithinDistInMap(me, 50))
+                            DoCast(pTarget, SPELL_FLASH_HEAL, false);
+                        else
+                        {
+                            // bugged
+                            //me->GetMotionMaster()->Clear();
+                            //me->GetMotionMaster()->MoveChase(pTarget, 20);
+                        }
+                    }
+                    else
+                    {
+                        if (urand(0,1))
+                            pTarget = DoSelectLowestHpFriendly(50, 0);
+                        else
+                            pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0);
+                        if (pTarget)
+                            DoCast(pTarget, SPELL_DISPEL_MAGIC, false);
+                    }
+                    flashheal_timer = 2500;
+                } else flashheal_timer -= diff;
+
+                /*if (dispelmagic_timer <= diff)
+                {
+                if (urand(0,1))
+                {
+                    Unit *pTarget = SelectTarget();
+
+                    DoCast(pTarget, SPELL_DISPEL_MAGIC, false);
+                }
+                else
+                    me->CastSpell(SelectUnit(SELECT_TARGET_RANDOM, 0), SPELL_DISPEL_MAGIC, false);
+
+                dispelmagic_timer = 12000;
+                } else dispelmagic_timer -= diff;*/
+
+                boss_hexlord_addAI::UpdateAI(diff);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_alyson_antilleAI(creature);
+        }
+};
+
+#define SPELL_FIREBOLT        43584
+
+struct boss_gazakrothAI : public boss_hexlord_addAI
+{
+    boss_gazakrothAI(Creature *c) : boss_hexlord_addAI(c)  {}
+
+    uint32 firebolt_timer;
+
+    void Reset()
+    {
+        firebolt_timer = 2000;
+        boss_hexlord_addAI::Reset();
+    }
+
+    void AttackStart(Unit* who)
+    {
+        if (!who)
+            return;
+
+        if (who->isTargetableForAttack())
+        {
+            if (me->Attack(who, false))
+            {
+                me->GetMotionMaster()->MoveChase(who, 20);
+                me->AddThreat(who, 0.0f);
+            }
         }
     }
 
-    void Register() override
+    void UpdateAI(const uint32 diff)
     {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_malacrass_siphon_soul::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-        OnEffectHitTarget += SpellEffectFn(spell_malacrass_siphon_soul::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
-    }
+        if (!UpdateVictim())
+            return;
 
-private:
-    ObjectGuid _selectedTargetGuid;
-};
+        if (firebolt_timer <= diff)
+        {
+            DoCast(me->getVictim(), SPELL_FIREBOLT, false);
+            firebolt_timer = 700;
+        } else firebolt_timer -= diff;
 
-// 43522 - Unstable Affliction
-class spell_malacrass_unstable_affliction : public AuraScript
-{
-    PrepareAuraScript(spell_malacrass_unstable_affliction);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_UNSTABLE_AFFL_DISPEL });
-    }
-
-    void HandleDispel(DispelInfo* dispelInfo)
-    {
-        if (Unit* caster = GetCaster())
-            caster->CastSpell(dispelInfo->GetDispeller(), SPELL_UNSTABLE_AFFL_DISPEL, GetEffect(EFFECT_0));
-    }
-
-    void Register() override
-    {
-        AfterDispel += AuraDispelFn(spell_malacrass_unstable_affliction::HandleDispel);
+        boss_hexlord_addAI::UpdateAI(diff);
     }
 };
 
-// 43550 - Mind Control
-class spell_malacrass_mind_control : public SpellScript
+#define SPELL_FLAME_BREATH    43582
+#define SPELL_THUNDERCLAP     43583
+
+class boss_lord_raadan : public CreatureScript
 {
-    PrepareSpellScript(spell_malacrass_mind_control);
+    public:
 
-    void FilterTargets(std::list<WorldObject*>& targets)
-    {
-        // Target count - verified. Removing victim - guessed
-        targets.remove(GetCaster()->GetVictim());
-        Trinity::Containers::RandomResize(targets, 1);
-    }
+        boss_lord_raadan()
+            : CreatureScript("boss_lord_raadan")
+        {
+        }
 
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_malacrass_mind_control::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-    }
+        struct boss_lord_raadanAI : public boss_hexlord_addAI
+        {
+            boss_lord_raadanAI(Creature *c) : boss_hexlord_addAI(c)  {}
+
+            uint32 flamebreath_timer;
+            uint32 thunderclap_timer;
+
+            void Reset()
+            {
+                flamebreath_timer = 8000;
+                thunderclap_timer = 13000;
+
+                boss_hexlord_addAI::Reset();
+
+            }
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
+
+                if (thunderclap_timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_THUNDERCLAP, false);
+                    thunderclap_timer = 12000;
+                } else thunderclap_timer -= diff;
+
+                if (flamebreath_timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_FLAME_BREATH, false);
+                    flamebreath_timer = 12000;
+                } else flamebreath_timer -= diff;
+
+                boss_hexlord_addAI::UpdateAI(diff);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_lord_raadanAI(creature);
+        }
 };
 
-// 61606 - Mark of Blood
-class spell_malacrass_mark_of_blood : public AuraScript
+#define SPELL_PSYCHIC_WAIL   43590
+
+class boss_darkheart : public CreatureScript
 {
-    PrepareAuraScript(spell_malacrass_mark_of_blood);
+    public:
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_MARK_OF_BLOOD_HEAL });
-    }
+        boss_darkheart()
+            : CreatureScript("boss_darkheart")
+        {
+        }
 
-    void HandleProc(AuraEffect const* aurEff, ProcEventInfo& eventInfo)
-    {
-        eventInfo.GetActor()->CastSpell(eventInfo.GetActionTarget(), SPELL_MARK_OF_BLOOD_HEAL, aurEff);
-    }
+        struct boss_darkheartAI : public boss_hexlord_addAI
+        {
+            boss_darkheartAI(Creature *c) : boss_hexlord_addAI(c)  {}
 
-    void Register() override
-    {
-        OnEffectProc += AuraEffectProcFn(spell_malacrass_mark_of_blood::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
-    }
+            uint32 psychicwail_timer;
+
+            void Reset()
+            {
+                psychicwail_timer = 8000;
+                boss_hexlord_addAI::Reset();
+            }
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
+
+                if (psychicwail_timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_PSYCHIC_WAIL, false);
+                    psychicwail_timer = 12000;
+                } else psychicwail_timer -= diff;
+
+                boss_hexlord_addAI::UpdateAI(diff);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_darkheartAI(creature);
+        }
+};
+
+#define SPELL_VENOM_SPIT    43579
+
+class boss_slither : public CreatureScript
+{
+    public:
+
+        boss_slither()
+            : CreatureScript("boss_slither")
+        {
+        }
+
+        struct boss_slitherAI : public boss_hexlord_addAI
+        {
+            boss_slitherAI(Creature *c) : boss_hexlord_addAI(c) {}
+
+            uint32 venomspit_timer;
+
+            void Reset()
+            {
+                venomspit_timer = 5000;
+                boss_hexlord_addAI::Reset();
+            }
+
+            void AttackStart(Unit* who)
+            {
+                if (!who)
+                    return;
+
+                if (who->isTargetableForAttack())
+                {
+                    if (me->Attack(who, false))
+                    {
+                        me->GetMotionMaster()->MoveChase(who, 20);
+                        me->AddThreat(who, 0.0f);
+                    }
+                }
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
+
+                if (venomspit_timer <= diff)
+                {
+                    if (Unit* victim = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                        DoCast(victim, SPELL_VENOM_SPIT, false);
+                    venomspit_timer = 2500;
+                } else venomspit_timer -= diff;
+
+                boss_hexlord_addAI::UpdateAI(diff);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_slitherAI(creature);
+        }
+};
+
+//Fenstalker
+#define SPELL_VOLATILE_INFECTION 43586
+class boss_fenstalker : public CreatureScript
+{
+    public:
+
+        boss_fenstalker()
+            : CreatureScript("boss_fenstalker")
+        {
+        }
+
+        struct boss_fenstalkerAI : public boss_hexlord_addAI
+        {
+            boss_fenstalkerAI(Creature *c) : boss_hexlord_addAI(c) {}
+
+            uint32 volatileinf_timer;
+
+            void Reset()
+            {
+                volatileinf_timer = 15000;
+                boss_hexlord_addAI::Reset();
+
+            }
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
+
+                if (volatileinf_timer <= diff)
+                {
+                    // core bug
+                    me->getVictim()->CastSpell(me->getVictim(),SPELL_VOLATILE_INFECTION, false);
+                    volatileinf_timer = 12000;
+                } else volatileinf_timer -= diff;
+
+                boss_hexlord_addAI::UpdateAI(diff);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_fenstalkerAI(creature);
+        }
+};
+
+//Koragg
+#define SPELL_COLD_STARE      43593
+#define SPELL_MIGHTY_BLOW     43592
+
+class boss_koragg : public CreatureScript
+{
+    public:
+
+        boss_koragg()
+            : CreatureScript("boss_koragg")
+        {
+        }
+
+        struct boss_koraggAI : public boss_hexlord_addAI
+        {
+            boss_koraggAI(Creature *c) : boss_hexlord_addAI(c) {}
+
+            uint32 coldstare_timer;
+            uint32 mightyblow_timer;
+
+            void Reset()
+            {
+                coldstare_timer = 15000;
+                mightyblow_timer = 10000;
+                boss_hexlord_addAI::Reset();
+
+            }
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
+
+                if (mightyblow_timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_MIGHTY_BLOW, false);
+                    mightyblow_timer = 12000;
+                }
+                if (coldstare_timer <= diff)
+                {
+                    if (Unit* victim = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                        DoCast(victim, SPELL_COLD_STARE, false);
+                    coldstare_timer = 12000;
+                }
+
+                boss_hexlord_addAI::UpdateAI(diff);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_koraggAI(creature);
+        }
 };
 
 void AddSC_boss_hex_lord_malacrass()
 {
-    RegisterZulAmanCreatureAI(boss_hexlord_malacrass);
-    RegisterZulAmanCreatureAI(boss_alyson_antille);
-    RegisterZulAmanCreatureAI(boss_thurg);
-    RegisterZulAmanCreatureAI(boss_slither);
-    RegisterZulAmanCreatureAI(boss_lord_raadan);
-    RegisterZulAmanCreatureAI(boss_gazakroth);
-    RegisterZulAmanCreatureAI(boss_fenstalker);
-    RegisterZulAmanCreatureAI(boss_darkheart);
-    RegisterZulAmanCreatureAI(boss_koragg);
-    RegisterSpellScript(spell_malacrass_lifebloom);
-    RegisterSpellScript(spell_malacrass_siphon_soul);
-    RegisterSpellScript(spell_malacrass_unstable_affliction);
-    RegisterSpellScript(spell_malacrass_mind_control);
-    RegisterSpellScript(spell_malacrass_mark_of_blood);
+    new boss_hexlord_malacrass();
+    new boss_thurg();
+    // new boss_gazakroth();
+    new boss_lord_raadan();
+    new boss_darkheart();
+    new boss_slither();
+    new boss_fenstalker();
+    new boss_koragg();
+    new boss_alyson_antille();
 }
+

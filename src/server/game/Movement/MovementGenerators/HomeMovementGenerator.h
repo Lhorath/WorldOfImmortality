@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,23 +20,38 @@
 #define TRINITY_HOMEMOVEMENTGENERATOR_H
 
 #include "MovementGenerator.h"
+#include "DestinationHolder.h"
+#include "Traveller.h"
 
-template <class T>
-class HomeMovementGenerator : public MovementGeneratorMedium< T, HomeMovementGenerator<T> >
+class Creature;
+
+template < class T >
+class HomeMovementGenerator;
+
+template <>
+class HomeMovementGenerator<Creature>
+: public MovementGeneratorMedium< Creature, HomeMovementGenerator<Creature> >
 {
     public:
-        explicit HomeMovementGenerator();
 
-        MovementGeneratorType GetMovementGeneratorType() const override;
+        HomeMovementGenerator() {}
+        ~HomeMovementGenerator() {}
 
-        bool DoInitialize(T*);
-        bool DoReset(T*);
-        bool DoUpdate(T*, uint32);
-        void DoDeactivate(T*);
-        void DoFinalize(T*, bool, bool);
+        void Initialize(Creature &);
+        void Finalize(Creature &);
+        void Reset(Creature &);
+        bool Update(Creature &, const uint32 &);
+        void modifyTravelTime(uint32 travel_time) { i_travel_timer = travel_time; }
+        MovementGeneratorType GetMovementGeneratorType() { return HOME_MOTION_TYPE; }
+
+        bool GetDestination(float& x, float& y, float& z) const { i_destinationHolder.GetDestination(x,y,z); return true; }
 
     private:
-        void SetTargetLocation(T*);
-};
+        void _setTargetLocation(Creature &);
+        DestinationHolder< Traveller<Creature> > i_destinationHolder;
 
+        float ori;
+        uint32 i_travel_timer;
+};
 #endif
+

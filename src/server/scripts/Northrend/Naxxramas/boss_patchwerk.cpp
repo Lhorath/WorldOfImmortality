@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,189 +15,151 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * He should call trash(from the room with Embalming Slime up to frogger(not sure
-  if trash before Embalming Slime too or not)) after aggro
- */
-
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
-#include "Map.h"
+#include "ScriptPCH.h"
 #include "naxxramas.h"
-#include "ScriptedCreature.h"
-#include "SpellScript.h"
 
-enum PatchwerkTexts
+enum Spells
 {
-    SAY_AGGRO                   = 0,
-    SAY_SLAY                    = 1,
-    SAY_DEATH                   = 2,
-    EMOTE_BERSERK               = 3,
-    EMOTE_FRENZY                = 4
+    SPELL_HATEFUL_STRIKE                        = 41926,
+    H_SPELL_HATEFUL_STRIKE                      = 59192,
+    SPELL_FRENZY                                = 28131,
+    SPELL_BERSERK                               = 26662,
+    SPELL_SLIME_BOLT                            = 32309,
 };
 
-enum PatchwerkSpells
+enum Yells
 {
-    SPELL_HATEFUL_STRIKE_PRIMER = 28307,
-    SPELL_HATEFUL_STRIKE        = 28308,
-    SPELL_HATEFUL_STRIKE_HEROIC = 59192,
-    SPELL_FRENZY                = 28131,
-    SPELL_BERSERK               = 26662,
-    SPELL_SLIME_BOLT            = 32309
+    SAY_AGGRO_1                                 = -1533017,
+    SAY_AGGRO_2                                 = -1533018,
+    SAY_SLAY                                    = -1533019,
+    SAY_DEATH                                   = -1533020,
+    EMOTE_BERSERK                               = -1533021,
+    EMOTE_ENRAGE                                = -1533022,
 };
 
-enum PatchwerkEvents
+enum Events
 {
-    EVENT_BERSERK = 1,
+    EVENT_NONE,
+    EVENT_BERSERK,
     EVENT_HATEFUL,
     EVENT_SLIME
 };
 
-enum Misc
+enum
 {
-    ACHIEV_MAKE_QUICK_WERK_OF_HIM_STARTING_EVENT  = 10286
+    ACHIEV_MAKE_QUICK_WERK_OF_HIM_STARTING_EVENT  = 10286,
 };
 
-enum HatefulThreatAmounts
+class boss_patchwerk : public CreatureScript
 {
-    HATEFUL_THREAT_AMT  = 1000,
-};
+public:
+    boss_patchwerk() : CreatureScript("boss_patchwerk") { }
 
-struct boss_patchwerk : public BossAI
-{
-    boss_patchwerk(Creature* creature) : BossAI(creature, BOSS_PATCHWERK), _enraged(false) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _Reset();
-        _enraged = false;
-
-        instance->DoStopTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_MAKE_QUICK_WERK_OF_HIM_STARTING_EVENT);
+        return new boss_patchwerkAI (pCreature);
     }
 
-    void KilledUnit(Unit* /*Victim*/) override
+    struct boss_patchwerkAI : public BossAI
     {
-        // 20s cd, not random
-        if (!(rand32() % 5))
-            Talk(SAY_SLAY);
-    }
+        boss_patchwerkAI(Creature *c) : BossAI(c, BOSS_PATCHWERK) {}
 
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-    }
+        bool Enraged;
 
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-        Talk(SAY_AGGRO);
-        events.ScheduleEvent(EVENT_HATEFUL, 3600ms);
-        events.ScheduleEvent(EVENT_BERSERK, 6min);
-
-        instance->DoStartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_MAKE_QUICK_WERK_OF_HIM_STARTING_EVENT);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
+            _Reset();
+
+            if (instance)
+                instance->DoStopTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_MAKE_QUICK_WERK_OF_HIM_STARTING_EVENT);
+        }
+
+        void KilledUnit(Unit* /*Victim*/)
+        {
+            if (!(rand()%5))
+                DoScriptText(SAY_SLAY, me);
+        }
+
+        void JustDied(Unit* /*Killer*/)
+        {
+            _JustDied();
+            DoScriptText(SAY_DEATH, me);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            _EnterCombat();
+            Enraged = false;
+            DoScriptText(RAND(SAY_AGGRO_1,SAY_AGGRO_2), me);
+            events.ScheduleEvent(EVENT_HATEFUL, 1200);
+            events.ScheduleEvent(EVENT_BERSERK, 360000);
+
+            if (instance)
+                instance->DoStartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_MAKE_QUICK_WERK_OF_HIM_STARTING_EVENT);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            events.Update(diff);
+
+            while (uint32 eventId = events.ExecuteEvent())
             {
-                case EVENT_HATEFUL:
-                    DoCastSelf(SPELL_HATEFUL_STRIKE_PRIMER, true);
-                    events.Repeat(1200ms);
-                    break;
-                case EVENT_BERSERK:
-                    DoCastSelf(SPELL_BERSERK, true);
-                    Talk(EMOTE_BERSERK);
-                    events.ScheduleEvent(EVENT_SLIME, 2s);
-                    break;
-                case EVENT_SLIME:
-                    DoCastAOE(SPELL_SLIME_BOLT, true);
-                    events.Repeat(Seconds(2));
-                    break;
+                switch(eventId)
+                {
+                    case EVENT_HATEFUL:
+                    {
+                        //Cast Hateful strike on the player with the highest
+                        //amount of HP within melee distance
+                        uint32 MostHP = 0;
+                        Unit* pMostHPTarget = NULL;
+                        std::list<HostileReference*>::const_iterator i = me->getThreatManager().getThreatList().begin();
+                        for (; i != me->getThreatManager().getThreatList().end(); ++i)
+                        {
+                            Unit *pTarget = (*i)->getTarget();
+                            if (pTarget->isAlive() && pTarget != me->getVictim() && pTarget->GetHealth() > MostHP && me->IsWithinMeleeRange(pTarget))
+                            {
+                                MostHP = pTarget->GetHealth();
+                                pMostHPTarget = pTarget;
+                            }
+                        }
+
+                        if (!pMostHPTarget)
+                            pMostHPTarget = me->getVictim();
+
+                        DoCast(pMostHPTarget, RAID_MODE(SPELL_HATEFUL_STRIKE,H_SPELL_HATEFUL_STRIKE), true);
+
+                        events.ScheduleEvent(EVENT_HATEFUL, 1200);
+                        break;
+                    }
+                    case EVENT_BERSERK:
+                        DoCast(me, SPELL_BERSERK, true);
+                        DoScriptText(EMOTE_BERSERK, me);
+                        events.ScheduleEvent(EVENT_SLIME, 2000);
+                        break;
+                    case EVENT_SLIME:
+                        DoCast(me->getVictim(), SPELL_SLIME_BOLT);
+                        events.ScheduleEvent(EVENT_SLIME, 2000);
+                        break;
+                }
             }
+
+            if (!Enraged && HealthBelowPct(5))
+            {
+                DoCast(me, SPELL_FRENZY, true);
+                DoScriptText(EMOTE_ENRAGE, me);
+                Enraged = true;
+            }
+
+            DoMeleeAttackIfReady();
         }
+    };
 
-        if (!_enraged && !HealthAbovePct(5))
-        {
-            DoCastSelf(SPELL_FRENZY, true);
-            Talk(EMOTE_FRENZY);
-            _enraged = true;
-        }
-
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    bool _enraged;
-};
-
-// 28307 - Hateful Strike Primer
-class spell_patchwerk_hateful_strike_primer : public SpellScript
-{
-    PrepareSpellScript(spell_patchwerk_hateful_strike_primer);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_HATEFUL_STRIKE, SPELL_HATEFUL_STRIKE_HEROIC });
-    }
-
-    void SelectTargets(std::list<WorldObject*>& targets)
-    {
-        Unit* caster = GetCaster();
-
-        uint32 targetLimit = caster->GetMap()->Is25ManRaid() ? 3 : 2;
-        std::array<Unit*, 3> newTargets = { };
-        auto newTargetsItr = newTargets.begin();
-        auto newTargetsEnd = newTargetsItr + targetLimit;
-
-        for (ThreatReference const* threatRef : caster->GetThreatManager().GetSortedThreatList())
-        {
-            if (!threatRef->IsOnline() || !threatRef->GetVictim()->IsPlayer() || !caster->IsWithinMeleeRange(threatRef->GetVictim()))
-                continue;
-
-            *newTargetsItr = threatRef->GetVictim();
-            if (++newTargetsItr == newTargetsEnd)
-                break;
-        }
-
-        // Hateful Strike damages the higher HP target out of the two highest non-MT threats in melee range on 25man
-        if (newTargets[1] && newTargets[2] && newTargets[1]->GetHealth() < newTargets[2]->GetHealth())
-            std::swap(newTargets[1], newTargets[2]);
-
-        targets.assign(newTargets.begin(), newTargetsItr);
-    }
-
-    void HandleEffect(SpellEffIndex effIndex)
-    {
-        Unit* caster = GetCaster();
-
-        // all targets get threat increase
-        caster->GetThreatManager().AddThreat(GetHitUnit(), HATEFUL_THREAT_AMT, GetSpellInfo());
-
-        // Hateful Strike damages the second unit on target list (not the MT)
-        // or MT if it is the only target
-        if (GetUnitTargetIndexForEffect(GetHitUnit()->GetGUID(), effIndex) == 1
-            || GetUnitTargetCountForEffect(effIndex) == 1)
-            caster->CastSpell(GetHitUnit(), caster->GetMap()->Is25ManRaid() ? SPELL_HATEFUL_STRIKE_HEROIC : SPELL_HATEFUL_STRIKE, true);
-    }
-
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_patchwerk_hateful_strike_primer::SelectTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-        OnEffectHitTarget += SpellEffectFn(spell_patchwerk_hateful_strike_primer::HandleEffect, EFFECT_0, SPELL_EFFECT_DUMMY);
-    }
 };
 
 void AddSC_boss_patchwerk()
 {
-    RegisterNaxxramasCreatureAI(boss_patchwerk);
-    RegisterSpellScript(spell_patchwerk_hateful_strike_primer);
+    new boss_patchwerk();
 }

@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,73 +15,81 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "blackfathom_deeps.h"
 
 enum Spells
 {
-    SPELL_POISON_CLOUD     = 3815,
-    SPELL_FRENZIED_RAGE    = 3490
+    SPELL_POISON_CLOUD                                     = 3815,
+    SPELL_FRENZIED_RAGE                                    = 3490
 };
 
-enum Events
+class boss_aku_mai : public CreatureScript
 {
-    EVENT_POISON_CLOUD     = 1,
-    EVENT_FRENZIED_RAGE
-};
+public:
+    boss_aku_mai() : CreatureScript("boss_aku_mai") { }
 
-struct boss_aku_mai : public BossAI
-{
-    boss_aku_mai(Creature* creature) : BossAI(creature, DATA_AKU_MAI)
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        Initialize();
+        return new boss_aku_maiAI (pCreature);
     }
 
-    void Initialize()
+    struct boss_aku_maiAI : public ScriptedAI
     {
-        IsEnraged = false;
-    }
-
-    void Reset() override
-    {
-        Initialize();
-        _Reset();
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-        events.ScheduleEvent(EVENT_POISON_CLOUD, 5s, 9s);
-    }
-
-    void DamageTaken(Unit* /*atacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (!IsEnraged && me->HealthBelowPctDamaged(30, damage))
+        boss_aku_maiAI(Creature *c) : ScriptedAI(c)
         {
-            DoCast(me, SPELL_FRENZIED_RAGE);
-            IsEnraged = true;
+            pInstance = c->GetInstanceScript();
         }
-    }
 
-    void ExecuteEvent(uint32 eventId) override
-    {
-        switch (eventId)
+        uint32 uiPoisonCloudTimer;
+        bool bIsEnraged;
+
+        InstanceScript *pInstance;
+
+        void Reset()
         {
-            case EVENT_POISON_CLOUD:
+            uiPoisonCloudTimer = urand(5000,9000);
+            bIsEnraged = false;
+            if (pInstance)
+                pInstance->SetData(TYPE_AKU_MAI, NOT_STARTED);
+        }
+
+        void EnterCombat(Unit* /*who*/)
+        {
+            if (pInstance)
+                pInstance->SetData(TYPE_AKU_MAI, IN_PROGRESS);
+        }
+
+        void JustDied(Unit* /*killer*/)
+        {
+            if (pInstance)
+                pInstance->SetData(TYPE_AKU_MAI, DONE);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (uiPoisonCloudTimer < diff)
+            {
                 DoCastVictim(SPELL_POISON_CLOUD);
-                events.ScheduleEvent(EVENT_POISON_CLOUD, 25s, 50s);
-                break;
-            default:
-                break;
-        }
-    }
+                uiPoisonCloudTimer = urand(25000,50000);
+            } else uiPoisonCloudTimer -= diff;
 
-    private:
-        bool IsEnraged;
+            if (!bIsEnraged && HealthBelowPct(30))
+            {
+                DoCast(me,SPELL_FRENZIED_RAGE);
+                bIsEnraged = true;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_aku_mai()
 {
-    RegisterBlackfathomDeepsCreatureAI(boss_aku_mai);
+    new boss_aku_mai();
 }

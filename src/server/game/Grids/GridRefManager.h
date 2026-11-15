@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -33,6 +34,9 @@ class GridRefManager : public RefManager<GridRefManager<OBJECT>, OBJECT>
         GridReference<OBJECT>* getLast() { return (GridReference<OBJECT>*)RefManager<GridRefManager<OBJECT>, OBJECT>::getLast(); }
 
         iterator begin() { return iterator(getFirst()); }
-        iterator end() { return iterator(nullptr); }
+        iterator end() { return iterator(NULL); }
+        iterator rbegin() { return iterator(getLast()); }
+        iterator rend() { return iterator(NULL); }
 };
 #endif
+

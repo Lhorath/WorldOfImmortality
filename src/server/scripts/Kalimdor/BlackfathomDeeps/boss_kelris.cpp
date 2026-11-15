@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,100 +15,95 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "blackfathom_deeps.h"
 
 enum Spells
 {
-    SPELL_MIND_BLAST             = 15587,
-    SPELL_SLEEP                  = 8399,
-    SPELL_BLACKFATHOM_CHANNELING = 8734
+    SPELL_MIND_BLAST                                       = 15587,
+    SPELL_SLEEP                                            = 8399,
 };
 
-enum Texts
+//Id's from ACID
+enum Yells
 {
-    SAY_AGGRO    = 0,
-    SAY_SLEEP    = 1,
-    SAY_DEATH    = 2
+    SAY_AGGRO                                              = -1048002,
+    SAY_SLEEP                                              = -1048001,
+    SAY_DEATH                                              = -1048000
 };
 
-enum Events
+class boss_kelris : public CreatureScript
 {
-    EVENT_MIND_BLAST = 1,
-    EVENT_SLEEP
-};
+public:
+    boss_kelris() : CreatureScript("boss_kelris") { }
 
-struct boss_kelris : public BossAI
-{
-    boss_kelris(Creature* creature) : BossAI(creature, DATA_KELRIS) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _Reset();
-        DoCastSelf(SPELL_BLACKFATHOM_CHANNELING);
+        return new boss_kelrisAI (pCreature);
     }
 
-    void JustReachedHome() override
+    struct boss_kelrisAI : public ScriptedAI
     {
-        _JustReachedHome();
-        DoCastSelf(SPELL_BLACKFATHOM_CHANNELING);
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-        Talk(SAY_AGGRO);
-        me->RemoveAurasDueToSpell(SPELL_BLACKFATHOM_CHANNELING);
-        events.ScheduleEvent(EVENT_MIND_BLAST, 2s, 5s);
-        events.ScheduleEvent(EVENT_SLEEP, 9s, 12s);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        Talk(SAY_DEATH);
-        _JustDied();
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_kelrisAI(Creature *c) : ScriptedAI(c)
         {
-            switch (eventId)
-            {
-                case EVENT_MIND_BLAST:
-                    DoCastVictim(SPELL_MIND_BLAST);
-                    events.ScheduleEvent(EVENT_MIND_BLAST, 7s, 9s);
-                    break;
-                case EVENT_SLEEP:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100, true))
-                    {
-                        Talk(SAY_SLEEP);
-                        DoCast(target, SPELL_SLEEP);
-                    }
-                    events.ScheduleEvent(EVENT_SLEEP, 15s, 20s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            pInstance = c->GetInstanceScript();
         }
 
-        DoMeleeAttackIfReady();
-    }
+        uint32 uiMindBlastTimer;
+        uint32 uiSleepTimer;
+
+        InstanceScript *pInstance;
+
+        void Reset()
+        {
+            uiMindBlastTimer = urand(2000,5000);
+            uiSleepTimer = urand(9000,12000);
+            if (pInstance)
+                pInstance->SetData(TYPE_KELRIS, NOT_STARTED);
+        }
+
+        void EnterCombat(Unit* /*who*/)
+        {
+            DoScriptText(SAY_AGGRO, me);
+            if (pInstance)
+                pInstance->SetData(TYPE_KELRIS, IN_PROGRESS);
+        }
+
+        void JustDied(Unit* /*killer*/)
+        {
+            DoScriptText(SAY_DEATH, me);
+            if (pInstance)
+                pInstance->SetData(TYPE_KELRIS, DONE);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (uiMindBlastTimer < diff)
+            {
+                DoCastVictim(SPELL_MIND_BLAST);
+                uiMindBlastTimer = urand(7000,9000);
+            } else uiMindBlastTimer -= diff;
+
+            if (uiSleepTimer < diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                {
+                    DoScriptText(SAY_SLEEP, me);
+                    DoCast(pTarget, SPELL_SLEEP);
+                }
+                uiSleepTimer = urand(15000,20000);
+            } else uiSleepTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_kelris()
 {
-    RegisterBlackfathomDeepsCreatureAI(boss_kelris);
+    new boss_kelris();
 }

@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,482 +15,437 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Combat timers requires to be revisited
- * Everything related to Ingvar Throw Dummy requires additional research and checks
-   since it may be handled wrongly or something may be missing
- * Out of Combat events are NYI, should be handled from Proto-Drake Rider's script (DB issue)
- */
+/* ScriptData
+SDName: Boss_Ingvar_The_Plunderer
+SD%Complete: 95
+SDComment: Some Problems with Annhylde Movement, Blizzlike Timers
+SDCategory: Udgarde Keep
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ObjectAccessor.h"
-#include "ScriptedCreature.h"
-#include "Spell.h"
-#include "SpellInfo.h"
-#include "SpellMgr.h"
-#include "SpellScript.h"
+#include "ScriptPCH.h"
 #include "utgarde_keep.h"
 
-enum IngvarTexts
+enum Yells
 {
-    // Ingvar (Human / Undead)
-    SAY_AGGRO                             = 0,
-    SAY_SLAY                              = 1,
-    SAY_DEATH                             = 2,
-    EMOTE_ROAR                            = 3,
+    //Yells Ingvar
+    YELL_AGGRO_1                                = -1574005,
+    YELL_AGGRO_2                                = -1574006,
 
-    // Annhylde The Caller
-    SAY_RESURRECT                         = 0
+    YELL_DEAD_1                                 = -1574007,
+    YELL_DEAD_2                                 = -1574008,
+
+    YELL_KILL_1                                 = -1574009,
+    YELL_KILL_2                                 = -1574010,
 };
 
-enum IngvarSpells
+enum Creatures
 {
-    // Human Form
-    SPELL_CLEAVE                          = 42724,
-    SPELL_SMASH                           = 42669,
-    SPELL_STAGGERING_ROAR                 = 42708,
-    SPELL_ENRAGE                          = 42705,
-
-    // Undead Form
-    SPELL_DARK_SMASH                      = 42723,
-    SPELL_DREADFUL_ROAR                   = 42729,
-    SPELL_WOE_STRIKE                      = 42730,
-    SPELL_SHADOW_AXE                      = 42748,
-
-    // Feign Death & Resurrection
-    SPELL_CLEAR_ALL_DEBUFFS               = 34098,
-    SPELL_INGVAR_FEIGN_DEATH              = 42795,
-    SPELL_SUMMON_BANSHEE                  = 42912,
-    SPELL_ETHEREAL_TELEPORT               = 34427,
-    SPELL_SCOURGE_RESURRECTION_CHANNEL    = 42857,
-    SPELL_SCOURGE_RESURRECTION_VISUAL     = 42863,
-    SPELL_SCOURGE_RESURRECTION_HEAL       = 42704,
-
-    // Ingvar Throw Dummy
-    SPELL_THROW_AXE                       = 42750,
-
-    // Scripts
-    SPELL_WOE_STRIKE_EFFECT               = 42739
+    MOB_INGVAR_HUMAN                            = 23954,
+    MOB_ANNHYLDE_THE_CALLER                     = 24068,
+    MOB_INGVAR_UNDEAD                           = 23980,
 };
 
-enum IngvarEvents
+enum Spells
 {
-    EVENT_CLEAVE                          = 1,
-    EVENT_SMASH,
-    EVENT_STAGGERING_ROAR,
-    EVENT_ENRAGE,
+    //Ingvar Spells human form
+    SPELL_CLEAVE                                = 42724,
+    SPELL_SMASH                                 = 42669,
+    H_SPELL_SMASH                               = 59706,
+    SPELL_STAGGERING_ROAR                       = 42708,
+    H_SPELL_STAGGERING_ROAR                     = 59708,
+    SPELL_ENRAGE                                = 42705,
+    H_SPELL_ENRAGE                              = 59707,
 
-    EVENT_SUMMON_BANSHEE,
+    SPELL_INGVAR_FEIGN_DEATH                    = 42795,
+    SPELL_SUMMON_BANSHEE                        = 42912,
+    SPELL_SCOURG_RESURRECTION                   = 42863, // Spawn resurrect effect around Ingvar
 
-    EVENT_DARK_SMASH,
-    EVENT_DREADFUL_ROAR,
-    EVENT_WOE_STRIKE,
-    EVENT_SHADOW_AXE,
+    //Ingvar Spells undead form
+    SPELL_DARK_SMASH                            = 42723,
+    SPELL_DREADFUL_ROAR                         = 42729,
+    H_SPELL_DREADFUL_ROAR                       = 59734,
+    SPELL_WOE_STRIKE                            = 42730,
+    H_SPELL_WOE_STRIKE                          = 59735,
 
-    EVENT_RESURRECTION_1,
-    EVENT_RESURRECTION_2,
-    EVENT_RESURRECTION_3,
-    EVENT_RESURRECTION_4,
-    EVENT_RESURRECTION_5,
-    EVENT_RESURRECTION_6,
-    EVENT_RESURRECTION_7,
-    EVENT_RESURRECTION_8,
-    EVENT_RESURRECTION_9,
-    EVENT_RESURRECTION_10
+    ENTRY_THROW_TARGET                          = 23996,
+    SPELL_SHADOW_AXE_SUMMON                     = 42749
 };
 
-enum IngvarActions
+class boss_ingvar_the_plunderer : public CreatureScript
 {
-    ACTION_START_UNDEAD_PHASE             = 0,
-    ACTION_AXE_RETURNS                    = 1
-};
+public:
+    boss_ingvar_the_plunderer() : CreatureScript("boss_ingvar_the_plunderer") { }
 
-enum IngvarPoints
-{
-    POINT_CALLER_DOWN                     = 0,
-    POINT_CALLER_UP                       = 1,
-    POINT_AXE_TO_TARGET                   = 2,
-    POINT_AXE_TO_OWNER                    = 3
-};
-
-enum IngvarCreatures
-{
-    NPC_INGVAR_UNDEAD                     = 23980,
-    NPC_THROW_TARGET                      = 23996
-};
-
-// 23954 - Ingvar the Plunderer
-struct boss_ingvar_the_plunderer : public BossAI
-{
-    boss_ingvar_the_plunderer(Creature* creature) : BossAI(creature, DATA_INGVAR), _isUnkillable(true), _isInTransition(false) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        if (me->GetEntry() != NPC_INGVAR)
-            me->UpdateEntry(NPC_INGVAR);
-        me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
-        me->SetReactState(REACT_AGGRESSIVE);
-
-        _Reset();
-
-        _isUnkillable = true;
-        _isInTransition = false;
+        return new boss_ingvar_the_plundererAI(pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_ingvar_the_plundererAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
-
-        Talk(SAY_AGGRO);
-
-        events.ScheduleEvent(EVENT_CLEAVE, 6s, 12s);
-        events.ScheduleEvent(EVENT_SMASH, 12s, 17s);
-        events.ScheduleEvent(EVENT_STAGGERING_ROAR, 18s, 21s);
-        events.ScheduleEvent(EVENT_ENRAGE, 7s, 14s);
-    }
-
-    void DamageTaken(Unit* /*doneBy*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (damage >= me->GetHealth() && _isUnkillable)
+        boss_ingvar_the_plundererAI(Creature *c) : ScriptedAI(c)
         {
-            damage = me->GetHealth() - 1;
-
-            if (_isInTransition)
-                return;
-
-            _isInTransition = true;
-            me->InterruptNonMeleeSpells(false);
-            Talk(SAY_DEATH);
-            /// @todo: This should not be called. Clear All Debuffs should remove all debuffs. Does it work? Remove this
-            me->RemoveAllAuras();
-            DoCastSelf(SPELL_CLEAR_ALL_DEBUFFS);
-            DoCastSelf(SPELL_INGVAR_FEIGN_DEATH);
-            /// This one is removed manually
-            me->RemoveAurasDueToSpell(SPELL_ENRAGE);
-            me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
-            me->SetReactState(REACT_PASSIVE);
-
-            events.Reset();
-            events.ScheduleEvent(EVENT_SUMMON_BANSHEE, 2400ms);
+            pInstance = c->GetInstanceScript();
         }
-    }
 
-    void OnSpellStart(SpellInfo const* spell) override
-    {
-        if (spell->Id == sSpellMgr->GetSpellIdForDifficulty(SPELL_STAGGERING_ROAR, me) ||
-            spell->Id == sSpellMgr->GetSpellIdForDifficulty(SPELL_DREADFUL_ROAR, me))
-            Talk(EMOTE_ROAR);
-    }
+        InstanceScript* pInstance;
 
-    void OnSpellCast(SpellInfo const* spell) override
-    {
-        if (spell->Id == SPELL_SHADOW_AXE)
-            SetEquipmentSlots(false, EQUIP_UNEQUIP);
-    }
+        bool bIsUndead;
+        bool bEventInProgress;
 
-    void DoAction(int32 action) override
-    {
-        switch (action)
+        uint32 uiCleaveTimer;
+        uint32 uiSmashTimer;
+        uint32 uiEnrageTimer;
+        uint32 uiRoarTimer;
+        uint32 uiSpawnResTimer;
+
+        void Reset()
         {
-            case ACTION_START_UNDEAD_PHASE:
-                me->UpdateEntry(NPC_INGVAR_UNDEAD);
-                me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
-                me->SetReactState(REACT_AGGRESSIVE);
-                Talk(SAY_AGGRO);
-                DoZoneInCombat();
+            if (bIsUndead)
+                me->UpdateEntry(MOB_INGVAR_HUMAN);
 
-                _isUnkillable = false;
+            bIsUndead = false;
+            bEventInProgress = false;
 
-                events.ScheduleEvent(EVENT_DARK_SMASH, 14s, 18s);
-                events.ScheduleEvent(EVENT_DREADFUL_ROAR, 0s);
-                events.ScheduleEvent(EVENT_WOE_STRIKE, 10s, 14s);
-                events.ScheduleEvent(EVENT_SHADOW_AXE, 30s);
-                break;
-            case ACTION_AXE_RETURNS:
-                me->LoadEquipment(1, true);
-                break;
-            default:
-                break;
+            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE);
+            me->SetStandState(UNIT_STAND_STATE_STAND);
+
+            uiCleaveTimer = 2000;
+            uiSmashTimer = 5000;
+            uiEnrageTimer = 10000;
+            uiRoarTimer = 15000;
+
+            uiSpawnResTimer = 3000;
+
+            if (pInstance)
+                pInstance->SetData(DATA_INGVAR_EVENT, NOT_STARTED);
         }
-    }
 
-    void KilledUnit(Unit* /*who*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void DamageTaken(Unit * /*done_by*/, uint32 &damage)
         {
-            switch (eventId)
+            if (damage >= me->GetHealth() && !bIsUndead)
             {
-                // Human Phase
-                case EVENT_CLEAVE:
-                    DoCastVictim(SPELL_CLEAVE);
-                    events.Repeat(6s, 12s);
-                    break;
-                case EVENT_SMASH:
-                    DoCastSelf(SPELL_SMASH);
-                    events.Repeat(12s, 16s);
-                    break;
-                case EVENT_STAGGERING_ROAR:
-                    DoCastSelf(SPELL_STAGGERING_ROAR);
-                    events.Repeat(18s, 22s);
-                    break;
-                case EVENT_ENRAGE:
-                    DoCastSelf(SPELL_ENRAGE);
-                    events.Repeat(7s, 14s);
-                    break;
+                //DoCast(me, SPELL_INGVAR_FEIGN_DEATH, true);  // Dont work ???
+                // visuel hack
+                me->SetHealth(0);
+                me->InterruptNonMeleeSpells(true);
+                me->RemoveAllAuras();
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE);
+                me->GetMotionMaster()->MovementExpired(false);
+                me->GetMotionMaster()->MoveIdle();
+                me->SetStandState(UNIT_STAND_STATE_DEAD);
+                // visuel hack end
 
-                // Transition Phase
-                case EVENT_SUMMON_BANSHEE:
-                    DoCastSelf(SPELL_SUMMON_BANSHEE);
-                    break;
+                bEventInProgress = true;
+                bIsUndead = true;
 
-                // Undead Phase
-                case EVENT_DARK_SMASH:
-                    DoCastSelf(SPELL_DARK_SMASH);
-                    events.Repeat(12s, 16s);
-                    break;
-                case EVENT_DREADFUL_ROAR:
-                    DoCastSelf(SPELL_DREADFUL_ROAR);
-                    events.Repeat(18s, 22s);
-                    break;
-                case EVENT_WOE_STRIKE:
-                    DoCastVictim(SPELL_WOE_STRIKE);
-                    events.Repeat(10s, 14s);
-                    break;
-                case EVENT_SHADOW_AXE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
-                        DoCast(target, SPELL_SHADOW_AXE);
-                    events.Repeat(30s);
-                    break;
-                default:
-                    break;
+                DoScriptText(YELL_DEAD_1,me);
             }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
-        }
-
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    bool _isUnkillable;
-    bool _isInTransition;
-};
-
-// 24068 - Annhylde the Caller
-struct npc_annhylde_the_caller : public ScriptedAI
-{
-    npc_annhylde_the_caller(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void JustAppeared() override
-    {
-        _events.ScheduleEvent(EVENT_RESURRECTION_1, 0s);
-    }
-
-    void MovementInform(uint32 type, uint32 id) override
-    {
-        if (type != POINT_MOTION_TYPE)
-            return;
-
-        switch (id)
-        {
-            case POINT_CALLER_DOWN:
-                _events.ScheduleEvent(EVENT_RESURRECTION_3, 1s);
-                break;
-            case POINT_CALLER_UP:
-                _events.ScheduleEvent(EVENT_RESURRECTION_10, 1s);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _events.Update(diff);
-
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
+            if (bEventInProgress)
             {
-                case EVENT_RESURRECTION_1:
-                    DoCastSelf(SPELL_ETHEREAL_TELEPORT);
-                    _events.ScheduleEvent(EVENT_RESURRECTION_2, 2400ms);
-                    break;
-                case EVENT_RESURRECTION_2:
-                    me->GetMotionMaster()->MovePoint(POINT_CALLER_DOWN, me->GetPositionWithOffset({ 0.0f, 0.0f, -15.0f }));
-                    break;
-                case EVENT_RESURRECTION_3:
-                    Talk(SAY_RESURRECT);
-                    _events.ScheduleEvent(EVENT_RESURRECTION_4, 2400ms);
-                    break;
-                case EVENT_RESURRECTION_4:
-                    if (Creature* ingvar = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_INGVAR)))
-                        ingvar->RemoveAurasDueToSpell(SPELL_SUMMON_BANSHEE);
-                    _events.ScheduleEvent(EVENT_RESURRECTION_5, 1200ms);
-                    break;
-                case EVENT_RESURRECTION_5:
-                    DoCastSelf(SPELL_SCOURGE_RESURRECTION_CHANNEL);
-                    _events.ScheduleEvent(EVENT_RESURRECTION_6, 2400ms);
-                    break;
-                case EVENT_RESURRECTION_6:
-                    if (Creature* ingvar = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_INGVAR)))
-                        ingvar->CastSpell(ingvar, SPELL_SCOURGE_RESURRECTION_VISUAL);
-                    _events.ScheduleEvent(EVENT_RESURRECTION_7, 6s);
-                    break;
-                case EVENT_RESURRECTION_7:
-                    if (Creature* ingvar = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_INGVAR)))
+                damage = 0;
+            }
+        }
+
+        void StartZombiePhase()
+        {
+            bIsUndead = true;
+            bEventInProgress = false;
+            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE);
+            me->UpdateEntry(MOB_INGVAR_UNDEAD);
+            me->SetInCombatWith(me->getVictim());
+            me->GetMotionMaster()->MoveChase(me->getVictim());
+
+            DoScriptText(YELL_AGGRO_2,me);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            DoScriptText(YELL_AGGRO_1,me);
+
+            if (pInstance)
+                pInstance->SetData(DATA_INGVAR_EVENT, IN_PROGRESS);
+        }
+
+        void JustDied(Unit* /*killer*/)
+        {
+            DoScriptText(YELL_DEAD_2,me);
+
+            if (pInstance)
+                pInstance->SetData(DATA_INGVAR_EVENT, DONE);
+        }
+
+        void KilledUnit(Unit * /*victim*/)
+        {
+            if (bIsUndead)
+                DoScriptText(YELL_KILL_1,me);
+            else
+                DoScriptText(YELL_KILL_2,me);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (bEventInProgress)
+            {
+                if (uiSpawnResTimer)
+                {
+                    if (uiSpawnResTimer <= diff)
                     {
-                        ingvar->RemoveAurasDueToSpell(SPELL_INGVAR_FEIGN_DEATH);
-                        ///! HACK: Removing Feign Death changes react state to default
-                        ingvar->SetReactState(REACT_PASSIVE);
-                        ingvar->CastSpell(ingvar, SPELL_SCOURGE_RESURRECTION_HEAL);
+                        DoCast(me, SPELL_SUMMON_BANSHEE); // Summons directly on caster position
+                        // DoCast(me, SPELL_SCOURG_RESURRECTION, true); // Not needed ?
+                        uiSpawnResTimer = 0;
+                    } else uiSpawnResTimer -= diff;
+                }
+
+                return;
+            }
+
+            if (uiCleaveTimer <= diff)
+            {
+                if (!me->HasUnitState(UNIT_STAT_CASTING))
+                {
+                    if (bIsUndead)
+                        DoCast(me->getVictim(), SPELL_WOE_STRIKE);
+                    else
+                        DoCast(me->getVictim(), SPELL_CLEAVE);
+                    uiCleaveTimer = rand()%5000 + 2000;
+                }
+            } else uiCleaveTimer -= diff;
+
+            if (uiSmashTimer <= diff)
+            {
+                if (!me->HasUnitState(UNIT_STAT_CASTING))
+                {
+                    if (bIsUndead)
+                        DoCast(me->getVictim(), SPELL_DARK_SMASH);
+                    else
+                        DoCast(me->getVictim(), SPELL_SMASH);
+                    uiSmashTimer = 10000;
+                }
+            } else uiSmashTimer -= diff;
+
+            if (!bIsUndead)
+            {
+                if (uiEnrageTimer <= diff)
+                {
+                    DoCast(me, SPELL_ENRAGE);
+                    uiEnrageTimer = 10000;
+                } else uiEnrageTimer -= diff;
+            } else // In Undead form used to summon weapon
+            {
+                if (uiEnrageTimer <= diff)
+                {
+                    if (!me->HasUnitState(UNIT_STAT_CASTING))
+                    {
+                        // Spawn target for Axe
+                        Unit *pTarget = SelectTarget(SELECT_TARGET_TOPAGGRO, 1);
+                        if (pTarget)
+                        {
+                            me->SummonCreature(ENTRY_THROW_TARGET,pTarget->GetPositionX(),pTarget->GetPositionY(),pTarget->GetPositionZ(),0,TEMPSUMMON_TIMED_DESPAWN,2000);
+
+                            DoCast(me, SPELL_SHADOW_AXE_SUMMON);
+                        }
+                        uiEnrageTimer = 30000;
                     }
-                    _events.ScheduleEvent(EVENT_RESURRECTION_8, 3600ms);
-                    break;
-                case EVENT_RESURRECTION_8:
-                    if (Creature* ingvar = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_INGVAR)))
-                        ingvar->AI()->DoAction(ACTION_START_UNDEAD_PHASE);
-                    _events.ScheduleEvent(EVENT_RESURRECTION_9, 1200ms);
-                    break;
-                case EVENT_RESURRECTION_9:
-                    me->GetMotionMaster()->MovePoint(POINT_CALLER_UP, me->GetPositionWithOffset({ 0.0f, 0.0f, 15.0f }));
-                    break;
-                case EVENT_RESURRECTION_10:
-                    me->DespawnOrUnsummon();
-                    break;
-                default:
-                    break;
+                } else uiEnrageTimer -= diff;
+            }
+
+            if (uiRoarTimer <= diff)
+            {
+                if (!me->HasUnitState(UNIT_STAT_CASTING))
+                {
+                    if (bIsUndead)
+                        DoCast(me, SPELL_DREADFUL_ROAR);
+                    else
+                        DoCast(me, SPELL_STAGGERING_ROAR);
+                    uiRoarTimer = 10000;
+                }
+            } else uiRoarTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
+};
+
+enum eSpells
+{
+//we don't have that text in db so comment it until we get this text
+//    YELL_RESSURECT                      = -1574025,
+
+//Spells for Annhylde
+    SPELL_SCOURG_RESURRECTION_HEAL              = 42704, //Heal Max + DummyAura
+    SPELL_SCOURG_RESURRECTION_BEAM              = 42857, //Channeling Beam of Annhylde
+    SPELL_SCOURG_RESURRECTION_DUMMY             = 42862, //Some Emote Dummy?
+    SPELL_INGVAR_TRANSFORM                      = 42796
+};
+
+class mob_annhylde_the_caller : public CreatureScript
+{
+public:
+    mob_annhylde_the_caller() : CreatureScript("mob_annhylde_the_caller") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new mob_annhylde_the_callerAI (pCreature);
+    }
+
+    struct mob_annhylde_the_callerAI : public ScriptedAI
+    {
+        mob_annhylde_the_callerAI(Creature *c) : ScriptedAI(c)
+        {
+            pInstance = c->GetInstanceScript();
+        }
+
+        float x,y,z;
+        InstanceScript* pInstance;
+        uint32 uiResurectTimer;
+        uint32 uiResurectPhase;
+
+        void Reset()
+        {
+            me->AddUnitMovementFlag(MOVEMENTFLAG_FLYING | MOVEMENTFLAG_HOVER);
+            me->SetSpeed(MOVE_SWIM , 1.0f);
+            me->SetSpeed(MOVE_RUN , 1.0f);
+            me->SetSpeed(MOVE_WALK , 1.0f);
+            //me->SetSpeed(MOVE_FLIGHT , 1.0f);
+
+            me->GetPosition(x,y,z);
+            DoTeleportTo(x+1,y,z+30);
+
+            Unit* ingvar = Unit::GetUnit(*me, pInstance ? pInstance->GetData64(DATA_INGVAR) : 0);
+            if (ingvar)
+            {
+                me->GetMotionMaster()->MovePoint(1,x,y,z+15);
+
+    //            DoScriptText(YELL_RESSURECT,me);
             }
         }
-    }
 
-private:
-    InstanceScript* _instance;
-    EventMap _events;
-};
-
-// 23997 - Ingvar Throw Dummy
-struct npc_ingvar_throw_dummy : public ScriptedAI
-{
-    npc_ingvar_throw_dummy(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void JustAppeared() override
-    {
-        DoCastSelf(SPELL_THROW_AXE);
-
-        _scheduler.Schedule(1s, [this](TaskContext /*task*/)
+        void MovementInform(uint32 type, uint32 id)
         {
-            if (Creature* target = me->FindNearestCreature(NPC_THROW_TARGET, 200.0f))
-                me->GetMotionMaster()->MovePoint(POINT_AXE_TO_TARGET, target->GetPosition());
-        });
-
-        _scheduler.Schedule(6s, 10s, [this](TaskContext /*task*/)
-        {
-            if (Creature* ingvar = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_INGVAR)))
-                me->GetMotionMaster()->MovePoint(POINT_AXE_TO_OWNER, ingvar->GetPosition());
-        });
-    }
-
-    void MovementInform(uint32 type, uint32 id) override
-    {
-        if (type == POINT_MOTION_TYPE && id == POINT_AXE_TO_OWNER)
-        {
-            if (Creature* ingvar = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_INGVAR)))
-                ingvar->AI()->DoAction(ACTION_AXE_RETURNS);
-
-            _scheduler.Schedule(1s, [this](TaskContext /*task*/)
+            if (type != POINT_MOTION_TYPE)
+                return;
+            Unit* ingvar = Unit::GetUnit((*me), pInstance ? pInstance->GetData64(DATA_INGVAR) : 0);
+            if (ingvar)
             {
-                SetEquipmentSlots(false, EQUIP_UNEQUIP);
-                me->DespawnOrUnsummon();
-            });
+                switch (id)
+                {
+                case 1:
+                    ingvar->RemoveAura(SPELL_SUMMON_BANSHEE);
+                    ingvar->CastSpell(ingvar,SPELL_SCOURG_RESURRECTION_DUMMY,true);
+                    DoCast(ingvar, SPELL_SCOURG_RESURRECTION_BEAM);
+                    uiResurectTimer = 8000;
+                    uiResurectPhase = 1;
+                    break;
+                case 2:
+                    me->SetVisible(false);
+                    me->DealDamage(me,me->GetHealth());
+                    me->RemoveCorpse();
+                    break;
+                }
+            }
         }
-    }
 
-    void UpdateAI(uint32 diff) override
-    {
-        _scheduler.Update(diff);
-    }
+        void AttackStart(Unit* /*who*/) {}
+        void MoveInLineOfSight(Unit* /*who*/) {}
+        void EnterCombat(Unit * /*who*/) {}
+        void UpdateAI(const uint32 diff)
+        {
+            if (uiResurectTimer)
+            {
+                if (uiResurectTimer <= diff)
+                {
+                    if (uiResurectPhase == 1)
+                    {
+                        Unit* ingvar = Unit::GetUnit(*me, pInstance ? pInstance->GetData64(DATA_INGVAR) : 0);
+                        if (ingvar)
+                        {
+                            ingvar->SetStandState(UNIT_STAND_STATE_STAND);
+                            ingvar->CastSpell(ingvar,SPELL_SCOURG_RESURRECTION_HEAL,false);
+                        }
+                        uiResurectTimer = 3000;
+                        uiResurectPhase = 2;
+                    }
+                    else if (uiResurectPhase == 2)
+                    {
+                        if (Creature* ingvar = Unit::GetCreature(*me, pInstance ? pInstance->GetData64(DATA_INGVAR) : 0))
+                        {
+                            ingvar->RemoveAurasDueToSpell(SPELL_SCOURG_RESURRECTION_DUMMY);
 
-private:
-    InstanceScript* _instance;
-    TaskScheduler _scheduler;
+                            if (boss_ingvar_the_plunderer::boss_ingvar_the_plundererAI* pAI = CAST_AI(boss_ingvar_the_plunderer::boss_ingvar_the_plundererAI, ingvar->AI()))
+                                pAI->StartZombiePhase();
+
+                            me->GetMotionMaster()->MovePoint(2,x+1,y,z+30);
+                            ++uiResurectPhase;
+                            uiResurectTimer = 0;
+                        }
+                    }
+                } else uiResurectTimer -= diff;
+            }
+        }
+    };
 };
 
-// 42912 - Summon Banshee
-class spell_ingvar_summon_banshee : public SpellScript
+enum eShadowAxe
 {
-    PrepareSpellScript(spell_ingvar_summon_banshee);
-
-    void SetDest(SpellDestination& dest)
-    {
-        dest.RelocateOffset({ 0.0f, 0.0f, 30.0f, 0.0f });
-    }
-
-    void Register() override
-    {
-        OnDestinationTargetSelect += SpellDestinationTargetSelectFn(spell_ingvar_summon_banshee::SetDest, EFFECT_0, TARGET_DEST_CASTER_BACK);
-    }
+    SPELL_SHADOW_AXE_DAMAGE                     = 42750,
+    H_SPELL_SHADOW_AXE_DAMAGE                   = 59719
 };
 
-// 42730, 59735 - Woe Strike
-class spell_ingvar_woe_strike : public AuraScript
+class mob_ingvar_throw_dummy : public CreatureScript
 {
-    PrepareAuraScript(spell_ingvar_woe_strike);
+public:
+    mob_ingvar_throw_dummy() : CreatureScript("mob_ingvar_throw_dummy") { }
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return ValidateSpellInfo({ SPELL_WOE_STRIKE_EFFECT });
+        return new mob_ingvar_throw_dummyAI (pCreature);
     }
 
-    bool CheckProc(ProcEventInfo& eventInfo)
+    struct mob_ingvar_throw_dummyAI : public ScriptedAI
     {
-        HealInfo* healInfo = eventInfo.GetHealInfo();
-        if (!healInfo || !healInfo->GetHeal())
-            return false;
+        mob_ingvar_throw_dummyAI(Creature *c) : ScriptedAI(c)
+        {
+        }
 
-        return true;
-    }
+        uint32 uiDespawnTimer;
 
-    void HandleProc(AuraEffect const* aurEff, ProcEventInfo& eventInfo)
-    {
-        PreventDefaultAction();
-        GetTarget()->CastSpell(eventInfo.GetActor(), SPELL_WOE_STRIKE_EFFECT, aurEff);
-    }
+        void Reset()
+        {
+            Unit *pTarget = me->FindNearestCreature(ENTRY_THROW_TARGET,50);
+            if (pTarget)
+            {
+                DoCast(me, SPELL_SHADOW_AXE_DAMAGE);
+                float x,y,z;
+                pTarget->GetPosition(x,y,z);
+                me->GetMotionMaster()->MovePoint(0,x,y,z);
+            }
+            uiDespawnTimer = 7000;
+        }
+        void AttackStart(Unit* /*who*/) {}
+        void MoveInLineOfSight(Unit* /*who*/) {}
+        void EnterCombat(Unit * /*who*/) {}
+        void UpdateAI(const uint32 diff)
+        {
+            if (uiDespawnTimer <= diff)
+            {
+                me->DealDamage(me,me->GetHealth());
+                me->RemoveCorpse();
+                uiDespawnTimer = 0;
+            } else uiDespawnTimer -= diff;
+        }
+    };
 
-    void Register() override
-    {
-        DoCheckProc += AuraCheckProcFn(spell_ingvar_woe_strike::CheckProc);
-        OnEffectProc += AuraEffectProcFn(spell_ingvar_woe_strike::HandleProc, EFFECT_1, SPELL_AURA_PROC_TRIGGER_SPELL);
-    }
 };
 
 void AddSC_boss_ingvar_the_plunderer()
 {
-    RegisterUtgardeKeepCreatureAI(boss_ingvar_the_plunderer);
-    RegisterUtgardeKeepCreatureAI(npc_annhylde_the_caller);
-    RegisterUtgardeKeepCreatureAI(npc_ingvar_throw_dummy);
-    RegisterSpellScript(spell_ingvar_summon_banshee);
-    RegisterSpellScript(spell_ingvar_woe_strike);
+    new boss_ingvar_the_plunderer();
+    new mob_annhylde_the_caller();
+    new mob_ingvar_throw_dummy();
 }

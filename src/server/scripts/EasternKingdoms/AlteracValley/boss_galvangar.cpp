@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,8 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 
 enum Spells
 {
@@ -27,114 +26,105 @@ enum Spells
     SPELL_MORTAL_STRIKE                           = 16856
 };
 
-enum Texts
+enum Yells
 {
-    SAY_AGGRO                                    = 0,
-    SAY_EVADE                                    = 1,
-    SAY_BUFF                                     = 2
+    YELL_AGGRO                                    = -1810021,
+    YELL_EVADE                                    = -1810022
 };
 
-enum Events
+class boss_galvangar : public CreatureScript
 {
-    EVENT_CLEAVE = 1,
-    EVENT_FRIGHTENING_SHOUT,
-    EVENT_WHIRLWIND1,
-    EVENT_WHIRLWIND2,
-    EVENT_MORTAL_STRIKE
-};
+public:
+    boss_galvangar() : CreatureScript("boss_galvangar") { }
 
-enum Action
-{
-    ACTION_BUFF_YELL                              = -30001 // shared from Battleground
-};
-
-struct boss_galvangar : public ScriptedAI
-{
-    boss_galvangar(Creature* creature) : ScriptedAI(creature) { }
-
-    void Reset() override
+    struct boss_galvangarAI : public ScriptedAI
     {
-        events.Reset();
-    }
+        boss_galvangarAI(Creature *c) : ScriptedAI(c) {}
 
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        Talk(SAY_AGGRO);
-        events.ScheduleEvent(EVENT_CLEAVE, 1s, 9s);
-        events.ScheduleEvent(EVENT_FRIGHTENING_SHOUT, 2s, 19s);
-        events.ScheduleEvent(EVENT_WHIRLWIND1, 1s, 13s);
-        events.ScheduleEvent(EVENT_WHIRLWIND2, 5s, 20s);
-        events.ScheduleEvent(EVENT_MORTAL_STRIKE, 5s, 20s);
-    }
+        uint32 uiCleaveTimer;
+        uint32 uiFrighteningShoutTimer;
+        uint32 uiWhirlwind1Timer;
+        uint32 uiWhirlwind2Timer;
+        uint32 uiMortalStrikeTimer;
+        uint32 uiResetTimer;
 
-    void DoAction(int32 actionId) override
-    {
-        if (actionId == ACTION_BUFF_YELL)
-            Talk(SAY_BUFF);
-    }
-
-    bool CheckInRoom() override
-    {
-        if (me->GetDistance2d(me->GetHomePosition().GetPositionX(), me->GetHomePosition().GetPositionY()) > 50)
+        void Reset()
         {
-            EnterEvadeMode();
-            Talk(SAY_EVADE);
-            return false;
+            uiCleaveTimer                     = urand(1*IN_MILLISECONDS,9*IN_MILLISECONDS);
+            uiFrighteningShoutTimer           = urand(2*IN_MILLISECONDS,19*IN_MILLISECONDS);
+            uiWhirlwind1Timer                 = urand(1*IN_MILLISECONDS,13*IN_MILLISECONDS);
+            uiWhirlwind2Timer                 = urand(5*IN_MILLISECONDS,20*IN_MILLISECONDS);
+            uiMortalStrikeTimer               = urand(5*IN_MILLISECONDS,20*IN_MILLISECONDS);
+            uiResetTimer                      = 5*IN_MILLISECONDS;
         }
 
-        return true;
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim() || !CheckInRoom())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void EnterCombat(Unit * /*who*/)
         {
-            switch (eventId)
-            {
-                case EVENT_CLEAVE:
-                    DoCastVictim(SPELL_CLEAVE);
-                    events.ScheduleEvent(EVENT_CLEAVE, 10s, 16s);
-                    break;
-                case EVENT_FRIGHTENING_SHOUT:
-                    DoCastVictim(SPELL_FRIGHTENING_SHOUT);
-                    events.ScheduleEvent(EVENT_FRIGHTENING_SHOUT, 10s, 15s);
-                    break;
-                case EVENT_WHIRLWIND1:
-                    DoCastVictim(SPELL_WHIRLWIND1);
-                    events.ScheduleEvent(EVENT_WHIRLWIND1, 6s, 10s);
-                    break;
-                case EVENT_WHIRLWIND2:
-                    DoCastVictim(SPELL_WHIRLWIND2);
-                    events.ScheduleEvent(EVENT_WHIRLWIND2, 10s, 25s);
-                    break;
-                case EVENT_MORTAL_STRIKE:
-                    DoCastVictim(SPELL_MORTAL_STRIKE);
-                    events.ScheduleEvent(EVENT_MORTAL_STRIKE, 10s, 30s);
-                    break;
-                default:
-                    break;
-            }
+            DoScriptText(YELL_AGGRO, me);
+        }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
+        void JustRespawned()
+        {
+            Reset();
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
                 return;
+
+            if (uiCleaveTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_CLEAVE);
+                uiCleaveTimer =  urand(10*IN_MILLISECONDS,16*IN_MILLISECONDS);
+            } else uiCleaveTimer -= diff;
+
+            if (uiFrighteningShoutTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FRIGHTENING_SHOUT);
+                uiFrighteningShoutTimer = urand(10*IN_MILLISECONDS,15*IN_MILLISECONDS);
+            } else uiFrighteningShoutTimer -= diff;
+
+            if (uiWhirlwind1Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_WHIRLWIND1);
+                uiWhirlwind1Timer = urand(6*IN_MILLISECONDS,10*IN_MILLISECONDS);
+            } else uiWhirlwind1Timer -= diff;
+
+            if (uiWhirlwind2Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_WHIRLWIND2);
+                uiWhirlwind2Timer = urand(10*IN_MILLISECONDS,25*IN_MILLISECONDS);
+            } else uiWhirlwind2Timer -= diff;
+
+            if (uiMortalStrikeTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_MORTAL_STRIKE);
+                uiMortalStrikeTimer = urand(10*IN_MILLISECONDS,30*IN_MILLISECONDS);
+            } else uiMortalStrikeTimer -= diff;
+
+            // check if creature is not outside of building
+            if (uiResetTimer <= diff)
+            {
+                if (me->GetDistance2d(me->GetHomePosition().GetPositionX(), me->GetHomePosition().GetPositionY()) > 50)
+                {
+                    EnterEvadeMode();
+                    DoScriptText(YELL_EVADE, me);
+                }
+                uiResetTimer = 5*IN_MILLISECONDS;
+            } else uiResetTimer -= diff;
+
+            DoMeleeAttackIfReady();
         }
+    };
 
-        DoMeleeAttackIfReady();
+    CreatureAI *GetAI(Creature *creature) const
+    {
+        return new boss_galvangarAI(creature);
     }
-
-private:
-    EventMap events;
 };
 
 void AddSC_boss_galvangar()
 {
-    RegisterCreatureAI(boss_galvangar);
+    new boss_galvangar;
 }

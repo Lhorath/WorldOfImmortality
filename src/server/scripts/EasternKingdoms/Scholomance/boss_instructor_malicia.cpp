@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,102 +16,143 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_instructormalicia
+SD%Complete: 100
+SDComment:
+SDCategory: Scholomance
+EndScriptData */
 
-#include "ScriptMgr.h"
+#include "ScriptPCH.h"
 #include "scholomance.h"
-#include "ScriptedCreature.h"
 
-enum MaliciaSpells
+#define SPELL_CALLOFGRAVES         17831
+#define SPELL_CORRUPTION           11672
+#define SPELL_FLASHHEAL            10917
+#define SPELL_RENEW                10929
+#define SPELL_HEALINGTOUCH         9889
+
+class boss_instructor_malicia : public CreatureScript
 {
-    SPELL_CALL_OF_GRAVES        = 17831,
-    SPELL_CORRUPTION            = 18376,
-    SPELL_SLOW                  = 13747,
-    SPELL_FLASH_HEAL            = 17843,
-    SPELL_HEAL                  = 15586,
-    SPELL_RENEW                 = 8362
-};
+public:
+    boss_instructor_malicia() : CreatureScript("boss_instructor_malicia") { }
 
-enum MaliciaEvents
-{
-    EVENT_CALL_OF_GRAVES        = 1,
-    EVENT_CORRUPTION,
-    EVENT_SLOW,
-    EVENT_FLASH_HEAL,
-    EVENT_HEAL,
-    EVENT_RENEW
-};
-
-// 10505 - Instructor Malicia
-struct boss_instructor_malicia : public BossAI
-{
-    boss_instructor_malicia(Creature* creature) : BossAI(creature, DATA_INSTRUCTOR_MALICIA) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_CALL_OF_GRAVES, 20s, 30s);
-        events.ScheduleEvent(EVENT_CORRUPTION, 10s, 15s);
-        events.ScheduleEvent(EVENT_SLOW, 5s, 10s);
-        events.ScheduleEvent(EVENT_FLASH_HEAL, 5s, 10s);
-        events.ScheduleEvent(EVENT_HEAL, 5s, 15s);
-        events.ScheduleEvent(EVENT_RENEW, 15s, 20s);
+        return new boss_instructormaliciaAI (pCreature);
     }
 
-    void UpdateAI(uint32 diff) override
+    struct boss_instructormaliciaAI : public ScriptedAI
     {
-        if (!UpdateVictim())
-            return;
+        boss_instructormaliciaAI(Creature *c) : ScriptedAI(c) {}
 
-        events.Update(diff);
+        uint32 CallOfGraves_Timer;
+        uint32 Corruption_Timer;
+        uint32 FlashHeal_Timer;
+        uint32 Renew_Timer;
+        uint32 HealingTouch_Timer;
+        uint32 FlashCounter;
+        uint32 TouchCounter;
 
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_CALL_OF_GRAVES:
-                    DoCastSelf(SPELL_CALL_OF_GRAVES);
-                    events.Repeat(30s, 40s);
-                    break;
-                case EVENT_CORRUPTION:
-                    DoCastSelf(SPELL_CORRUPTION);
-                    events.Repeat(30s, 40s);
-                    break;
-                case EVENT_SLOW:
-                    DoCastSelf(SPELL_SLOW);
-                    events.Repeat(15s, 25s);
-                    break;
-                case EVENT_FLASH_HEAL:
-                    DoCastSelf(SPELL_FLASH_HEAL);
-                    events.Repeat(10s, 15s);
-                    break;
-                case EVENT_HEAL:
-                    DoCastSelf(SPELL_HEAL);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_RENEW:
-                    DoCastSelf(SPELL_RENEW);
-                    events.Repeat(15s, 20s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            CallOfGraves_Timer = 4000;
+            Corruption_Timer = 8000;
+            FlashHeal_Timer = 38000;
+            Renew_Timer = 32000;
+            HealingTouch_Timer = 45000;
+            FlashCounter = 0;
+            TouchCounter = 0;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void JustDied(Unit * /*killer*/)
+        {
+            InstanceScript *pInstance = me->GetInstanceScript();
+            if (pInstance)
+            {
+                pInstance->SetData(DATA_INSTRUCTORMALICIA_DEATH, 0);
+
+                if (pInstance->GetData(TYPE_GANDLING) == IN_PROGRESS)
+                    me->SummonCreature(1853, 180.73f, -9.43856f, 75.507f, 1.61399f, TEMPSUMMON_DEAD_DESPAWN, 0);
+            }
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //CallOfGraves_Timer
+            if (CallOfGraves_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_CALLOFGRAVES);
+                CallOfGraves_Timer = 65000;
+            } else CallOfGraves_Timer -= diff;
+
+            //Corruption_Timer
+            if (Corruption_Timer <= diff)
+            {
+                Unit *pTarget = NULL;
+                pTarget = SelectTarget(SELECT_TARGET_RANDOM,0);
+                if (pTarget) DoCast(pTarget, SPELL_CORRUPTION);
+
+                Corruption_Timer = 24000;
+            } else Corruption_Timer -= diff;
+
+            //Renew_Timer
+            if (Renew_Timer <= diff)
+            {
+                DoCast(me, SPELL_RENEW);
+                Renew_Timer = 10000;
+            } else Renew_Timer -= diff;
+
+            //FlashHeal_Timer
+            if (FlashHeal_Timer <= diff)
+            {
+                DoCast(me, SPELL_FLASHHEAL);
+
+                //5 Flashheals will be casted
+                if (FlashCounter < 2)
+                {
+                    FlashHeal_Timer = 5000;
+                    ++FlashCounter;
+                }
+                else
+                {
+                    FlashCounter=0;
+                    FlashHeal_Timer = 30000;
+                }
+            } else FlashHeal_Timer -= diff;
+
+            //HealingTouch_Timer
+            if (HealingTouch_Timer <= diff)
+            {
+                DoCast(me, SPELL_HEALINGTOUCH);
+
+                //3 Healingtouchs will be casted
+                if (HealingTouch_Timer < 2)
+                {
+                    HealingTouch_Timer = 5500;
+                    ++TouchCounter;
+                }
+                else
+                {
+                    TouchCounter=0;
+                    HealingTouch_Timer = 30000;
+                }
+            } else HealingTouch_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_instructormalicia()
 {
-    RegisterScholomanceCreatureAI(boss_instructor_malicia);
+    new boss_instructor_malicia();
 }

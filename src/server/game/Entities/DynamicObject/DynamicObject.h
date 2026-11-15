@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,54 +20,47 @@
 #define TRINITYCORE_DYNAMICOBJECT_H
 
 #include "Object.h"
-#include "GridObject.h"
-#include "MapObject.h"
 
 class Unit;
 class Aura;
-class SpellInfo;
+struct SpellEntry;
 
-enum DynamicObjectType
-{
-    DYNAMIC_OBJECT_PORTAL           = 0x0,      // unused
-    DYNAMIC_OBJECT_AREA_SPELL       = 0x1,
-    DYNAMIC_OBJECT_FARSIGHT_FOCUS   = 0x2
-};
-
-class TC_GAME_API DynamicObject : public WorldObject, public GridObject<DynamicObject>, public MapObject
+class DynamicObject : public WorldObject, public GridObject<DynamicObject>
 {
     public:
-        DynamicObject(bool isWorldObject);
+        explicit DynamicObject();
         ~DynamicObject();
 
-        void AddToWorld() override;
-        void RemoveFromWorld() override;
+        void AddToWorld();
+        void RemoveFromWorld();
 
-        bool CreateDynamicObject(ObjectGuid::LowType guidlow, Unit* caster, SpellInfo const* spell, Position const& pos, float radius, DynamicObjectType type);
-        void Update(uint32 p_time) override;
+        bool Create(uint32 guidlow, Unit *caster, uint32 spellId, const Position &pos, float radius, bool active);
+        void Update(uint32 p_time);
         void Remove();
         void SetDuration(int32 newDuration);
         int32 GetDuration() const;
         void Delay(int32 delaytime);
-        void SetAura(Aura* aura);
+        void SetAura(Aura * aura);
         void RemoveAura();
         void SetCasterViewpoint();
         void RemoveCasterViewpoint();
-        Unit* GetCaster() const { return _caster; }
-        uint32 GetFaction() const override;
+        Unit * GetCaster() const { return m_caster; }
         void BindToCaster();
         void UnbindFromCaster();
-        uint32 GetSpellId() const { return GetUInt32Value(DYNAMICOBJECT_SPELLID); }
-        SpellInfo const* GetSpellInfo() const;
-        ObjectGuid GetCasterGUID() const { return GetGuidValue(DYNAMICOBJECT_CASTER); }
-        ObjectGuid GetOwnerGUID() const override { return GetCasterGUID(); }
+        uint32 GetSpellId() const {  return GetUInt32Value(DYNAMICOBJECT_SPELLID); }
+        uint64 GetCasterGUID() const { return GetUInt64Value(DYNAMICOBJECT_CASTER); }
         float GetRadius() const { return GetFloatValue(DYNAMICOBJECT_RADIUS); }
 
+        void Say(int32 textId, uint32 language, uint64 TargetGuid) { MonsterSay(textId,language,TargetGuid); }
+        void Yell(int32 textId, uint32 language, uint64 TargetGuid) { MonsterYell(textId,language,TargetGuid); }
+        void TextEmote(int32 textId, uint64 TargetGuid) { MonsterTextEmote(textId,TargetGuid); }
+        void Whisper(int32 textId,uint64 receiver) { MonsterWhisper(textId,receiver); }
+        void YellToZone(int32 textId, uint32 language, uint64 TargetGuid) { MonsterYellToZone(textId,language,TargetGuid); }
+
     protected:
-        Aura* _aura;
-        Aura* _removedAura;
-        Unit* _caster;
-        int32 _duration; // for non-aura dynobjects
-        bool _isViewpoint;
+        int32 m_duration; // for non-aura dynobjects
+        Aura * m_aura;
+        Unit * m_caster;
+        bool m_isViewpoint;
 };
 #endif

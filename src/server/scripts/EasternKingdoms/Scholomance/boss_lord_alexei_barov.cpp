@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,81 +16,89 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Lord_Alexei_Barov
+SD%Complete: 100
+SDComment: aura applied/defined in database
+SDCategory: Scholomance
+EndScriptData */
 
-#include "ScriptMgr.h"
+#include "ScriptPCH.h"
 #include "scholomance.h"
-#include "ScriptedCreature.h"
 
-enum AlexeiSpells
+#define SPELL_IMMOLATE             20294                    // Old ID  was 15570
+#define SPELL_VEILOFSHADOW         17820
+
+class boss_lord_alexei_barov : public CreatureScript
 {
-    // Passive
-    SPELL_IMMOLATE              = 15506,
-    SPELL_UNHOLY_AURA           = 17467,
+public:
+    boss_lord_alexei_barov() : CreatureScript("boss_lord_alexei_barov") { }
 
-    // Combat
-    SPELL_VEIL_OF_SHADOW        = 17820
-
-};
-
-enum AlexeiEvents
-{
-    EVENT_VEIL_OF_SHADOW        = 1
-};
-
-// 10504 - Lord Alexei Barov
-struct boss_lord_alexei_barov : public BossAI
-{
-    boss_lord_alexei_barov(Creature* creature) : BossAI(creature, DATA_LORD_ALEXEI_BAROV) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _Reset();
-
-        DoCastSelf(SPELL_IMMOLATE);
-        DoCastSelf(SPELL_UNHOLY_AURA);
+        return new boss_lordalexeibarovAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_lordalexeibarovAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
+        boss_lordalexeibarovAI(Creature *c) : ScriptedAI(c) {}
 
-        events.ScheduleEvent(EVENT_VEIL_OF_SHADOW, 10s, 15s);
-    }
+        uint32 Immolate_Timer;
+        uint32 VeilofShadow_Timer;
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_VEIL_OF_SHADOW:
-                    DoCastVictim(SPELL_VEIL_OF_SHADOW);
-                    events.Repeat(15s, 25s);
-                    break;
-                default:
-                    break;
-            }
+            Immolate_Timer = 7000;
+            VeilofShadow_Timer = 15000;
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            me->LoadCreaturesAddon();
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void JustDied(Unit * /*killer*/)
+        {
+            InstanceScript *pInstance = me->GetInstanceScript();
+            if (pInstance)
+            {
+                pInstance->SetData(DATA_LORDALEXEIBAROV_DEATH, 0);
+
+                if (pInstance->GetData(TYPE_GANDLING) == IN_PROGRESS)
+                    me->SummonCreature(1853, 180.73f, -9.43856f, 75.507f, 1.61399f, TEMPSUMMON_DEAD_DESPAWN, 0);
+            }
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //Immolate_Timer
+            if (Immolate_Timer <= diff)
+            {
+                Unit *pTarget = NULL;
+                pTarget = SelectTarget(SELECT_TARGET_RANDOM,0);
+                if (pTarget) DoCast(pTarget, SPELL_IMMOLATE);
+
+                Immolate_Timer = 12000;
+            } else Immolate_Timer -= diff;
+
+            //VeilofShadow_Timer
+            if (VeilofShadow_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_VEILOFSHADOW);
+                VeilofShadow_Timer = 20000;
+            } else VeilofShadow_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_lordalexeibarov()
 {
-    RegisterScholomanceCreatureAI(boss_lord_alexei_barov);
+    new boss_lord_alexei_barov();
 }

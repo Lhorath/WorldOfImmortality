@@ -1,33 +1,107 @@
 #include "AnticheatData.h"
 
-#include "GameTime.h"
-#include "Player.h"
-
-AnticheatData::AnticheatData() : lastOpcode(0), hasLastMovementInfo(false)
+AnticheatData::AnticheatData()
 {
-    ResetReports();
-}
-
-void AnticheatData::ResetReports()
-{
-    summary = {};
-    recentReports.fill(0);
-    recentReportStartTime.fill(0);
-}
-
-void AnticheatData::InitializeMovement(Player* player)
-{
-    lastMovementInfo.pos.Relocate(player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation());
-    lastMovementInfo.flags = 0;
-    lastMovementInfo.flags2 = 0;
-    lastMovementInfo.time = GameTime::GetGameTimeMS();
     lastOpcode = 0;
-    hasLastMovementInfo = true;
+    totalReports = 0;
+    for (uint8 i = 0; i < MAX_REPORT_TYPES; i++)
+    {
+        typeReports[i] = 0;
+        tempReports[i] = 0;
+        tempReportsTimer[i] = 0;
+    }
+    average = 0;
+    creationTime = 0;
 }
 
-void AnticheatData::SetLastMovementInfo(MovementInfo const& movementInfo, uint32 opcode)
+AnticheatData::~AnticheatData()
 {
-    lastMovementInfo = movementInfo;
+}
+
+void AnticheatData::SetLastOpcode(uint32 opcode)
+{
     lastOpcode = opcode;
-    hasLastMovementInfo = true;
+}
+
+void AnticheatData::SetPosition(float x, float y, float z, float o)
+{
+    lastMovementInfo.pos.m_positionX = x;
+    lastMovementInfo.pos.m_positionY = y;
+    lastMovementInfo.pos.m_positionZ = z;
+    lastMovementInfo.pos.m_orientation = o;
+}
+
+uint32 AnticheatData::GetLastOpcode() const
+{
+    return lastOpcode;
+}
+
+const MovementInfo& AnticheatData::GetLastMovementInfo() const
+{
+    return lastMovementInfo;
+}
+
+void AnticheatData::SetLastMovementInfo(MovementInfo& moveInfo)
+{
+    lastMovementInfo = moveInfo;
+}
+
+uint32 AnticheatData::GetTotalReports() const
+{
+    return totalReports;
+}
+
+void AnticheatData::SetTotalReports(uint32 _totalReports)
+{
+    totalReports = _totalReports;
+}
+
+void AnticheatData::SetTypeReports(uint32 type, uint32 amount)
+{
+    typeReports[type] = amount;
+}
+
+uint32 AnticheatData::GetTypeReports(uint32 type) const
+{
+    return typeReports[type];
+}
+
+float AnticheatData::GetAverage() const
+{
+    return average;
+}
+
+void AnticheatData::SetAverage(float _average)
+{
+    average = _average;
+}
+
+uint32 AnticheatData::GetCreationTime() const
+{
+    return creationTime;
+}
+
+void AnticheatData::SetCreationTime(uint32 _creationTime)
+{
+    creationTime = _creationTime;
+}
+
+void AnticheatData::SetTempReports(uint32 amount, uint8 type)
+{
+    tempReports[type] = amount;
+}
+
+uint32 AnticheatData::GetTempReports(uint8 type)
+{
+    return tempReports[type];
+}
+
+void AnticheatData::SetTempReportsTimer(uint32 time, uint8 type)
+{
+    tempReportsTimer[type] = time;
+}
+
+uint32 AnticheatData::GetTempReportsTimer(uint8 type)
+{
+    return tempReportsTimer[type];
 }

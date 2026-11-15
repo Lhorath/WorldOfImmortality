@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,227 +16,195 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- * Distillers should respawn at some point, probably in case of wipe
- */
+/* ScriptData
+SDName: Boss_Warlord_Kalithres
+SD%Complete: 65
+SDComment: Contains workarounds regarding warlord's rage spells not acting as expected. Both scripts here require review and fine tuning.
+SDCategory: Coilfang Resevoir, The Steamvault
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ObjectAccessor.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "steam_vault.h"
 
-enum KalithreshTexts
+#define SAY_INTRO                   -1545016
+#define SAY_REGEN                   -1545017
+#define SAY_AGGRO1                  -1545018
+#define SAY_AGGRO2                  -1545019
+#define SAY_AGGRO3                  -1545020
+#define SAY_SLAY1                   -1545021
+#define SAY_SLAY2                   -1545022
+#define SAY_DEATH                   -1545023
+
+#define SPELL_SPELL_REFLECTION      31534
+#define SPELL_IMPALE                39061
+#define SPELL_WARLORDS_RAGE         37081
+#define SPELL_WARLORDS_RAGE_NAGA    31543
+
+#define SPELL_WARLORDS_RAGE_PROC    36453
+
+class mob_naga_distiller : public CreatureScript
 {
-    SAY_INTRO                        = 0,
-    SAY_REGEN                        = 1,
-    SAY_AGGRO                        = 2,
-    SAY_SLAY                         = 3,
-    SAY_DEATH                        = 4,
-    EMOTE_CHANNEL                    = 5
-};
+public:
+    mob_naga_distiller() : CreatureScript("mob_naga_distiller") { }
 
-enum KalithreshSpells
-{
-    SPELL_HEAD_CRACK                 = 16172,
-    SPELL_REFLECTION                 = 31534,
-
-    SPELL_WARLORDS_RAGE              = 37081,
-
-    // Distiller
-    SPELL_STUN_SELF                  = 25900,
-    SPELL_WARLORDS_RAGE_DISTILLER    = 31543,
-    SPELL_QUIET_SUICIDE              = 3617
-};
-
-enum KalithreshEvents
-{
-    EVENT_HEAD_CRACK                 = 1,
-    EVENT_REFLECTION,
-    EVENT_RAGE
-};
-
-enum KalithreshMisc
-{
-    SOUND_ID_SLAY                    = 10396,
-    NPC_NAGA_DISTILLER               = 17954,
-    POINT_DISTILLER                  = 1,
-    ACTION_DISTILLER_DEAD            = 1,
-    ACTION_DISTILLER_CHANNEL         = 1
-};
-
-// 17798 - Warlord Kalithresh
-struct boss_warlord_kalithresh : public BossAI
-{
-    boss_warlord_kalithresh(Creature* creature) : BossAI(creature, DATA_WARLORD_KALITHRESH), _introDone(false) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _Reset();
-        _distillerGUID.Clear();
+        return new mob_naga_distillerAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct mob_naga_distillerAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
-
-        Talk(SAY_AGGRO);
-
-        events.ScheduleEvent(EVENT_HEAD_CRACK, 10s, 15s);
-        events.ScheduleEvent(EVENT_REFLECTION, 15s, 25s);
-        events.ScheduleEvent(EVENT_RAGE, 10s, 20s);
-
-        if (GameObject* go = instance->GetGameObject(DATA_MAIN_CHAMBERS_DOOR))
-            instance->HandleGameObject(ObjectGuid::Empty, false, go);
-    }
-
-    /// @todo: Handle this with GameObject 184106 (Coilfang Steamvaults - Kalithresh Event - Trigger 000)
-    void MoveInLineOfSight(Unit* who) override
-    {
-        if (!_introDone && who->GetTypeId() == TYPEID_PLAYER && me->IsWithinDistInMap(who, 50.0f))
+        mob_naga_distillerAI(Creature *c) : ScriptedAI(c)
         {
-            _introDone = true;
-            Talk(SAY_INTRO);
+            pInstance = c->GetInstanceScript();
         }
 
-        BossAI::MoveInLineOfSight(who);
-    }
+        InstanceScript *pInstance;
 
-    void MovementInform(uint32 type, uint32 pointId) override
-    {
-        if (type != POINT_MOTION_TYPE)
-            return;
-
-        if (pointId == POINT_DISTILLER)
+        void Reset()
         {
-            Talk(EMOTE_CHANNEL);
-            Talk(SAY_REGEN);
-            me->SetReactState(REACT_AGGRESSIVE);
-            DoCastSelf(SPELL_WARLORDS_RAGE);
+            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
 
-            if (Creature* distiller = ObjectAccessor::GetCreature(*me, _distillerGUID))
-                distiller->AI()->DoAction(ACTION_DISTILLER_CHANNEL);
-        }
-    }
-
-    void DoAction(int32 action) override
-    {
-        if (action == ACTION_DISTILLER_DEAD)
-            me->RemoveAurasDueToSpell(SPELL_WARLORDS_RAGE);
-    }
-
-    void JustReachedHome() override
-    {
-        _JustReachedHome();
-
-        if (GameObject* go = instance->GetGameObject(DATA_MAIN_CHAMBERS_DOOR))
-            instance->HandleGameObject(ObjectGuid::Empty, true, go);
-    }
-
-    void KilledUnit(Unit* /*victim*/) override
-    {
-        if (roll_chance_i(50))
-            Talk(SAY_SLAY);
-        else
-            DoPlaySoundToSet(me, SOUND_ID_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-
-        std::vector<Creature*> distillers;
-        GetCreatureListWithEntryInGrid(distillers, me, NPC_NAGA_DISTILLER, 250.0f);
-        for (Creature* distiller : distillers)
-            if (distiller->IsAlive())
-                distiller->CastSpell(distiller, SPELL_QUIET_SUICIDE, true);
-
-        if (GameObject* go = instance->GetGameObject(DATA_MAIN_CHAMBERS_DOOR))
-            instance->HandleGameObject(ObjectGuid::Empty, true, go);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        while (uint32 eventId = events.ExecuteEvent())
-        {
-            switch (eventId)
+            //hack, due to really weird spell behaviour :(
+            if (pInstance)
             {
-                case EVENT_HEAD_CRACK:
-                    DoCastVictim(SPELL_HEAD_CRACK);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_REFLECTION:
-                    DoCastSelf(SPELL_REFLECTION);
-                    events.Repeat(20s, 40s);
-                    break;
-                case EVENT_RAGE:
-                    if (Creature* distiller = me->FindNearestCreature(NPC_NAGA_DISTILLER, 150.0f))
-                    {
-                        _distillerGUID = distiller->GetGUID();
-                        me->SetReactState(REACT_PASSIVE);
-
-                        float x, y, z;
-                        distiller->GetContactPoint(me, x, y, z);
-
-                        me->GetMotionMaster()->MovePoint(POINT_DISTILLER, x, y, z);
-                    }
-                    events.Repeat(50s);
-                    break;
-                default:
-                    break;
+                if (pInstance->GetData(TYPE_DISTILLER) == IN_PROGRESS)
+                {
+                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                }
             }
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void EnterCombat(Unit * /*who*/) { }
 
-private:
-    bool _introDone;
-    ObjectGuid _distillerGUID;
+        void StartRageGen(Unit * /*caster*/)
+        {
+            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+
+            DoCast(me, SPELL_WARLORDS_RAGE_NAGA, true);
+
+            if (pInstance)
+                pInstance->SetData(TYPE_DISTILLER,IN_PROGRESS);
+        }
+
+        void DamageTaken(Unit * /*done_by*/, uint32 &damage)
+        {
+            if (me->GetHealth() <= damage)
+                if (pInstance)
+                    pInstance->SetData(TYPE_DISTILLER,DONE);
+        }
+    };
+
 };
 
-// 17954 - Naga Distiller
-struct npc_naga_distiller : public ScriptedAI
+class boss_warlord_kalithresh : public CreatureScript
 {
-    npc_naga_distiller(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
+public:
+    boss_warlord_kalithresh() : CreatureScript("boss_warlord_kalithresh") { }
 
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        me->SetCorpseDelay(2, true);
-        DoCastSelf(SPELL_STUN_SELF);
-        me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+        return new boss_warlord_kalithreshAI (pCreature);
     }
 
-    void DoAction(int32 action) override
+    struct boss_warlord_kalithreshAI : public ScriptedAI
     {
-        if (action == ACTION_DISTILLER_CHANNEL)
+        boss_warlord_kalithreshAI(Creature *c) : ScriptedAI(c)
         {
-            // Creature is stunned, cast as triggered
-            DoCastSelf(SPELL_WARLORDS_RAGE_DISTILLER, true);
-            me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+            pInstance = c->GetInstanceScript();
         }
-    }
 
-    void JustDied(Unit* /*killer*/) override
-    {
-        if (Creature* kalithresh = _instance->GetCreature(DATA_WARLORD_KALITHRESH))
-            kalithresh->AI()->DoAction(ACTION_DISTILLER_DEAD);
-    }
+        InstanceScript *pInstance;
 
-private:
-    InstanceScript* _instance;
+        uint32 Reflection_Timer;
+        uint32 Impale_Timer;
+        uint32 Rage_Timer;
+        bool CanRage;
+
+        void Reset()
+        {
+            Reflection_Timer = 10000;
+            Impale_Timer = 7000+rand()%7000;
+            Rage_Timer = 45000;
+            CanRage = false;
+
+            if (pInstance)
+                pInstance->SetData(TYPE_WARLORD_KALITHRESH, NOT_STARTED);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            DoScriptText(RAND(SAY_AGGRO1,SAY_AGGRO2,SAY_AGGRO3), me);
+
+            if (pInstance)
+                pInstance->SetData(TYPE_WARLORD_KALITHRESH, IN_PROGRESS);
+        }
+
+        void KilledUnit(Unit* /*victim*/)
+        {
+            DoScriptText(RAND(SAY_SLAY1,SAY_SLAY2), me);
+        }
+
+        void SpellHit(Unit * /*caster*/, const SpellEntry *spell)
+        {
+            //hack :(
+            if (spell->Id == SPELL_WARLORDS_RAGE_PROC)
+                if (pInstance)
+                    if (pInstance->GetData(TYPE_DISTILLER) == DONE)
+                        me->RemoveAurasDueToSpell(SPELL_WARLORDS_RAGE_PROC);
+        }
+
+        void JustDied(Unit* /*Killer*/)
+        {
+            DoScriptText(SAY_DEATH, me);
+
+            if (pInstance)
+                pInstance->SetData(TYPE_WARLORD_KALITHRESH, DONE);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (Rage_Timer <= diff)
+            {
+                if (Creature* distiller = me->FindNearestCreature(17954, 100.0f))
+                {
+                    DoScriptText(SAY_REGEN, me);
+                    DoCast(me, SPELL_WARLORDS_RAGE);
+                    CAST_AI(mob_naga_distiller::mob_naga_distillerAI, distiller->AI())->StartRageGen(me);
+                }
+                Rage_Timer = 3000+rand()%15000;
+            } else Rage_Timer -= diff;
+
+            //Reflection_Timer
+            if (Reflection_Timer <= diff)
+            {
+                DoCast(me, SPELL_SPELL_REFLECTION);
+                Reflection_Timer = 15000+rand()%10000;
+            } else Reflection_Timer -= diff;
+
+            //Impale_Timer
+            if (Impale_Timer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                    DoCast(pTarget, SPELL_IMPALE);
+
+                Impale_Timer = 7500+rand()%5000;
+            } else Impale_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_warlord_kalithresh()
 {
-    RegisterSteamVaultCreatureAI(boss_warlord_kalithresh);
-    RegisterSteamVaultCreatureAI(npc_naga_distiller);
+    new mob_naga_distiller();
+    new boss_warlord_kalithresh();
 }

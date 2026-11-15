@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,13 +23,10 @@ SDComment: If thrall escort fail, all parts will reset. In future, save sub-part
 SDCategory: Caverns of Time, Old Hillsbrad Foothills
 EndScriptData */
 
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
-#include "Log.h"
-#include "Map.h"
+#include "ScriptPCH.h"
 #include "old_hillsbrad.h"
-#include "Player.h"
-#include "TemporarySummon.h"
+
+#define MAX_ENCOUNTER      6
 
 #define THRALL_ENTRY    17876
 #define TARETHA_ENTRY   18887
@@ -42,32 +40,52 @@ EndScriptData */
 class instance_old_hillsbrad : public InstanceMapScript
 {
 public:
-    instance_old_hillsbrad() : InstanceMapScript(OHScriptName, 560) { }
+    instance_old_hillsbrad() : InstanceMapScript("instance_old_hillsbrad", 560) { }
 
-    InstanceScript* GetInstanceScript(InstanceMap* map) const override
+    InstanceScript* GetInstanceScript(InstanceMap* pMap) const
     {
-        return new instance_old_hillsbrad_InstanceMapScript(map);
+        return new instance_old_hillsbrad_InstanceMapScript(pMap);
     }
 
     struct instance_old_hillsbrad_InstanceMapScript : public InstanceScript
     {
-        instance_old_hillsbrad_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
-        {
-            SetHeaders(DataHeader);
-            SetBossNumber(OldHillsbradFoothillsBossCount);
+        instance_old_hillsbrad_InstanceMapScript(Map* pMap) : InstanceScript(pMap) {Initialize();};
 
-            ThrallEscortState = OH_ESCORT_PRISON_TO_SKARLOC;
-            mBarrelCount = 0;
-            mThrallEventCount = 0;
-        }
-
-        OHThrallEscortStates ThrallEscortState;
+        uint32 m_auiEncounter[MAX_ENCOUNTER];
         uint32 mBarrelCount;
         uint32 mThrallEventCount;
 
-        ObjectGuid ThrallGUID;
-        ObjectGuid TarethaGUID;
-        ObjectGuid EpochGUID;
+        uint64 ThrallGUID;
+        uint64 TarethaGUID;
+        uint64 EpochGUID;
+
+        void Initialize()
+        {
+            memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
+
+            mBarrelCount        = 0;
+            mThrallEventCount   = 0;
+            ThrallGUID          = 0;
+            TarethaGUID         = 0;
+            EpochGUID        = 0;
+        }
+
+        Player* GetPlayerInMap()
+        {
+            Map::PlayerList const& players = instance->GetPlayers();
+
+            if (!players.isEmpty())
+            {
+                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+                {
+                    if (Player* plr = itr->getSource())
+                        return plr;
+                }
+            }
+
+            sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: GetPlayerInMap, but PlayerList is empty!");
+            return NULL;
+        }
 
         void UpdateQuestCredit()
         {
@@ -77,15 +95,15 @@ public:
             {
                 for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
                 {
-                    if (Player* player = itr->GetSource())
-                        player->KilledMonsterCredit(LODGE_QUEST_TRIGGER);
+                    if (Player* pPlayer = itr->getSource())
+                        pPlayer->KilledMonsterCredit(LODGE_QUEST_TRIGGER,0);
                 }
             }
         }
 
-        void OnCreatureCreate(Creature* creature) override
+        void OnCreatureCreate(Creature* creature)
         {
-            switch (creature->GetEntry())
+            switch(creature->GetEntry())
             {
                 case THRALL_ENTRY:
                     ThrallGUID = creature->GetGUID();
@@ -93,15 +111,23 @@ public:
                 case TARETHA_ENTRY:
                     TarethaGUID = creature->GetGUID();
                     break;
-                case EPOCH_ENTRY:
-                    EpochGUID = creature->GetGUID();
-                    break;
+            case EPOCH_ENTRY:
+            EpochGUID = creature->GetGUID();
+            break;
             }
         }
 
-        void SetData(uint32 type, uint32 data) override
+        void SetData(uint32 type, uint32 data)
         {
-            switch (type)
+            Player* pPlayer = GetPlayerInMap();
+
+            if (!pPlayer)
+            {
+                sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: SetData (Type: %u Data %u) cannot find any player.", type, data);
+                return;
+            }
+
+            switch(type)
             {
                 case TYPE_BARREL_DIVERSION:
                 {
@@ -113,77 +139,102 @@ public:
                         ++mBarrelCount;
                         DoUpdateWorldState(WORLD_STATE_OH, mBarrelCount);
 
-                        TC_LOG_DEBUG("scripts", "Instance Old Hillsbrad: go_barrel_old_hillsbrad count {}", mBarrelCount);
+                        sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: go_barrel_old_hillsbrad count %u",mBarrelCount);
+
+                        m_auiEncounter[0] = IN_PROGRESS;
 
                         if (mBarrelCount == 5)
                         {
                             UpdateQuestCredit();
-                            if (TempSummon* drake = instance->SummonCreature(DRAKE_ENTRY, { 2128.43f, 71.01f, 64.42f, 1.74f }, nullptr, Milliseconds(30min).count()))
-                                drake->SetTempSummonType(TEMPSUMMON_DEAD_DESPAWN);
+                            pPlayer->SummonCreature(DRAKE_ENTRY, 2128.43f, 71.01f, 64.42f, 1.74f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 1800000);
+                            m_auiEncounter[0] = DONE;
                         }
                     }
                     break;
                 }
                 case TYPE_THRALL_EVENT:
                 {
-                    if (data != OH_ESCORT_DEATH_EVENT)
+                    if (data == FAIL)
                     {
-                        ThrallEscortState = OHThrallEscortStates(data);
-                        if (Creature* thrall = instance->GetCreature(ThrallGUID))
-                            thrall->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                        if (mThrallEventCount <= 20)
+                        {
+                            ++mThrallEventCount;
+                            m_auiEncounter[1] = NOT_STARTED;
+                            sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: Thrall event failed %u times. Resetting all sub-events.",mThrallEventCount);
+                            m_auiEncounter[2] = NOT_STARTED;
+                            m_auiEncounter[3] = NOT_STARTED;
+                            m_auiEncounter[4] = NOT_STARTED;
+                            m_auiEncounter[5] = NOT_STARTED;
+                        }
+                        else if (mThrallEventCount > 20)
+                        {
+                            m_auiEncounter[1] = data;
+                            m_auiEncounter[2] = data;
+                            m_auiEncounter[3] = data;
+                            m_auiEncounter[4] = data;
+                            m_auiEncounter[5] = data;
+                            sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: Thrall event failed %u times. Resetting all sub-events.",mThrallEventCount);
+                        }
                     }
                     else
-                    {
-                        ++mThrallEventCount;
-                        if (mThrallEventCount >= 20)
-                            ThrallEscortState = OH_ESCORT_FINISHED; // wipe limit reached
-                        else
-                            ThrallEscortState = OH_ESCORT_PRISON_TO_SKARLOC; // not correct, see npc_thrall_old_hillsbrad::InitializeAI for details
-                    }
-                    TC_LOG_DEBUG("scripts", "Instance Old Hillsbrad: Thrall escort event adjusted to data {}.", data);
+                        m_auiEncounter[1] = data;
+                    sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: Thrall escort event adjusted to data %u.",data);
                     break;
                 }
+                case TYPE_THRALL_PART1:
+                    m_auiEncounter[2] = data;
+                    sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: Thrall event part I adjusted to data %u.",data);
+                    break;
+                case TYPE_THRALL_PART2:
+                    m_auiEncounter[3] = data;
+                    sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: Thrall event part II adjusted to data %u.",data);
+                    break;
+                case TYPE_THRALL_PART3:
+                    m_auiEncounter[4] = data;
+                    sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: Thrall event part III adjusted to data %u.",data);
+                    break;
+                case TYPE_THRALL_PART4:
+                    m_auiEncounter[5] = data;
+                     sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Old Hillsbrad: Thrall event part IV adjusted to data %u.",data);
+                    break;
             }
         }
 
-        uint32 GetData(uint32 data) const override
+        uint32 GetData(uint32 data)
         {
-            switch (data)
+            switch(data)
             {
                 case TYPE_BARREL_DIVERSION:
-                    return mBarrelCount >= 5 ? DONE : IN_PROGRESS;
+                    return m_auiEncounter[0];
                 case TYPE_THRALL_EVENT:
-                    return ThrallEscortState;
+                    return m_auiEncounter[1];
+                case TYPE_THRALL_PART1:
+                    return m_auiEncounter[2];
+                case TYPE_THRALL_PART2:
+                    return m_auiEncounter[3];
+                case TYPE_THRALL_PART3:
+                    return m_auiEncounter[4];
+                case TYPE_THRALL_PART4:
+                    return m_auiEncounter[5];
             }
             return 0;
         }
 
-        ObjectGuid GetGuidData(uint32 data) const override
+        uint64 GetData64(uint32 data)
         {
-            switch (data)
+            switch(data)
             {
                 case DATA_THRALL:
                     return ThrallGUID;
                 case DATA_TARETHA:
                     return TarethaGUID;
-                case DATA_EPOCH_HUNTER:
-                    return EpochGUID;
+            case DATA_EPOCH:
+            return EpochGUID;
             }
-            return ObjectGuid::Empty;
-        }
-
-        void ReadSaveDataMore(std::istringstream&) override
-        {
-            if (GetBossState(DATA_LIEUTENANT_DRAKE) == DONE)
-                mBarrelCount = 5;
-            /* TODO not correct, see npc_thrall_old_hillsbrad::InitializeAI for details
-            if (GetBossState(DATA_CAPTAIN_SKARLOC) == DONE)
-                ThrallEscortState = OH_ESCORT_HORSE_RIDE;
-            if (GetBossState(DATA_EPOCH_HUNTER) == DONE)
-                ThrallEscortState = OH_ESCORT_FINISHED;
-            */
+            return 0;
         }
     };
+
 };
 
 void AddSC_instance_old_hillsbrad()

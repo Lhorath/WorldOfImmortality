@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,51 +15,72 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "blackfathom_deeps.h"
 
 enum Spells
 {
-    SPELL_NET         = 6533
+    SPELL_NET                                              = 6533
 };
 
-enum Events
+class boss_gelihast : public CreatureScript
 {
-    EVENT_THROW_NET   = 1
-};
+public:
+    boss_gelihast() : CreatureScript("boss_gelihast") { }
 
-struct boss_gelihast : public BossAI
-{
-    boss_gelihast(Creature* creature) : BossAI(creature, DATA_GELIHAST) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::JustEngagedWith(who);
-        events.ScheduleEvent(EVENT_THROW_NET, 2s, 4s);
+        return new boss_gelihastAI (pCreature);
     }
 
-    void UpdateAI(uint32 diff) override
+    struct boss_gelihastAI : public ScriptedAI
     {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_gelihastAI(Creature *c) : ScriptedAI(c)
         {
-            if (eventId == EVENT_THROW_NET)
-            {
-                DoCastVictim(SPELL_NET);
-                events.ScheduleEvent(EVENT_THROW_NET, 4s, 7s);
-            }
+            pInstance = c->GetInstanceScript();
         }
 
-        DoMeleeAttackIfReady();
-    }
+        uint32 uiNetTimer;
+
+        InstanceScript *pInstance;
+
+        void Reset()
+        {
+            uiNetTimer = urand(2000,4000);
+            if (pInstance)
+                pInstance->SetData(TYPE_GELIHAST, NOT_STARTED);
+        }
+
+        void EnterCombat(Unit* /*who*/)
+        {
+            if (pInstance)
+                pInstance->SetData(TYPE_GELIHAST, IN_PROGRESS);
+        }
+
+        void JustDied(Unit* /*killer*/)
+        {
+            if (pInstance)
+                pInstance->SetData(TYPE_GELIHAST, DONE);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (uiNetTimer < diff)
+            {
+                DoCastVictim(SPELL_NET);
+                uiNetTimer = urand(4000,7000);
+            } else uiNetTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_gelihast()
 {
-    RegisterBlackfathomDeepsCreatureAI(boss_gelihast);
+    new boss_gelihast();
 }

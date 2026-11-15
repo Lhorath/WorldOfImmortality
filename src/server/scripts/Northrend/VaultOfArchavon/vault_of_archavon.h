@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,46 +18,22 @@
 #ifndef DEF_ARCHAVON_H
 #define DEF_ARCHAVON_H
 
-#include "CreatureAIImpl.h"
-
-#define VoAScriptName "instance_vault_of_archavon"
-#define DataHeader "VA"
-
-uint32 const EncounterCount = 4;
-
-enum VAData
+enum Creatures
 {
-    DATA_ARCHAVON       = 0,
-    DATA_EMALON         = 1,
-    DATA_KORALON        = 2,
-    DATA_TORAVON        = 3
+    CREATURE_ARCHAVON                           = 31125,
+    CREATURE_EMALON                             = 33993,
+    CREATURE_KORALON                            = 35013,
+    CREATURE_TORAVON                            = 38433,
 };
 
-enum VACreatureIds
+enum Data
 {
-    NPC_ARCHAVON        = 31125,
-    NPC_EMALON          = 33993,
-    NPC_KORALON         = 35013,
-    NPC_TORAVON         = 38433
+    DATA_ARCHAVON   = 0,
+    DATA_EMALON     = 1,
+    DATA_KORALON    = 2,
+    DATA_TORAVON    = 3,
 };
 
-enum VAAchievementCriteriaIds
-{
-    CRITERIA_EARTH_WIND_FIRE_10 = 12018,
-    CRITERIA_EARTH_WIND_FIRE_25 = 12019
-};
-
-enum VAAchievementSpells
-{
-    SPELL_EARTH_WIND_FIRE_ACHIEVEMENT_CHECK = 68308
-};
-
-template <class AI, class T>
-inline AI* GetVaultOfArchavonAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, VoAScriptName);
-}
-
-#define RegisterVaultOfArchavonCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetVaultOfArchavonAI)
+#define MAX_ENCOUNTER 4
 
 #endif

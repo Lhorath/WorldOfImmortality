@@ -11,7 +11,7 @@
 
 #include "G3D/debugAssert.h"
 #include "G3D/platform.h"
-#ifdef G3D_WINDOWS
+#ifdef G3D_WIN32
     #include <tchar.h>
 #endif
 #include "G3D/format.h"
@@ -23,7 +23,6 @@
 #include <cstdlib>
 
 #ifdef _MSC_VER
-#include <Windows.h>
     // disable: "C++ exception handler used"
 #   pragma warning (push)
 #   pragma warning (disable : 4530)
@@ -45,7 +44,7 @@ AssertionHook _failureHook = _handleErrorCheck_;
 #endif
 
 
-#ifdef G3D_WINDOWS
+#ifdef G3D_WIN32
 static void postToClipboard(const char *text) {
     if (OpenClipboard(NULL)) {
         HGLOBAL hMem = GlobalAlloc(GHND | GMEM_DDESHARE, strlen(text) + 1);
@@ -78,7 +77,7 @@ static void createErrorMessage(
     std::string le = "";
     const char* newline = "\n";
 
-    #ifdef G3D_WINDOWS
+    #ifdef G3D_WIN32
         newline = "\r\n";
 
         // The last error value.  (Which is preserved across the call).
@@ -100,16 +99,16 @@ static void createErrorMessage(
         }
 
         // Make sure the message got translated into something.
-        LPCTSTR realLastErr;
+        LPTSTR realLastErr;
         if (NULL != formatMsg) {
             realLastErr = formatMsg;
         } else {
             realLastErr = _T("Last error code does not exist.");
         }
 
-        if (lastErr != 0) {
-            le = G3D::format("Last Error (0x%08X): %s\r\n\r\n", lastErr, (LPCSTR)realLastErr);
-        }
+		if (lastErr != 0) {
+	        le = G3D::format("Last Error (0x%08X): %s\r\n\r\n", lastErr, (LPCSTR)realLastErr);
+		}
 
         // Get rid of the allocated memory from FormatMessage.
         if (NULL != formatMsg) {
@@ -122,8 +121,6 @@ static void createErrorMessage(
         const char* moduleName = strrchr(modulePath, '\\');
         outTitle = outTitle + string(" - ") + string(moduleName ? (moduleName + 1) : modulePath);
 
-    #else
-        (void)outTitle;
     #endif
 
     // Build the message.
@@ -145,7 +142,7 @@ bool _handleDebugAssert_(
     std::string dialogText = "";
     createErrorMessage(expression, message, filename, lineNumber, dialogTitle, dialogText);
 
-    #ifdef G3D_WINDOWS
+    #ifdef G3D_WIN32
         DWORD lastErr = GetLastError();
         postToClipboard(dialogText.c_str());
         debugPrintf("\n%s\n", dialogText.c_str());
@@ -162,7 +159,7 @@ bool _handleDebugAssert_(
 
     int result = G3D::prompt(dialogTitle.c_str(), dialogText.c_str(), (const char**)choices, 3, useGuiPrompt);
 
-#    ifdef G3D_WINDOWS
+#    ifdef G3D_WIN32
         // Put the incoming last error back.
         SetLastError(lastErr);
 #    endif
@@ -203,7 +200,7 @@ bool _handleErrorCheck_(
 
     // Log the error
     Log::common()->print(std::string("\n**************************\n\n") + dialogTitle + "\n" + dialogText);
-    #ifdef G3D_WINDOWS
+    #ifdef G3D_WIN32
         DWORD lastErr = GetLastError();
         (void)lastErr;
         postToClipboard(dialogText.c_str());
@@ -215,7 +212,7 @@ bool _handleErrorCheck_(
     const std::string& m = 
         std::string("An internal error has occured in this program and it will now close.  "
         "The specific error is below. More information has been saved in \"") +
-            Log::getCommonLogFilename() + "\".\n\n" + dialogText;
+            Log::getCommonLogFilename() + "\".\n" + dialogText;
 
     int result = G3D::prompt("Error", m.c_str(), (const char**)choices, 1, useGuiPrompt);
     (void)result;
@@ -224,7 +221,7 @@ bool _handleErrorCheck_(
 }
 
 
-#ifdef G3D_WINDOWS
+#ifdef G3D_WIN32
 static HCURSOR oldCursor;
 static RECT    oldCursorRect;
 static POINT   oldCursorPos;
@@ -232,7 +229,7 @@ static int     oldShowCursorCount;
 #endif
 
 void _releaseInputGrab_() {
-    #ifdef G3D_WINDOWS
+    #ifdef G3D_WIN32
 
         GetCursorPos(&oldCursorPos);
 
@@ -278,7 +275,7 @@ void _releaseInputGrab_() {
 
 
 void _restoreInputGrab_() {
-    #ifdef G3D_WINDOWS
+    #ifdef G3D_WIN32
 
         // Restore the old clipping region
         ClipCursor(&oldCursorRect);
@@ -310,7 +307,7 @@ void setAssertionHook(AssertionHook hook) {
 }
 
 AssertionHook assertionHook() {
-    return     G3D::_internal::_debugHook;
+    return 	G3D::_internal::_debugHook;
 }
 
 void setFailureHook(AssertionHook hook) {
@@ -332,7 +329,7 @@ ConsolePrintHook consolePrintHook() {
 
 
 std::string __cdecl debugPrint(const std::string& s) {
-#   ifdef G3D_WINDOWS
+#   ifdef G3D_WIN32
         const int MAX_STRING_LEN = 1024;
     
         // Windows can't handle really long strings sent to

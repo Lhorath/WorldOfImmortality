@@ -1,4 +1,4 @@
-# This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+# Copyright (C) 2008-2010 Trinity <http://www.trinitycore.org/>
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -8,45 +8,37 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-add_subdirectory(threads)
-
-if(SERVERS OR TOOLS)
-  add_subdirectory(boost)
-  add_subdirectory(zlib)
-  add_subdirectory(g3dlite)
-  add_subdirectory(recastnavigation)
-  add_subdirectory(fmt)
-  add_subdirectory(SFMT)
-  add_subdirectory(utf8cpp)
-  add_subdirectory(valgrind)
-  add_subdirectory(openssl)
-  if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND NOT NOJEM)
-    add_subdirectory(jemalloc)
-  endif()
-  add_subdirectory(argon2)
-  add_subdirectory(short_alloc)
+if( CMAKE_COMPILER_IS_GNUCXX )
+  add_definitions(--no-warnings)
+elseif( MSVC )
+  add_definitions(/W0)
 endif()
 
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  if(SERVERS)
+    add_subdirectory(jemalloc)
+  endif()
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+  if(SERVERS)
+    add_subdirectory(acelite)
+    if(USE_MYSQL_SOURCES)
+      add_subdirectory(mysqllite)
+    endif()
+  endif()
+  if(TOOLS)
+    add_subdirectory(bzip2)
+  endif()
+  add_subdirectory(zlib)
+endif()
+
+add_subdirectory(g3dlite)
+
 if(SERVERS)
-  add_subdirectory(mysql)
-  add_subdirectory(readline)
   add_subdirectory(gsoap)
 endif()
 
-if(SERVERS AND BUILD_EFSW)
-  add_subdirectory(efsw)
-endif()
-
 if(TOOLS)
-  add_subdirectory(bzip2)
   add_subdirectory(libmpq)
-endif()
-
-if(BUILD_TESTING)
-  include(FetchContent)
-  FetchContent_Declare(Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v2.13.9
-    GIT_SHALLOW    1)
-  FetchContent_MakeAvailable(Catch2)
 endif()

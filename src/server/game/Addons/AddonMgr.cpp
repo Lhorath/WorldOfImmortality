@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,99 +16,65 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "AddonMgr.h"
-#include "CryptoHash.h"
 #include "DatabaseEnv.h"
-#include "DBCStores.h"
-#include "Log.h"
-#include "Timer.h"
+#include "AddonMgr.h"
+#include "ObjectAccessor.h"
+#include "Player.h"
+#include "Util.h"
+#include "SHA1.h"
 
-namespace AddonMgr
+AddonMgr::AddonMgr()
 {
-
-// Anonymous namespace ensures file scope of all the stuff inside it, even
-// if you add something more to this namespace somewhere else.
-namespace
-{
-    // List of saved addons (in DB).
-    typedef std::list<SavedAddon> SavedAddonsList;
-
-    SavedAddonsList m_knownAddons;
-
-    BannedAddonList m_bannedAddons;
 }
 
-void LoadFromDB()
+AddonMgr::~AddonMgr()
+{
+}
+
+void AddonMgr::LoadFromDB()
 {
     uint32 oldMSTime = getMSTime();
 
     QueryResult result = CharacterDatabase.Query("SELECT name, crc FROM addons");
-    if (result)
+
+    if (!result)
     {
-        uint32 count = 0;
-
-        do
-        {
-            Field* fields = result->Fetch();
-
-            std::string name = fields[0].GetString();
-            uint32 crc = fields[1].GetUInt32();
-
-            m_knownAddons.push_back(SavedAddon(name, crc));
-
-            ++count;
-        }
-        while (result->NextRow());
-
-        TC_LOG_INFO("server.loading", ">> Loaded {} known addons in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+        sLog->outString(">> Loaded 0 known addons. DB table `addons` is empty!");
+        sLog->outString();
+        return;
     }
-    else
-        TC_LOG_INFO("server.loading", ">> Loaded 0 known addons. DB table `addons` is empty!");
 
-    oldMSTime = getMSTime();
-    result = CharacterDatabase.Query("SELECT id, name, version, UNIX_TIMESTAMP(timestamp) FROM banned_addons ORDER BY timestamp");
-    if (result)
+    uint32 count = 0;
+
+    do
     {
-        uint32 count = 0;
-        uint32 dbcMaxBannedAddon = sBannedAddOnsStore.GetNumRows();
+        Field *fields = result->Fetch();
 
-        do
-        {
-            Field* fields = result->Fetch();
+        std::string name = fields[0].GetString();
+        uint32 crc = fields[1].GetUInt32();
 
-            BannedAddon addon;
-            addon.Id = fields[0].GetUInt32() + dbcMaxBannedAddon;
-            addon.Timestamp = uint32(fields[3].GetUInt64());
+        SavedAddon addon(name, crc);
+        m_knownAddons.push_back(addon);
 
-            std::string name = fields[1].GetString();
-            std::string version = fields[2].GetString();
-
-            addon.NameMD5 = Trinity::Crypto::MD5::GetDigestOf(name);
-            addon.VersionMD5 = Trinity::Crypto::MD5::GetDigestOf(version);
-
-            m_bannedAddons.push_back(addon);
-
-            ++count;
-        }
-        while (result->NextRow());
-
-        TC_LOG_INFO("server.loading", ">> Loaded {} banned addons in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+        ++count;
     }
+    while (result->NextRow());
+
+    sLog->outString(">> Loaded %u known addons in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+    sLog->outString();
 }
 
-void SaveAddon(std::string const& name, uint32 publicKeyCrc)
+void AddonMgr::SaveAddon(AddonInfo const& addon)
 {
-    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_ADDON);
+    std::string name = addon.Name;
+    CharacterDatabase.escape_string(name);
+    CharacterDatabase.PExecute("INSERT INTO addons (name, crc) VALUES ('%s', %u)", name.c_str(), addon.CRC);
 
-    stmt->setString(0, name);
-    stmt->setUInt32(1, publicKeyCrc);
-
-    CharacterDatabase.Execute(stmt);
-
-    m_knownAddons.emplace_back(name, publicKeyCrc);
+    SavedAddon newAddon(addon.Name, addon.CRC);
+    m_knownAddons.push_back(newAddon);
 }
 
-SavedAddon const* GetAddonInfo(const std::string& name)
+SavedAddon const* AddonMgr::GetAddonInfo(const std::string& name) const
 {
     for (SavedAddonsList::const_iterator it = m_knownAddons.begin(); it != m_knownAddons.end(); ++it)
     {
@@ -116,12 +83,5 @@ SavedAddon const* GetAddonInfo(const std::string& name)
             return &addon;
     }
 
-    return nullptr;
+    return NULL;
 }
-
-BannedAddonList const* GetBannedAddons()
-{
-    return &m_bannedAddons;
-}
-
-} // Namespace

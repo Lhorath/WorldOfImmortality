@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,187 +17,88 @@
  */
 
 #include "PointMovementGenerator.h"
+#include "Errors.h"
 #include "Creature.h"
 #include "CreatureAI.h"
-#include "Player.h"
-#include "MotionMaster.h"
-#include "MovementDefines.h"
-#include "MoveSpline.h"
-#include "MoveSplineInit.h"
+#include "DestinationHolderImp.h"
 #include "World.h"
 
 //----- Point Movement Generator
-
 template<class T>
-PointMovementGenerator<T>::PointMovementGenerator(uint32 id, float x, float y, float z, bool generatePath, float speed, Optional<float> finalOrient) : _movementId(id), _x(x), _y(y), _z(z), _speed(speed), _generatePath(generatePath), _finalOrient(finalOrient)
+void PointMovementGenerator<T>::Initialize(T &unit)
 {
-    this->Priority = MOTION_PRIORITY_NORMAL;
-    this->Flags = MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING;
-    this->BaseUnitState = UNIT_STATE_ROAMING;
+    unit.StopMoving();
+    Traveller<T> traveller(unit);
+    // knockback effect has UNIT_STAT_JUMPING set,so if here we disable sentmonstermove there will be creature position sync problem between client and server
+    i_destinationHolder.SetDestination(traveller,i_x,i_y,i_z, true /* !unit.HasUnitState(UNIT_STAT_JUMPING)*/);
 }
 
 template<class T>
-MovementGeneratorType PointMovementGenerator<T>::GetMovementGeneratorType() const
+bool PointMovementGenerator<T>::Update(T &unit, const uint32 &diff)
 {
-    return POINT_MOTION_TYPE;
-}
-
-template<class T>
-bool PointMovementGenerator<T>::DoInitialize(T* owner)
-{
-    MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING | MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
-    MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
-
-    if (_movementId == EVENT_CHARGE_PREPATH)
-    {
-        owner->AddUnitState(UNIT_STATE_ROAMING_MOVE);
-        return true;
-    }
-
-    if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting())
-    {
-        MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
-        owner->StopMoving();
-        return true;
-    }
-
-    owner->AddUnitState(UNIT_STATE_ROAMING_MOVE);
-
-    Movement::MoveSplineInit init(owner);
-    init.MoveTo(_x, _y, _z , _generatePath);
-    if (_speed > 0.0f)
-        init.SetVelocity(_speed);
-
-    if (_finalOrient)
-        init.SetFacing(*_finalOrient);
-
-    init.Launch();
-
-    // Call for creature group update
-    if (Creature* creature = owner->ToCreature())
-        creature->SignalFormationMovement();
-    return true;
-}
-
-template<class T>
-bool PointMovementGenerator<T>::DoReset(T* owner)
-{
-    MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
-
-    return DoInitialize(owner);
-}
-
-template<class T>
-bool PointMovementGenerator<T>::DoUpdate(T* owner, uint32 /*diff*/)
-{
-    if (!owner)
+    if (!&unit)
         return false;
 
-    if (_movementId == EVENT_CHARGE_PREPATH)
+    if (unit.HasUnitState(UNIT_STAT_ROOT | UNIT_STAT_STUNNED))
     {
-        if (owner->movespline->Finalized())
-        {
-            MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED);
+        if (unit.HasUnitState(UNIT_STAT_CHARGING))
             return false;
-        }
-        return true;
+        else
+            return true;
     }
 
-    if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting())
+    Traveller<T> traveller(unit);
+
+    i_destinationHolder.UpdateTraveller(traveller, diff);
+
+    if (i_destinationHolder.HasArrived())
     {
-        MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
-        owner->StopMoving();
-        return true;
-    }
-
-    if ((MovementGenerator::HasFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED) && owner->movespline->Finalized()) || (MovementGenerator::HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING) && !owner->movespline->Finalized()))
-    {
-        MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED | MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING);
-
-        owner->AddUnitState(UNIT_STATE_ROAMING_MOVE);
-
-        Movement::MoveSplineInit init(owner);
-        init.MoveTo(_x, _y, _z, _generatePath);
-        if (_speed > 0.0f) // Default value for point motion type is 0.0, if 0.0 spline will use GetSpeed on unit
-            init.SetVelocity(_speed);
-        init.Launch();
-
-        // Call for creature group update
-        if (Creature* creature = owner->ToCreature())
-            creature->SignalFormationMovement();
-    }
-
-    if (owner->movespline->Finalized())
-    {
-        MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY);
-        MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED);
+        unit.ClearUnitState(UNIT_STAT_MOVE);
+        arrived = true;
         return false;
     }
+
     return true;
 }
 
 template<class T>
-void PointMovementGenerator<T>::DoDeactivate(T* owner)
+void PointMovementGenerator<T>:: Finalize(T &unit)
 {
-    MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
-    owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
+    if (unit.HasUnitState(UNIT_STAT_CHARGING))
+        unit.ClearUnitState(UNIT_STAT_CHARGING | UNIT_STAT_JUMPING);
+    if (arrived) // without this crash!
+        MovementInform(unit);
 }
 
 template<class T>
-void PointMovementGenerator<T>::DoFinalize(T* owner, bool active, bool movementInform)
+void PointMovementGenerator<T>::MovementInform(T & /*unit*/)
 {
-    MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
-    if (active)
-        owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
-
-    if (movementInform && MovementGenerator::HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED))
-        MovementInform(owner);
 }
 
-template<class T>
-void PointMovementGenerator<T>::MovementInform(T*) { }
-
-template <>
-void PointMovementGenerator<Creature>::MovementInform(Creature* owner)
+template <> void PointMovementGenerator<Creature>::MovementInform(Creature &unit)
 {
-    if (owner->AI())
-        owner->AI()->MovementInform(POINT_MOTION_TYPE, _movementId);
-}
-
-template PointMovementGenerator<Player>::PointMovementGenerator(uint32, float, float, float, bool, float, Optional<float>);
-template PointMovementGenerator<Creature>::PointMovementGenerator(uint32, float, float, float, bool, float, Optional<float>);
-template MovementGeneratorType PointMovementGenerator<Player>::GetMovementGeneratorType() const;
-template MovementGeneratorType PointMovementGenerator<Creature>::GetMovementGeneratorType() const;
-template bool PointMovementGenerator<Player>::DoInitialize(Player*);
-template bool PointMovementGenerator<Creature>::DoInitialize(Creature*);
-template bool PointMovementGenerator<Player>::DoReset(Player*);
-template bool PointMovementGenerator<Creature>::DoReset(Creature*);
-template bool PointMovementGenerator<Player>::DoUpdate(Player*, uint32);
-template bool PointMovementGenerator<Creature>::DoUpdate(Creature*, uint32);
-template void PointMovementGenerator<Player>::DoDeactivate(Player*);
-template void PointMovementGenerator<Creature>::DoDeactivate(Creature*);
-template void PointMovementGenerator<Player>::DoFinalize(Player*, bool, bool);
-template void PointMovementGenerator<Creature>::DoFinalize(Creature*, bool, bool);
-
-//---- AssistanceMovementGenerator
-
-void AssistanceMovementGenerator::Finalize(Unit* owner, bool active, bool movementInform)
-{
-    AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
-    if (active)
-        owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
-
-    if (movementInform && HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED))
+    if (id == EVENT_FALL_GROUND)
     {
-        Creature* ownerCreature = owner->ToCreature();
-        ownerCreature->SetNoCallAssistance(false);
-        ownerCreature->CallAssistance();
-        if (ownerCreature->IsAlive())
-            ownerCreature->GetMotionMaster()->MoveSeekAssistanceDistract(sWorld->getIntConfig(CONFIG_CREATURE_FAMILY_ASSISTANCE_DELAY));
+        unit.setDeathState(JUST_DIED);
+        unit.SetFlying(true);
     }
+    unit.AI()->MovementInform(POINT_MOTION_TYPE, id);
 }
 
-MovementGeneratorType AssistanceMovementGenerator::GetMovementGeneratorType() const
+template void PointMovementGenerator<Player>::Initialize(Player&);
+template bool PointMovementGenerator<Player>::Update(Player &, const uint32 &diff);
+template void PointMovementGenerator<Player>::MovementInform(Player&);
+template void PointMovementGenerator<Player>::Finalize(Player&);
+
+template void PointMovementGenerator<Creature>::Initialize(Creature&);
+template bool PointMovementGenerator<Creature>::Update(Creature&, const uint32 &diff);
+template void PointMovementGenerator<Creature>::Finalize(Creature&);
+
+void AssistanceMovementGenerator::Finalize(Unit &unit)
 {
-    return ASSISTANCE_MOTION_TYPE;
+    unit.ToCreature()->SetNoCallAssistance(false);
+    unit.ToCreature()->CallAssistance();
+    if (unit.isAlive())
+        unit.GetMotionMaster()->MoveSeekAssistanceDistract(sWorld->getIntConfig(CONFIG_CREATURE_FAMILY_ASSISTANCE_DELAY));
 }
+

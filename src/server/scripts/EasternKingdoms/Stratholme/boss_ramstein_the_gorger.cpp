@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,97 +16,92 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- * Intro NYI
- */
+/* ScriptData
+SDName: Boss_Ramstein_The_Gorger
+SD%Complete: 70
+SDComment:
+SDCategory: Stratholme
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "stratholme.h"
 
-enum RamsteinSpells
-{
-    SPELL_FLURRY            = 15088,
-    SPELL_TRAMPLE           = 5568,
-    SPELL_KNOCKOUT          = 17307
-};
+#define SPELL_TRAMPLE       5568
+#define SPELL_KNOCKOUT    17307
 
-enum RamsteinEvents
-{
-    EVENT_TRAMPLE           = 1,
-    EVENT_KNOCKOUT
-};
+ #define C_MINDLESS_UNDEAD   11030
 
-enum RamsteinMisc
+class boss_ramstein_the_gorger : public CreatureScript
 {
-    SUMMON_GROUP_SENTRY     = 0,
-    SUMMON_GROUP_UNDEAD     = 1
-};
+public:
+    boss_ramstein_the_gorger() : CreatureScript("boss_ramstein_the_gorger") { }
 
-// 10439 - Ramstein the Gorger
-struct boss_ramstein_the_gorger : public BossAI
-{
-    boss_ramstein_the_gorger(Creature* creature) : BossAI(creature, BOSS_RAMSTEIN_THE_GORGER) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::Reset();
-
-        DoCastSelf(SPELL_FLURRY);
+        return new boss_ramstein_the_gorgerAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_ramstein_the_gorgerAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_TRAMPLE, 10s, 15s);
-        events.ScheduleEvent(EVENT_KNOCKOUT, 10s, 20s);
-    }
-
-    void JustDied(Unit* killer) override
-    {
-        BossAI::JustDied(killer);
-
-        me->SummonCreatureGroup(SUMMON_GROUP_SENTRY);
-        me->SummonCreatureGroup(SUMMON_GROUP_UNDEAD);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_ramstein_the_gorgerAI(Creature *c) : ScriptedAI(c)
         {
-            switch (eventId)
-            {
-                case EVENT_TRAMPLE:
-                    DoCastSelf(SPELL_TRAMPLE);
-                    events.Repeat(10s, 25s);
-                    break;
-                case EVENT_KNOCKOUT:
-                    DoCastVictim(SPELL_KNOCKOUT);
-                    events.Repeat(15s, 20s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            pInstance = me->GetInstanceScript();
         }
 
-        DoMeleeAttackIfReady();
-    }
+        InstanceScript* pInstance;
+
+        uint32 Trample_Timer;
+        uint32 Knockout_Timer;
+
+        void Reset()
+        {
+            Trample_Timer = 3000;
+            Knockout_Timer = 12000;
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void JustDied(Unit* /*Killer*/)
+        {
+            for (uint8 i = 0; i < 30; ++i)
+            {
+                if (Creature* mob = me->SummonCreature(C_MINDLESS_UNDEAD,3969.35f+irand(-10,10),-3391.87f+irand(-10,10),119.11f,5.91f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,1800000))
+                    mob->AI()->AttackStart(me->SelectNearestTarget(100.0f));
+            }
+
+            if (pInstance)
+                pInstance->SetData(TYPE_RAMSTEIN, DONE);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            //Trample
+            if (Trample_Timer <= diff)
+            {
+                DoCast(me, SPELL_TRAMPLE);
+                Trample_Timer = 7000;
+            } else Trample_Timer -= diff;
+
+            //Knockout
+            if (Knockout_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_KNOCKOUT);
+                Knockout_Timer = 10000;
+            } else Knockout_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_ramstein_the_gorger()
 {
-    RegisterStratholmeCreatureAI(boss_ramstein_the_gorger);
+    new boss_ramstein_the_gorger();
 }

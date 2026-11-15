@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,47 +19,13 @@
 #ifndef DEF_STEAM_VAULT_H
 #define DEF_STEAM_VAULT_H
 
-#include "CreatureAIImpl.h"
+#define TYPE_HYDROMANCER_THESPIA        1
+#define TYPE_MEKGINEER_STEAMRIGGER      2
+#define TYPE_WARLORD_KALITHRESH         3
+#define TYPE_DISTILLER                  4
 
-#define SteamVaultScriptName "instance_steam_vault"
-#define DataHeader "SV"
-
-uint32 constexpr EncounterCount = 3;
-
-enum SVDataTypes
-{
-    DATA_HYDROMANCER_THESPIA            = 0,
-    DATA_MEKGINEER_STEAMRIGGER          = 1,
-    DATA_WARLORD_KALITHRESH             = 2,
-
-    DATA_ACCESS_PANEL_THESPIA,
-    DATA_ACCESS_PANEL_STEAMRIGGER,
-    DATA_MAIN_CHAMBERS_DOOR,
-    DATA_DOOR_CONTROLLER
-};
-
-enum SVCreatureIds
-{
-    NPC_HYDROMANCER_THESPIA             = 17797,
-    NPC_MEKGINEER_STEAMRIGGER           = 17796,
-    NPC_WARLORD_KALITHRESH              = 17798,
-    NPC_COILFANG_DOOR_CONTROLLER        = 20926
-};
-
-enum SVGameObjectIds
-{
-    GO_ACCESS_PANEL_THESPIA             = 184125,
-    GO_ACCESS_PANEL_STEAMRIGGER         = 184126,
-    GO_MAIN_CHAMBERS_DOOR               = 183049
-};
-
-template <class AI, class T>
-inline AI* GetSteamVaultAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, SteamVaultScriptName);
-}
-
-#define RegisterSteamVaultCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetSteamVaultAI)
-#define RegisterSteamVaultGameObjectAI(ai_name) RegisterGameObjectAIWithFactory(ai_name, GetSteamVaultAI)
-
+#define DATA_MEKGINEERSTEAMRIGGER       5
+#define DATA_KALITRESH                  6
+#define DATA_THESPIA                    7
 #endif
+

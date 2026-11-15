@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,169 +16,132 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "GameObject.h"
-#include "InstanceScript.h"
-#include "Map.h"
-#include "Player.h"
+/* ScriptData
+SDName: Instance_Scholomance
+SD%Complete: 100
+SDComment:
+SDCategory: Scholomance
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "scholomance.h"
 
-Position const GandlingLoc = { 180.7712f, -5.428603f, 75.57024f, 1.291544f };
+#define GO_GATE_KIRTONOS    175570
+#define GO_GATE_GANDLING    177374
+#define GO_GATE_MALICIA     177375
+#define GO_GATE_THEOLEN     177377
+#define GO_GATE_POLKELT     177376
+#define GO_GATE_RAVENIAN    177372
+#define GO_GATE_BAROV       177373
+#define GO_GATE_ILLUCIA     177371
+
+#define MAX_ENCOUNTER          2
 
 class instance_scholomance : public InstanceMapScript
 {
-    public:
-        instance_scholomance() : InstanceMapScript(ScholomanceScriptName, 289) { }
+public:
+    instance_scholomance() : InstanceMapScript("instance_scholomance", 289) { }
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
+    InstanceScript* GetInstanceScript(InstanceMap* pMap) const
+    {
+        return new instance_scholomance_InstanceMapScript(pMap);
+    }
+
+    struct instance_scholomance_InstanceMapScript : public InstanceScript
+    {
+        instance_scholomance_InstanceMapScript(Map* pMap) : InstanceScript(pMap) {Initialize();};
+
+        //Lord Alexei Barov, Doctor Theolen Krastinov, The Ravenian, Lorekeeper Polkelt, Instructor Malicia and the Lady Illucia Barov.
+        bool IsBossDied[6];
+        uint32 m_auiEncounter[MAX_ENCOUNTER];
+
+        uint64 GateKirtonosGUID;
+        uint64 GateGandlingGUID;
+        uint64 GateMiliciaGUID;
+        uint64 GateTheolenGUID;
+        uint64 GatePolkeltGUID;
+        uint64 GateRavenianGUID;
+        uint64 GateBarovGUID;
+        uint64 GateIlluciaGUID;
+
+        void Initialize()
         {
-            return new instance_scholomance_InstanceMapScript(map);
+            memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
+
+            GateKirtonosGUID = 0;
+            GateGandlingGUID = 0;
+            GateMiliciaGUID = 0;
+            GateTheolenGUID = 0;
+            GatePolkeltGUID = 0;
+            GateRavenianGUID = 0;
+            GateBarovGUID = 0;
+            GateIlluciaGUID = 0;
+
+            for (uint8 i = 0; i < 6; ++i)
+                IsBossDied[i] = false;
         }
 
-        struct instance_scholomance_InstanceMapScript : public InstanceScript
+        void OnGameObjectCreate(GameObject* go)
         {
-            instance_scholomance_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
+            switch(go->GetEntry())
             {
-                SetHeaders(DataHeader);
-                SetBossNumber(EncounterCount);
+                case GO_GATE_KIRTONOS:  GateKirtonosGUID = go->GetGUID(); break;
+                case GO_GATE_GANDLING:  GateGandlingGUID = go->GetGUID(); break;
+                case GO_GATE_MALICIA:   GateMiliciaGUID = go->GetGUID(); break;
+                case GO_GATE_THEOLEN:   GateTheolenGUID = go->GetGUID(); break;
+                case GO_GATE_POLKELT:   GatePolkeltGUID = go->GetGUID(); break;
+                case GO_GATE_RAVENIAN:  GateRavenianGUID = go->GetGUID(); break;
+                case GO_GATE_BAROV:     GateBarovGUID = go->GetGUID(); break;
+                case GO_GATE_ILLUCIA:   GateIlluciaGUID = go->GetGUID(); break;
             }
+        }
 
-            void OnGameObjectCreate(GameObject* go) override
+        void SetData(uint32 type, uint32 data)
+        {
+            switch(type)
             {
-                switch (go->GetEntry())
+                case DATA_LORDALEXEIBAROV_DEATH:
+                    IsBossDied[0] = true;
+                    break;
+                case DATA_DOCTORTHEOLENKRASTINOV_DEATH:
+                    IsBossDied[1] = true;
+                    break;
+                case DATA_THERAVENIAN_DEATH:
+                    IsBossDied[2] = true;
+                    break;
+                case DATA_LOREKEEPERPOLKELT_DEATH:
+                    IsBossDied[3] = true;
+                    break;
+                case DATA_INSTRUCTORMALICIA_DEATH:
+                    IsBossDied[4] = true;
+                    break;
+                case DATA_LADYILLUCIABAROV_DEATH:
+                    IsBossDied[5] = true;
+                    break;
+                case TYPE_GANDLING:
+                    m_auiEncounter[0] = data;
+                    break;
+                case TYPE_KIRTONOS:
+                    m_auiEncounter[1] = data;
+                    break;
+            }
+        }
+
+        uint32 GetData(uint32 type)
+        {
+            if (type == TYPE_GANDLING)
+            {
+                if (IsBossDied[0] && IsBossDied[1] && IsBossDied[2] && IsBossDied[3] && IsBossDied[4] && IsBossDied[5])
                 {
-                    case GO_GATE_KIRTONOS:
-                        GateKirtonosGUID = go->GetGUID();
-                        break;
-                    case GO_GATE_GANDLING:
-                        GateGandlingGUID = go->GetGUID();
-                        break;
-                    case GO_GATE_MALICIA:
-                        GateMiliciaGUID = go->GetGUID();
-                        break;
-                    case GO_GATE_THEOLEN:
-                        GateTheolenGUID = go->GetGUID();
-                        break;
-                    case GO_GATE_POLKELT:
-                        GatePolkeltGUID = go->GetGUID();
-                        break;
-                    case GO_GATE_RAVENIAN:
-                        GateRavenianGUID = go->GetGUID();
-                        break;
-                    case GO_GATE_BAROV:
-                        GateBarovGUID = go->GetGUID();
-                        break;
-                    case GO_GATE_ILLUCIA:
-                        GateIlluciaGUID = go->GetGUID();
-                        break;
-                    case GO_BRAZIER_OF_THE_HERALD:
-                        BrazierOfTheHeraldGUID = go->GetGUID();
-                        break;
-                    default:
-                        break;
+                    m_auiEncounter[0] = IN_PROGRESS;
+                    return IN_PROGRESS;
                 }
             }
 
-            bool SetBossState(uint32 type, EncounterState state) override
-            {
-                if (!InstanceScript::SetBossState(type, state))
-                    return false;
+            return 0;
+        }
+    };
 
-                switch (type)
-                {
-                    case DATA_LORD_ALEXEI_BAROV:
-                    case DATA_DOCTOR_THEOLEN_KRASTINOV:
-                    case DATA_THE_RAVENIAN:
-                    case DATA_LOREKEEPER_POLKELT:
-                    case DATA_INSTRUCTOR_MALICIA:
-                    case DATA_LADY_ILLUCIA_BAROV:
-                        CheckToSpawnGandling();
-                        break;
-                    default:
-                        break;
-                }
-
-                return true;
-            }
-
-            ObjectGuid GetGuidData(uint32 type) const override
-            {
-                switch (type)
-                {
-                    case GO_GATE_KIRTONOS:
-                        return GateKirtonosGUID;
-                    case GO_GATE_GANDLING:
-                        return GateGandlingGUID;
-                    case GO_GATE_MALICIA:
-                        return GateMiliciaGUID;
-                    case GO_GATE_THEOLEN:
-                        return GateTheolenGUID;
-                    case GO_GATE_POLKELT:
-                        return GatePolkeltGUID;
-                    case GO_GATE_RAVENIAN:
-                        return GateRavenianGUID;
-                    case GO_GATE_BAROV:
-                        return GateBarovGUID;
-                    case GO_GATE_ILLUCIA:
-                        return GateIlluciaGUID;
-                    case GO_BRAZIER_OF_THE_HERALD:
-                        return BrazierOfTheHeraldGUID;
-                    default:
-                        break;
-                }
-
-                return ObjectGuid::Empty;
-            }
-
-            bool CheckPreBosses(uint32 bossId) const
-            {
-                switch (bossId)
-                {
-                    case DATA_DARKMASTER_GANDLING:
-                        if (GetBossState(DATA_LORD_ALEXEI_BAROV) != DONE)
-                            return false;
-                        if (GetBossState(DATA_DOCTOR_THEOLEN_KRASTINOV) != DONE)
-                            return false;
-                        if (GetBossState(DATA_THE_RAVENIAN) != DONE)
-                            return false;
-                        if (GetBossState(DATA_LOREKEEPER_POLKELT) != DONE)
-                            return false;
-                        if (GetBossState(DATA_INSTRUCTOR_MALICIA) != DONE)
-                            return false;
-                        if (GetBossState(DATA_LADY_ILLUCIA_BAROV) != DONE)
-                            return false;
-                        if (GetBossState(DATA_DARKMASTER_GANDLING) == DONE)
-                            return false;
-                        break;
-                    default:
-                        break;
-                }
-
-                return true;
-            }
-
-            void CheckToSpawnGandling()
-            {
-                if (CheckPreBosses(DATA_DARKMASTER_GANDLING))
-                    instance->SummonCreature(NPC_DARKMASTER_GANDLING, GandlingLoc);
-            }
-
-            void ReadSaveDataMore(std::istringstream& /*data*/) override
-            {
-                CheckToSpawnGandling();
-            }
-
-        protected:
-            ObjectGuid GateKirtonosGUID;
-            ObjectGuid GateGandlingGUID;
-            ObjectGuid GateMiliciaGUID;
-            ObjectGuid GateTheolenGUID;
-            ObjectGuid GatePolkeltGUID;
-            ObjectGuid GateRavenianGUID;
-            ObjectGuid GateBarovGUID;
-            ObjectGuid GateIlluciaGUID;
-            ObjectGuid BrazierOfTheHeraldGUID;
-        };
 };
 
 void AddSC_instance_scholomance()

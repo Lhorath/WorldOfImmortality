@@ -1,5 +1,6 @@
-/*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ /*
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,451 +16,443 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Creatures in waves should load waypoints, not engage immediately
- * Combat timers requires to be revisited
- * SAY_EVENT is NYI
- */
+/* ScriptData
+SDName: Boss_Nalorakk
+SD%Complete: 100
+SDComment:
+SDCategory: Zul'Aman
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "Containers.h"
-#include "Map.h"
-#include "MotionMaster.h"
-#include "ScriptedCreature.h"
-#include "SpellAuraEffects.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
+#include "ScriptPCH.h"
 #include "zulaman.h"
+#include "GridNotifiers.h"
 
-enum NalorakkTexts
+//Trash Waves
+float NalorakkWay[8][3] =
 {
-    SAY_WAVE_1                      = 0,
-    SAY_WAVE_2                      = 1,
-    SAY_WAVE_3                      = 2,
-    SAY_WAVE_4                      = 3,
-    SAY_WAVE_DONE                   = 4,
-    SAY_AGGRO                       = 5,
-    SAY_SURGE                       = 6,
-    SAY_TO_BEAR                     = 7,
-    SAY_TO_TROLL                    = 8,
-    SAY_BERSERK                     = 9,
-    SAY_SLAY                        = 10,
-    SAY_DEATH                       = 11,
-    SAY_EVENT                       = 12,
-    EMOTE_TRANSFORM                 = 13
+    { 18.569f, 1414.512f, 11.42f},// waypoint 1
+    {-17.264f, 1419.551f, 12.62f},
+    {-52.642f, 1419.357f, 27.31f},// waypoint 2
+    {-69.908f, 1419.721f, 27.31f},
+    {-79.929f, 1395.958f, 27.31f},
+    {-80.072f, 1374.555f, 40.87f},// waypoint 3
+    {-80.072f, 1314.398f, 40.87f},
+    {-80.072f, 1295.775f, 48.60f} // waypoint 4
 };
 
-enum NalorakkSpells
+#define YELL_NALORAKK_WAVE1     "Get da move on, guards! It be killin' time!"
+#define SOUND_NALORAKK_WAVE1    12066
+#define YELL_NALORAKK_WAVE2     "Guards, go already! Who you more afraid of, dem... or me?"
+#define SOUND_NALORAKK_WAVE2    12067
+#define YELL_NALORAKK_WAVE3     "Ride now! Ride out dere and bring me back some heads!"
+#define SOUND_NALORAKK_WAVE3    12068
+#define YELL_NALORAKK_WAVE4     "I be losin' me patience! Go on: make dem wish dey was never born!"
+#define SOUND_NALORAKK_WAVE4    12069
+
+//Unimplemented SoundIDs
+/*
+#define SOUND_NALORAKK_EVENT1   12078
+#define SOUND_NALORAKK_EVENT2   12079
+*/
+
+//General defines
+#define YELL_AGGRO              "You be dead soon enough!"
+#define SOUND_YELL_AGGRO        12070
+#define YELL_KILL_ONE           "Mua-ha-ha! Now whatchoo got to say?"
+#define SOUND_YELL_KILL_ONE     12075
+#define YELL_KILL_TWO           "Da Amani gonna rule again!"
+#define SOUND_YELL_KILL_TWO     12076
+#define YELL_DEATH              "I... be waitin' on da udda side...."
+#define SOUND_YELL_DEATH        12077
+#define YELL_BERSERK            "You had your chance, now it be too late!" //Never seen this being used, so just guessing from what I hear.
+#define SOUND_YELL_BERSERK      12074
+
+#define SPELL_BERSERK           45078
+
+//Defines for Troll form
+#define SPELL_BRUTALSWIPE       42384
+#define SPELL_MANGLE            42389
+#define SPELL_MANGLEEFFECT      44955
+#define SPELL_SURGE             42402
+#define SPELL_BEARFORM          42377
+
+#define YELL_SURGE              "I bring da pain!"
+#define SOUND_YELL_SURGE        12071
+
+#define YELL_SHIFTEDTOTROLL     "Make way for Nalorakk!"
+#define SOUND_YELL_TOTROLL      12073
+
+//Defines for Bear form
+#define SPELL_LACERATINGSLASH   42395
+#define SPELL_RENDFLESH         42397
+#define SPELL_DEAFENINGROAR     42398
+
+#define YELL_SHIFTEDTOBEAR      "You call on da beast, you gonna get more dan you bargain for!"
+#define SOUND_YELL_TOBEAR       12072
+
+class boss_nalorakk : public CreatureScript
 {
-    // Troll form
-    SPELL_BRUTAL_SWIPE              = 42384,
-    SPELL_MANGLE                    = 42389,
-    SPELL_SURGE                     = 44019,
+    public:
 
-    // Bear form
-    SPELL_LACERATING_SLASH          = 42395,
-    SPELL_REND_FLESH                = 42397,
-    SPELL_DEAFENING_ROAR            = 42398,
-
-    // Shared
-    SPELL_SHAPE_OF_THE_BEAR         = 42377,
-    SPELL_BERSERK                   = 45078,
-
-    // Scripts
-    SPELL_SURGE_CHARGE              = 42402,
-    SPELL_SURGE_HASTE               = 44960
-};
-
-enum NalorakkEvents
-{
-    // Waves
-    EVENT_WAVE_DONE_1               = 1,
-    EVENT_WAVE_DONE_2,
-    EVENT_WAVE_DONE_3,
-    EVENT_WAVE_DONE_4,
-
-    // Troll form
-    EVENT_BRUTAL_SWIPE,
-    EVENT_MANGLE,
-    EVENT_SURGE,
-
-    // Bear form
-    EVENT_LACERATING_SLASH,
-    EVENT_REND_FLESH,
-    EVENT_DEAFENING_ROAR,
-
-    // Shared
-    EVENT_SHAPESHIFT,
-    EVENT_BERSERK
-};
-
-enum NalorakkActions
-{
-    ACTION_SHAPE_APPLIED            = 0,
-    ACTION_SHAPE_REMOVED            = 1
-};
-
-enum NalorakkSpawnGroups
-{
-    SPAWN_GROUP_NALORAKK_WAVE_1     = 329,
-    SPAWN_GROUP_NALORAKK_WAVE_2     = 330,
-    SPAWN_GROUP_NALORAKK_WAVE_3     = 331,
-    SPAWN_GROUP_NALORAKK_WAVE_4     = 332
-};
-
-enum NalorakkPaths
-{
-    PATH_WAVE_DONE_1                = 1,
-    PATH_WAVE_DONE_2                = 2,
-    PATH_WAVE_DONE_3                = 3
-};
-
-static constexpr std::array<uint8, 4> WaveTexts =
-{
-    SAY_WAVE_1,
-    SAY_WAVE_2,
-    SAY_WAVE_3,
-    SAY_WAVE_4
-};
-
-static constexpr std::array<std::string_view, 4> NalorakkWave =
-{
-    "NalorakkWave1",
-    "NalorakkWave2",
-    "NalorakkWave3",
-    "NalorakkWave4"
-};
-
-// 23576 - Nalorakk
-struct boss_nalorakk : public BossAI
-{
-    boss_nalorakk(Creature* creature) : BossAI(creature, BOSS_NALORAKK),
-        _waveEventInProgress(true), _isMovingToLocation(false), _isWaiting(false), _currentWaveCount(0) { }
-
-    void Reset() override
-    {
-        _Reset();
-        SetEquipmentSlots(true);
-
-        if (_waveEventInProgress)
+        boss_nalorakk()
+            : CreatureScript("boss_nalorakk")
         {
-            me->SetImmuneToAll(true);
-            me->GetMap()->SpawnGroupSpawn(SPAWN_GROUP_NALORAKK_WAVE_1, true);
-        }
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-
-        Talk(SAY_AGGRO);
-
-        events.ScheduleEvent(EVENT_BRUTAL_SWIPE, 10s, 20s);
-        events.ScheduleEvent(EVENT_MANGLE, 5s, 15s);
-        events.ScheduleEvent(EVENT_SURGE, 20s, 25s);
-        events.ScheduleEvent(EVENT_SHAPESHIFT, 45s);
-        events.ScheduleEvent(EVENT_BERSERK, 10min);
-    }
-
-    void OnSpellCast(SpellInfo const* spellInfo) override
-    {
-        switch (spellInfo->Id)
-        {
-            case SPELL_SURGE:
-                Talk(SAY_SURGE);
-                break;
-            case SPELL_BERSERK:
-                Talk(SAY_BERSERK);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void HandleWave(Unit* who)
-    {
-        Talk(WaveTexts[_currentWaveCount]);
-
-        std::vector<Creature*> waveCreatures;
-        GetCreatureListWithOptionsInGrid(waveCreatures, me, 50.0f, { .StringId = NalorakkWave[_currentWaveCount] });
-        for (Creature* waveCreature : waveCreatures)
-        {
-            waveCreature->SetImmuneToAll(false);
-            waveCreature->AI()->AttackStart(who);
         }
 
-        ++_currentWaveCount;
-        _isWaiting = true;
-    }
-
-    /// @todo: Handle this with GameObjects 186274, 186275, 186276, 186277
-    void MoveInLineOfSight(Unit* who) override
-    {
-        if (!_waveEventInProgress)
+        struct boss_nalorakkAI : public ScriptedAI
         {
-            BossAI::MoveInLineOfSight(who);
-            return;
-        }
-
-        if (!me->IsHostileTo(who))
-            return;
-
-        if (_isMovingToLocation)
-            return;
-
-        if (_isWaiting)
-            return;
-
-        switch (_currentWaveCount)
-        {
-            case 0:
-                if (me->IsWithinDistInMap(who, 50))
-                    HandleWave(who);
-                break;
-            case 1:
-                if (me->IsWithinDistInMap(who, 40))
-                    HandleWave(who);
-                break;
-            case 2:
-                if (me->IsWithinDistInMap(who, 40))
-                    HandleWave(who);
-                break;
-            case 3:
-                if (me->IsWithinDistInMap(who, 60))
-                    HandleWave(who);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void DoAction(int32 action) override
-    {
-        switch (action)
-        {
-            case ACTION_SHAPE_APPLIED:
-                Talk(SAY_TO_BEAR);
-                Talk(EMOTE_TRANSFORM);
-                SetEquipmentSlots(false, EQUIP_NO_CHANGE, EQUIP_UNEQUIP, EQUIP_NO_CHANGE);
-                events.CancelEvent(EVENT_BRUTAL_SWIPE);
-                events.CancelEvent(EVENT_MANGLE);
-                events.CancelEvent(EVENT_SURGE);
-                events.ScheduleEvent(EVENT_LACERATING_SLASH, 5s, 10s);
-                events.ScheduleEvent(EVENT_REND_FLESH, 10s, 20s);
-                events.ScheduleEvent(EVENT_DEAFENING_ROAR, 15s, 20s);
-                break;
-            case ACTION_SHAPE_REMOVED:
-                Talk(SAY_TO_TROLL);
-                SetEquipmentSlots(true);
-                events.CancelEvent(EVENT_LACERATING_SLASH);
-                events.CancelEvent(EVENT_REND_FLESH);
-                events.CancelEvent(EVENT_DEAFENING_ROAR);
-                events.ScheduleEvent(EVENT_BRUTAL_SWIPE, 10s, 20s);
-                events.ScheduleEvent(EVENT_MANGLE, 5s, 15s);
-                events.ScheduleEvent(EVENT_SURGE, 20s, 25s);
-                break;
-            case ACTION_WAVE_DONE_1:
-                Talk(SAY_WAVE_DONE);
-                _isMovingToLocation = true;
-                _isWaiting = false;
-                me->GetMap()->SpawnGroupSpawn(SPAWN_GROUP_NALORAKK_WAVE_2, true);
-                events.ScheduleEvent(EVENT_WAVE_DONE_1, 2s);
-                break;
-            case ACTION_WAVE_DONE_2:
-                Talk(SAY_WAVE_DONE);
-                _isMovingToLocation = true;
-                _isWaiting = false;
-                me->GetMap()->SpawnGroupSpawn(SPAWN_GROUP_NALORAKK_WAVE_3, true);
-                events.ScheduleEvent(EVENT_WAVE_DONE_2, 2s);
-                break;
-            case ACTION_WAVE_DONE_3:
-                Talk(SAY_WAVE_DONE);
-                _isMovingToLocation = true;
-                _isWaiting = false;
-                me->GetMap()->SpawnGroupSpawn(SPAWN_GROUP_NALORAKK_WAVE_4, true);
-                events.ScheduleEvent(EVENT_WAVE_DONE_3, 2s);
-                break;
-            case ACTION_WAVE_DONE_4:
-                events.ScheduleEvent(EVENT_WAVE_DONE_4, 0s);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void WaypointPathEnded(uint32 /*nodeId*/, uint32 /*pathId*/) override
-    {
-        _isMovingToLocation = false;
-    }
-
-    void KilledUnit(Unit* /*victim*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-    }
-
-    void UpdateOutOfCombatEvents(uint32 diff)
-    {
-        events.Update(diff);
-
-        while (uint32 eventId = events.ExecuteEvent())
-        {
-            switch (eventId)
+            boss_nalorakkAI(Creature *c) : ScriptedAI(c)
             {
-                case EVENT_WAVE_DONE_1:
-                    me->GetMotionMaster()->MovePath(PATH_WAVE_DONE_1, false);
-                    break;
-                case EVENT_WAVE_DONE_2:
-                    me->GetMotionMaster()->MovePath(PATH_WAVE_DONE_2, false);
-                    break;
-                case EVENT_WAVE_DONE_3:
-                    me->GetMotionMaster()->MovePath(PATH_WAVE_DONE_3, false);
-                    break;
-                case EVENT_WAVE_DONE_4:
-                    me->SetImmuneToAll(false);
-                    _waveEventInProgress = false;
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-        {
-            UpdateOutOfCombatEvents(diff);
-            return;
-        }
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
-        {
-            switch (eventId)
-            {
-                case EVENT_BRUTAL_SWIPE:
-                    DoCastVictim(SPELL_BRUTAL_SWIPE);
-                    events.Repeat(10s, 20s);
-                    break;
-                case EVENT_MANGLE:
-                    DoCastVictim(SPELL_MANGLE);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_SURGE:
-                    DoCastSelf(SPELL_SURGE);
-                    events.Repeat(15s, 20s);
-                    break;
-
-                case EVENT_LACERATING_SLASH:
-                    DoCastVictim(SPELL_LACERATING_SLASH);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_REND_FLESH:
-                    DoCastVictim(SPELL_REND_FLESH);
-                    events.Repeat(10s, 15s);
-                    break;
-                case EVENT_DEAFENING_ROAR:
-                    DoCastSelf(SPELL_DEAFENING_ROAR);
-                    events.Repeat(10s, 15s);
-                    break;
-
-                case EVENT_SHAPESHIFT:
-                    DoCastSelf(SPELL_SHAPE_OF_THE_BEAR);
-                    events.Repeat(75s);
-                    break;
-
-                case EVENT_BERSERK:
-                    DoCastSelf(SPELL_BERSERK);
-                    break;
-                default:
-                    break;
+                MoveEvent = true;
+                MovePhase = 0;
+                pInstance = c->GetInstanceScript();
             }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            InstanceScript *pInstance;
+
+            uint32 BrutalSwipe_Timer;
+            uint32 Mangle_Timer;
+            uint32 Surge_Timer;
+
+            uint32 LaceratingSlash_Timer;
+            uint32 RendFlesh_Timer;
+            uint32 DeafeningRoar_Timer;
+
+            uint32 ShapeShift_Timer;
+            uint32 Berserk_Timer;
+
+            bool inBearForm;
+            bool MoveEvent;
+            bool inMove;
+            uint32 MovePhase;
+            uint32 waitTimer;
+
+            void Reset()
+            {
+                if (MoveEvent)
+                {
+                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    inMove = false;
+                    waitTimer = 0;
+                    me->SetSpeed(MOVE_RUN,2);
+                    me->RemoveUnitMovementFlag(MOVEMENTFLAG_WALKING);
+                }else
+                {
+                    (*me).GetMotionMaster()->MovePoint(0,NalorakkWay[7][0],NalorakkWay[7][1],NalorakkWay[7][2]);
+                }
+
+                if (pInstance)
+                    pInstance->SetData(DATA_NALORAKKEVENT, NOT_STARTED);
+
+                Surge_Timer = 15000 + rand()%5000;
+                BrutalSwipe_Timer = 7000 + rand()%5000;
+                Mangle_Timer = 10000 + rand()%5000;
+                ShapeShift_Timer = 45000 + rand()%5000;
+                Berserk_Timer = 600000;
+
+                inBearForm = false;
+                // me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, 5122);  // TODO: find the correct equipment id
+            }
+
+            void SendAttacker(Unit *pTarget)
+            {
+                std::list<Creature*> templist;
+                float x, y, z;
+                me->GetPosition(x, y, z);
+
+                {
+                    CellPair pair(Trinity::ComputeCellPair(x, y));
+                    Cell cell(pair);
+                    cell.data.Part.reserved = ALL_DISTRICT;
+                    cell.SetNoCreate();
+
+                    Trinity::AllFriendlyCreaturesInGrid check(me);
+                    Trinity::CreatureListSearcher<Trinity::AllFriendlyCreaturesInGrid> searcher(me, templist, check);
+
+                    TypeContainerVisitor<Trinity::CreatureListSearcher<Trinity::AllFriendlyCreaturesInGrid>, GridTypeMapContainer> cSearcher(searcher);
+
+                    cell.Visit(pair, cSearcher, *(me->GetMap()));
+                }
+
+                if (!templist.size())
+                    return;
+
+                for (std::list<Creature*>::const_iterator i = templist.begin(); i != templist.end(); ++i)
+                {
+                    if ((*i) && me->IsWithinDistInMap((*i),25))
+                    {
+                        (*i)->SetNoCallAssistance(true);
+                        (*i)->AI()->AttackStart(pTarget);
+                    }
+                }
+            }
+
+            void AttackStart(Unit* who)
+            {
+                if (!MoveEvent)
+                    ScriptedAI::AttackStart(who);
+            }
+
+            void MoveInLineOfSight(Unit *who)
+            {
+                if (!MoveEvent)
+                {
+                    ScriptedAI::MoveInLineOfSight(who);
+                }
+                else
+                {
+                    if (me->IsHostileTo(who))
+                    {
+                        if (!inMove)
+                        {
+                            switch(MovePhase)
+                            {
+                                case 0:
+                                    if (me->IsWithinDistInMap(who, 50))
+                                    {
+                                        me->MonsterYell(YELL_NALORAKK_WAVE1, LANG_UNIVERSAL, NULL);
+                                        DoPlaySoundToSet(me, SOUND_NALORAKK_WAVE1);
+
+                                        (*me).GetMotionMaster()->MovePoint(1,NalorakkWay[1][0],NalorakkWay[1][1],NalorakkWay[1][2]);
+                                        MovePhase ++;
+                                        inMove = true;
+
+                                        SendAttacker(who);
+                                    }
+                                    break;
+                                case 2:
+                                    if (me->IsWithinDistInMap(who, 40))
+                                    {
+                                        me->MonsterYell(YELL_NALORAKK_WAVE2, LANG_UNIVERSAL, NULL);
+                                        DoPlaySoundToSet(me, SOUND_NALORAKK_WAVE2);
+
+                                        (*me).GetMotionMaster()->MovePoint(3,NalorakkWay[3][0],NalorakkWay[3][1],NalorakkWay[3][2]);
+                                        MovePhase ++;
+                                        inMove = true;
+
+                                        SendAttacker(who);
+                                    }
+                                    break;
+                                case 5:
+                                    if (me->IsWithinDistInMap(who, 40))
+                                    {
+                                        me->MonsterYell(YELL_NALORAKK_WAVE3, LANG_UNIVERSAL, NULL);
+                                        DoPlaySoundToSet(me, SOUND_NALORAKK_WAVE3);
+
+                                        (*me).GetMotionMaster()->MovePoint(6,NalorakkWay[6][0],NalorakkWay[6][1],NalorakkWay[6][2]);
+                                        MovePhase ++;
+                                        inMove = true;
+
+                                        SendAttacker(who);
+                                    }
+                                    break;
+                                case 7:
+                                    if (me->IsWithinDistInMap(who, 50))
+                                    {
+                                        SendAttacker(who);
+
+                                        me->MonsterYell(YELL_NALORAKK_WAVE4, LANG_UNIVERSAL, NULL);
+                                        DoPlaySoundToSet(me, SOUND_NALORAKK_WAVE4);
+
+                                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+
+                                        MoveEvent = false;
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            void EnterCombat(Unit * /*who*/)
+            {
+                if (pInstance)
+                    pInstance->SetData(DATA_NALORAKKEVENT, IN_PROGRESS);
+
+                me->MonsterYell(YELL_AGGRO, LANG_UNIVERSAL, NULL);
+                DoPlaySoundToSet(me, SOUND_YELL_AGGRO);
+                DoZoneInCombat();
+            }
+
+            void JustDied(Unit* /*Killer*/)
+            {
+                if (pInstance)
+                    pInstance->SetData(DATA_NALORAKKEVENT, DONE);
+
+                me->MonsterYell(YELL_DEATH,LANG_UNIVERSAL,NULL);
+                DoPlaySoundToSet(me, SOUND_YELL_DEATH);
+            }
+
+            void KilledUnit(Unit* /*victim*/)
+            {
+                switch (urand(0,1))
+                {
+                    case 0:
+                        me->MonsterYell(YELL_KILL_ONE, LANG_UNIVERSAL, NULL);
+                        DoPlaySoundToSet(me, SOUND_YELL_KILL_ONE);
+                        break;
+                    case 1:
+                        me->MonsterYell(YELL_KILL_TWO, LANG_UNIVERSAL, NULL);
+                        DoPlaySoundToSet(me, SOUND_YELL_KILL_TWO);
+                        break;
+                }
+            }
+
+            void MovementInform(uint32 type, uint32 id)
+            {
+                if (MoveEvent)
+                {
+                    if (type != POINT_MOTION_TYPE)
+                        return;
+
+                    if (!inMove)
+                        return;
+
+                    if (MovePhase != id)
+                        return;
+
+                    switch(MovePhase)
+                    {
+                        case 2:
+                            me->SetOrientation(3.1415f*2);
+                            inMove = false;
+                            return;
+                        case 1:
+                        case 3:
+                        case 4:
+                        case 6:
+                            MovePhase ++;
+                            waitTimer = 1;
+                            inMove = true;
+                            return;
+                        case 5:
+                            me->SetOrientation(3.1415f*0.5f);
+                            inMove = false;
+                            return;
+                        case 7:
+                            me->SetOrientation(3.1415f*0.5f);
+                            inMove = false;
+                            return;
+                    }
+
+                }
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                if (waitTimer && inMove)
+                {
+                    if (waitTimer <= diff)
+                    {
+                        (*me).GetMotionMaster()->MovementExpired();
+                        (*me).GetMotionMaster()->MovePoint(MovePhase,NalorakkWay[MovePhase][0],NalorakkWay[MovePhase][1],NalorakkWay[MovePhase][2]);
+                        waitTimer = 0;
+                    } else waitTimer -= diff;
+                }
+
+                if (!UpdateVictim())
+                    return;
+
+                if (Berserk_Timer <= diff)
+                {
+                    DoCast(me, SPELL_BERSERK, true);
+                    me->MonsterYell(YELL_BERSERK, LANG_UNIVERSAL, NULL);
+                    DoPlaySoundToSet(me, SOUND_YELL_BERSERK);
+                    Berserk_Timer = 600000;
+                } else Berserk_Timer -= diff;
+
+                if (ShapeShift_Timer <= diff)
+                {
+                    if (inBearForm)
+                    {
+                        // me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, 5122);
+                        me->MonsterYell(YELL_SHIFTEDTOTROLL, LANG_UNIVERSAL, NULL);
+                        DoPlaySoundToSet(me, SOUND_YELL_TOTROLL);
+                        me->RemoveAurasDueToSpell(SPELL_BEARFORM);
+                        Surge_Timer = 15000 + rand()%5000;
+                        BrutalSwipe_Timer = 7000 + rand()%5000;
+                        Mangle_Timer = 10000 + rand()%5000;
+                        ShapeShift_Timer = 45000 + rand()%5000;
+                        inBearForm = false;
+                    }
+                    else
+                    {
+                        // me->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1, 0);
+                        me->MonsterYell(YELL_SHIFTEDTOBEAR, LANG_UNIVERSAL, NULL);
+                        DoPlaySoundToSet(me, SOUND_YELL_TOBEAR);
+                        DoCast(me, SPELL_BEARFORM, true);
+                        LaceratingSlash_Timer = 2000; // dur 18s
+                        RendFlesh_Timer = 3000;  // dur 5s
+                        DeafeningRoar_Timer = 5000 + rand()%5000;  // dur 2s
+                        ShapeShift_Timer = 20000 + rand()%5000; // dur 30s
+                        inBearForm = true;
+                    }
+                } else ShapeShift_Timer -= diff;
+
+                if (!inBearForm)
+                {
+                    if (BrutalSwipe_Timer <= diff)
+                    {
+                        DoCast(me->getVictim(), SPELL_BRUTALSWIPE);
+                        BrutalSwipe_Timer = 7000 + rand()%5000;
+                    } else BrutalSwipe_Timer -= diff;
+
+                    if (Mangle_Timer <= diff)
+                    {
+                        if (me->getVictim() && !me->getVictim()->HasAura(SPELL_MANGLEEFFECT))
+                        {
+                            DoCast(me->getVictim(), SPELL_MANGLE);
+                            Mangle_Timer = 1000;
+                        }
+                        else Mangle_Timer = 10000 + rand()%5000;
+                    } else Mangle_Timer -= diff;
+
+                    if (Surge_Timer <= diff)
+                    {
+                        me->MonsterYell(YELL_SURGE, LANG_UNIVERSAL, NULL);
+                        DoPlaySoundToSet(me, SOUND_YELL_SURGE);
+                        Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 1, 45, true);
+                        if (pTarget)
+                            DoCast(pTarget, SPELL_SURGE);
+                        Surge_Timer = 15000 + rand()%5000;
+                    } else Surge_Timer -= diff;
+                }
+                else
+                {
+                    if (LaceratingSlash_Timer <= diff)
+                    {
+                        DoCast(me->getVictim(), SPELL_LACERATINGSLASH);
+                        LaceratingSlash_Timer = 18000 + rand()%5000;
+                    } else LaceratingSlash_Timer -= diff;
+
+                    if (RendFlesh_Timer <= diff)
+                    {
+                        DoCast(me->getVictim(), SPELL_RENDFLESH);
+                        RendFlesh_Timer = 5000 + rand()%5000;
+                    } else RendFlesh_Timer -= diff;
+
+                    if (DeafeningRoar_Timer <= diff)
+                    {
+                        DoCast(me->getVictim(), SPELL_DEAFENINGROAR);
+                        DeafeningRoar_Timer = 15000 + rand()%5000;
+                    } else DeafeningRoar_Timer -= diff;
+                }
+
+                DoMeleeAttackIfReady();
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_nalorakkAI(creature);
         }
-
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    bool _waveEventInProgress;
-    bool _isMovingToLocation;
-    bool _isWaiting;
-    uint32 _currentWaveCount;
-};
-
-// 44019 - Surge
-class spell_nalorakk_surge : public SpellScript
-{
-    PrepareSpellScript(spell_nalorakk_surge);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SURGE_CHARGE, SPELL_SURGE_HASTE });
-    }
-
-    void FilterTargets(std::list<WorldObject*>& targets)
-    {
-        Trinity::Containers::RandomResize(targets, 1);
-    }
-
-    void HandleDummy(SpellEffIndex /*effIndex*/)
-    {
-        Unit* caster = GetCaster();
-        Unit* target = GetHitUnit();
-
-        caster->CastSpell(target, SPELL_SURGE_CHARGE, true);
-        caster->CastSpell(caster, SPELL_SURGE_HASTE, true);
-    }
-
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_nalorakk_surge::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-        OnEffectHitTarget += SpellEffectFn(spell_nalorakk_surge::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
-    }
-};
-
-// 42377 - Shape of the Bear
-class spell_nalorakk_shape : public AuraScript
-{
-    PrepareAuraScript(spell_nalorakk_shape);
-
-    void AfterApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Creature* target = GetTarget()->ToCreature())
-            target->AI()->DoAction(ACTION_SHAPE_APPLIED);
-    }
-
-    void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
-            return;
-
-        if (Creature* target = GetTarget()->ToCreature())
-            target->AI()->DoAction(ACTION_SHAPE_REMOVED);
-    }
-
-    void Register() override
-    {
-        AfterEffectApply += AuraEffectApplyFn(spell_nalorakk_shape::AfterApply, EFFECT_0, SPELL_AURA_TRANSFORM, AURA_EFFECT_HANDLE_REAL);
-        AfterEffectRemove += AuraEffectRemoveFn(spell_nalorakk_shape::AfterRemove, EFFECT_0, SPELL_AURA_TRANSFORM, AURA_EFFECT_HANDLE_REAL);
-    }
 };
 
 void AddSC_boss_nalorakk()
 {
-    RegisterZulAmanCreatureAI(boss_nalorakk);
-    RegisterSpellScript(spell_nalorakk_surge);
-    RegisterSpellScript(spell_nalorakk_shape);
+    new boss_nalorakk();
 }
+

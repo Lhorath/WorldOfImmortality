@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,32 +20,37 @@
 #define TRINITY_CONFUSEDGENERATOR_H
 
 #include "MovementGenerator.h"
-#include "Timer.h"
+#include "DestinationHolder.h"
+#include "Traveller.h"
 
-class PathGenerator;
+#define MAX_CONF_WAYPOINTS 24
 
 template<class T>
-class ConfusedMovementGenerator : public MovementGeneratorMedium<T, ConfusedMovementGenerator<T>>
+class ConfusedMovementGenerator
+: public MovementGeneratorMedium< T, ConfusedMovementGenerator<T> >
 {
     public:
-        explicit ConfusedMovementGenerator();
+        explicit ConfusedMovementGenerator() : i_nextMoveTime(0) {}
 
-        MovementGeneratorType GetMovementGeneratorType() const override;
+        void Initialize(T &);
+        void Finalize(T &);
+        void Reset(T &);
+        bool Update(T &, const uint32 &);
 
-        bool DoInitialize(T*);
-        bool DoReset(T*);
-        bool DoUpdate(T*, uint32);
-        void DoDeactivate(T*);
-        void DoFinalize(T*, bool, bool);
+        bool GetDestination(float &x, float &y, float &z) const
+        {
+            if (i_destinationHolder.HasArrived()) return false;
+            i_destinationHolder.GetDestination(x,y,z);
+            return true;
+        }
 
-        void UnitSpeedChanged() override { ConfusedMovementGenerator<T>::AddFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING); }
-
+        MovementGeneratorType GetMovementGeneratorType() { return CONFUSED_MOTION_TYPE; }
     private:
-        void SetTargetLocation(T*);
-
-        std::unique_ptr<PathGenerator> _path;
-        TimeTracker _timer;
-        float _x, _y, _z;
+        void _InitSpecific(T &, bool &, bool &);
+        TimeTracker i_nextMoveTime;
+        float i_waypoints[MAX_CONF_WAYPOINTS+1][3];
+        DestinationHolder< Traveller<T> > i_destinationHolder;
+        uint32 i_nextMove;
 };
-
 #endif
+

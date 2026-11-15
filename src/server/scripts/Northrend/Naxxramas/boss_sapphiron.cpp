@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,57 +15,44 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "GameObject.h"
-#include "GameObjectAI.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
+#include "ScriptPCH.h"
 #include "naxxramas.h"
-#include "ObjectAccessor.h"
-#include "Player.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
-#include "TemporarySummon.h"
 
-enum Yells
-{
-    EMOTE_AIR_PHASE         = 0,
-    EMOTE_GROUND_PHASE      = 1,
-    EMOTE_BREATH            = 2,
-    EMOTE_ENRAGE            = 3
-};
+#define EMOTE_BREATH            -1533082
+#define EMOTE_ENRAGE            -1533083
 
-enum Spells
-{
-    SPELL_FROST_AURA                    = 28531,
-    SPELL_CLEAVE                        = 19983,
-    SPELL_TAIL_SWEEP                    = 55697,
-    SPELL_SUMMON_BLIZZARD               = 28560,
-    SPELL_LIFE_DRAIN                    = 28542,
-    SPELL_ICEBOLT                       = 28522,
-    SPELL_FROST_BREATH_ANTICHEAT        = 29318, // damage effect ignoring LoS on the entrance platform to prevent cheese
-    SPELL_FROST_BREATH                  = 28524, // damage effect below sapphiron
-    SPELL_FROST_MISSILE                 = 30101, // visual only
-    SPELL_BERSERK                       = 26662,
-    SPELL_DIES                          = 29357,
-    SPELL_CHECK_RESISTS                 = 60539,
-    SPELL_SUMMON_WING_BUFFET            = 29329,
-    SPELL_WING_BUFFET_PERIODIC          = 29327,
-    SPELL_WING_BUFFET_DESPAWN_PERIODIC  = 29330,
-    SPELL_DESPAWN_BUFFET                = 29336
-};
+#define SPELL_FROST_AURA        RAID_MODE(28531,55799)
+#define SPELL_CLEAVE            19983
+#define SPELL_TAIL_SWEEP        RAID_MODE(55697,55696)
+#define SPELL_SUMMON_BLIZZARD   28560
+#define SPELL_LIFE_DRAIN        RAID_MODE(28542,55665)
+#define SPELL_ICEBOLT           28522
+#define SPELL_FROST_BREATH      29318
+#define SPELL_FROST_EXPLOSION   28524
+#define SPELL_FROST_MISSILE     30101
+#define SPELL_BERSERK           26662
+#define SPELL_DIES              29357
+
+#define SPELL_CHILL             RAID_MODE(28547,55699)
+
+#define MOB_BLIZZARD            16474
+#define GO_ICEBLOCK             181247
+
+#define ACHIEVEMENT_THE_HUNDRED_CLUB    RAID_MODE(2146, 2147)
+#define MAX_FROST_RESISTANCE            100
 
 enum Phases
 {
-    PHASE_BIRTH = 1,
+    PHASE_NULL = 0,
+    PHASE_BIRTH,
     PHASE_GROUND,
-    PHASE_FLIGHT
+    PHASE_FLIGHT,
 };
 
 enum Events
 {
-    EVENT_BERSERK       = 1,
+    EVENT_NONE,
+    EVENT_BERSERK,
     EVENT_CLEAVE,
     EVENT_TAIL,
     EVENT_DRAIN,
@@ -78,238 +65,213 @@ enum Events
     EVENT_LAND,
     EVENT_GROUND,
     EVENT_BIRTH,
-    EVENT_CHECK_RESISTS
 };
 
-enum Misc
-{
-    NPC_BLIZZARD            = 16474,
-    GO_ICEBLOCK             = 181247,
+typedef std::map<uint64, uint64> IceBlockMap;
 
-    // The Hundred Club
-    DATA_THE_HUNDRED_CLUB   = 21462147,
-    MAX_FROST_RESISTANCE    = 100,
-    ACTION_BIRTH            = 1,
-    DATA_BLIZZARD_TARGET
-};
-
-typedef std::map<ObjectGuid, ObjectGuid> IceBlockMap;
-
-class BlizzardTargetSelector
+class boss_sapphiron : public CreatureScript
 {
 public:
-    BlizzardTargetSelector(std::vector<Unit*> const& blizzards) : _blizzards(blizzards) { }
+    boss_sapphiron() : CreatureScript("boss_sapphiron") { }
 
-    bool operator()(Unit* unit) const
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        if (unit->GetTypeId() != TYPEID_PLAYER)
-            return false;
-
-        // Check if unit is target of some blizzard
-        for (Unit* blizzard : _blizzards)
-            if (blizzard->GetAI()->GetGUID(DATA_BLIZZARD_TARGET) == unit->GetGUID())
-                return false;
-
-        return true;
+        return new boss_sapphironAI (pCreature);
     }
 
-private:
-    std::vector<Unit*> const& _blizzards;
-};
-
-struct boss_sapphiron : public BossAI
-{
-    boss_sapphiron(Creature* creature) :
-        BossAI(creature, BOSS_SAPPHIRON)
+    struct boss_sapphironAI : public BossAI
     {
-        Initialize();
-    }
-
-    void Initialize()
-    {
-        _delayedDrain = false;
-        _canTheHundredClub = true;
-    }
-
-    void InitializeAI() override
-    {
-        if (instance->GetBossState(BOSS_SAPPHIRON) == DONE)
-            return;
-
-        _canTheHundredClub = true;
-
-        if (!instance->GetData(DATA_HAD_SAPPHIRON_BIRTH))
+        boss_sapphironAI(Creature* c) : BossAI(c, BOSS_SAPPHIRON)
+            , phase(PHASE_NULL)
         {
-            me->SetVisible(false);
-            me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-            me->SetReactState(REACT_PASSIVE);
+            pMap = me->GetMap();
         }
 
-        BossAI::InitializeAI();
-    }
+        Phases phase;
+        uint32 iceboltCount;
+        IceBlockMap iceblocks;
 
-    void Reset() override
-    {
-        if (events.IsInPhase(PHASE_FLIGHT))
+        bool CanTheHundredClub; // needed for achievement: The Hundred Club(2146, 2147)
+        uint32 CheckFrostResistTimer;
+        Map* pMap;
+
+        void InitializeAI()
         {
-            instance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ICEBOLT, true, true);
-            me->SetReactState(REACT_AGGRESSIVE);
-            if (me->IsHovering())
+            float x, y, z;
+            me->GetPosition(x, y, z);
+            me->SummonGameObject(GO_BIRTH, x, y, z, 0, 0, 0, 0, 0, 0);
+            me->SetVisible(false);
+            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            me->SetReactState(REACT_PASSIVE);
+
+            ScriptedAI::InitializeAI();
+        }
+
+        void Reset()
+        {
+            _Reset();
+
+            if (phase == PHASE_FLIGHT)
+                ClearIceBlock();
+
+            phase = PHASE_NULL;
+
+            CanTheHundredClub = true;
+            CheckFrostResistTimer = 5000;
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            _EnterCombat();
+
+            me->CastSpell(me, SPELL_FROST_AURA, true);
+
+            events.ScheduleEvent(EVENT_BERSERK, 15*60000);
+            EnterPhaseGround();
+
+            CheckPlayersFrostResist();
+        }
+
+        void SpellHitTarget(Unit *pTarget, const SpellEntry *spell)
+        {
+            if (spell->Id == SPELL_ICEBOLT)
             {
-                me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
-                me->SetHover(false);
+                IceBlockMap::iterator itr = iceblocks.find(pTarget->GetGUID());
+                if (itr != iceblocks.end() && !itr->second)
+                {
+                    if (GameObject *iceblock = me->SummonGameObject(GO_ICEBLOCK, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), 0, 0, 0, 0, 0, 25000))
+                        itr->second = iceblock->GetGUID();
+                }
             }
         }
 
-        _Reset();
-        Initialize();
-    }
-
-    void DamageTaken(Unit* /*who*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (damage < me->GetHealth() || !events.IsInPhase(PHASE_FLIGHT))
-            return;
-        damage = me->GetHealth()-1; // don't die during air phase
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-
-        me->CastSpell(me, SPELL_FROST_AURA, true);
-
-        events.SetPhase(PHASE_GROUND);
-        events.ScheduleEvent(EVENT_CHECK_RESISTS, 0s);
-        events.ScheduleEvent(EVENT_BERSERK, 15min);
-        EnterPhaseGround(true);
-    }
-
-    void SpellHitTarget(WorldObject* target, SpellInfo const* spellInfo) override
-    {
-        Unit* unitTarget = target->ToUnit();
-        if (!unitTarget)
-            return;
-
-        switch(spellInfo->Id)
+        void JustDied(Unit* /*who*/)
         {
-            case SPELL_CHECK_RESISTS:
-                if (unitTarget->GetResistance(SPELL_SCHOOL_FROST) > MAX_FROST_RESISTANCE)
-                    _canTheHundredClub = false;
-                break;
-        }
-    }
+            _JustDied();
+            me->CastSpell(me, SPELL_DIES, true);
 
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        me->CastSpell(me, SPELL_DIES, true);
-    }
-
-    void MovementInform(uint32 /*type*/, uint32 id) override
-    {
-        if (id == 1)
-            events.ScheduleEvent(EVENT_LIFTOFF, 0s, 0, PHASE_FLIGHT);
-    }
-
-    void DoAction(int32 param) override
-    {
-        if (param == ACTION_BIRTH)
-        {
-            events.SetPhase(PHASE_BIRTH);
-            events.ScheduleEvent(EVENT_BIRTH, 23s);
-        }
-    }
-
-    void EnterPhaseGround(bool initial)
-    {
-        me->SetReactState(REACT_AGGRESSIVE);
-        events.ScheduleEvent(EVENT_CLEAVE, randtime(Seconds(5), Seconds(15)), 0, PHASE_GROUND);
-        events.ScheduleEvent(EVENT_TAIL, randtime(Seconds(7), Seconds(10)), 0, PHASE_GROUND);
-        events.ScheduleEvent(EVENT_BLIZZARD, randtime(Seconds(5), Seconds(10)), 0, PHASE_GROUND);
-        if (initial)
-        {
-            events.ScheduleEvent(EVENT_DRAIN, randtime(Seconds(22), Seconds(28)));
-            events.ScheduleEvent(EVENT_FLIGHT, Seconds(48) + Milliseconds(500), 0, PHASE_GROUND);
-        }
-        else
-            events.ScheduleEvent(EVENT_FLIGHT, Minutes(1), 0, PHASE_GROUND);
-    }
-
-    inline void CastDrain()
-    {
-        DoCastAOE(SPELL_LIFE_DRAIN);
-        events.ScheduleEvent(EVENT_DRAIN, randtime(Seconds(22), Seconds(28)));
-    }
-
-    uint32 GetData(uint32 data) const override
-    {
-        if (data == DATA_THE_HUNDRED_CLUB)
-            return _canTheHundredClub;
-
-        return 0;
-    }
-
-    ObjectGuid GetGUID(int32 data) const override
-    {
-        if (data == DATA_BLIZZARD_TARGET)
-        {
-            // Filtering blizzards from summon list
-            std::vector<Unit*> blizzards;
-            for (ObjectGuid summonGuid : summons)
-                if (summonGuid.GetEntry() == NPC_BLIZZARD)
-                    if (Unit* temp = ObjectAccessor::GetUnit(*me, summonGuid))
-                        blizzards.push_back(temp);
-
-            if (Unit* newTarget = me->AI()->SelectTarget(SelectTargetMethod::Random, 1, BlizzardTargetSelector(blizzards)))
-                return newTarget->GetGUID();
-        }
-
-        return ObjectGuid::Empty;
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        events.Update(diff);
-
-        if (!events.IsInPhase(PHASE_BIRTH) && !UpdateVictim())
-            return;
-
-        if (events.IsInPhase(PHASE_GROUND))
-        {
-            while (uint32 eventId = events.ExecuteEvent())
+            CheckPlayersFrostResist();
+            if (CanTheHundredClub)
             {
-                switch (eventId)
+                AchievementEntry const *AchievTheHundredClub = GetAchievementStore()->LookupEntry(ACHIEVEMENT_THE_HUNDRED_CLUB);
+                if (AchievTheHundredClub)
                 {
-                    case EVENT_CHECK_RESISTS:
-                        DoCast(me, SPELL_CHECK_RESISTS);
-                        events.Repeat(Seconds(30));
-                        return;
-                    case EVENT_GROUND:
-                        EnterPhaseGround(false);
-                        return;
-                    case EVENT_BERSERK:
-                        Talk(EMOTE_ENRAGE);
-                        DoCast(me, SPELL_BERSERK);
-                        return;
-                    case EVENT_CLEAVE:
-                        DoCastVictim(SPELL_CLEAVE);
-                        events.ScheduleEvent(EVENT_CLEAVE, randtime(Seconds(5), Seconds(15)), 0, PHASE_GROUND);
-                        return;
-                    case EVENT_TAIL:
-                        DoCastAOE(SPELL_TAIL_SWEEP);
-                        events.ScheduleEvent(EVENT_TAIL, randtime(Seconds(7), Seconds(10)), 0, PHASE_GROUND);
-                        return;
-                    case EVENT_DRAIN:
-                        CastDrain();
-                        return;
-                    case EVENT_BLIZZARD:
-                        DoCastAOE(SPELL_SUMMON_BLIZZARD);
-                        events.ScheduleEvent(EVENT_BLIZZARD, RAID_MODE(Seconds(20), Seconds(7)), 0, PHASE_GROUND);
+                    if (pMap && pMap->IsDungeon())
+                    {
+                        Map::PlayerList const &players = pMap->GetPlayers();
+                        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+                            itr->getSource()->CompletedAchievement(AchievTheHundredClub);
+                    }
+                }
+            }
+        }
+
+        void MovementInform(uint32, uint32 id)
+        {
+            if (id == 1)
+                events.ScheduleEvent(EVENT_LIFTOFF, 0);
+        }
+
+        void DoAction(const int32 param)
+        {
+            if (param == DATA_SAPPHIRON_BIRTH)
+            {
+                phase = PHASE_BIRTH;
+                events.ScheduleEvent(EVENT_BIRTH, 23000);
+            }
+        }
+
+        void CheckPlayersFrostResist()
+        {
+            if (CanTheHundredClub && pMap && pMap->IsDungeon())
+            {
+                Map::PlayerList const &players = pMap->GetPlayers();
+                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+                {
+                    if (itr->getSource()->GetResistance(SPELL_SCHOOL_FROST) > MAX_FROST_RESISTANCE)
+                    {
+                        CanTheHundredClub = false;
                         break;
-                    case EVENT_FLIGHT:
-                        if (HealthAbovePct(10))
+                    }
+                }
+            }
+        }
+
+        void EnterPhaseGround()
+        {
+            phase = PHASE_GROUND;
+            me->SetReactState(REACT_AGGRESSIVE);
+            events.SetPhase(PHASE_GROUND);
+            events.ScheduleEvent(EVENT_CLEAVE, 5000+rand()%10000, 0, PHASE_GROUND);
+            events.ScheduleEvent(EVENT_TAIL, 5000+rand()%10000, 0, PHASE_GROUND);
+            events.ScheduleEvent(EVENT_DRAIN, 24000, 0, PHASE_GROUND);
+            events.ScheduleEvent(EVENT_BLIZZARD, 5000+rand()%5000, 0, PHASE_GROUND);
+            events.ScheduleEvent(EVENT_FLIGHT, 45000);
+        }
+
+        void ClearIceBlock()
+        {
+            for (IceBlockMap::const_iterator itr = iceblocks.begin(); itr != iceblocks.end(); ++itr)
+            {
+                if (Player* pPlayer = Unit::GetPlayer(*me, itr->first))
+                    pPlayer->RemoveAura(SPELL_ICEBOLT);
+                if (GameObject* pGo = GameObject::GetGameObject(*me, itr->second))
+                    pGo->Delete();
+            }
+            iceblocks.clear();
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!phase)
+                return;
+
+            events.Update(diff);
+
+            if ((phase != PHASE_BIRTH && !UpdateVictim()) || !CheckInRoom())
+                return;
+
+            if (CanTheHundredClub)
+            {
+                if (CheckFrostResistTimer <= diff)
+                {
+                    CheckPlayersFrostResist();
+                    CheckFrostResistTimer = (rand() % 5 + 5) * 1000;
+                } else CheckFrostResistTimer -= diff;
+            }
+
+            if (phase == PHASE_GROUND)
+            {
+                while (uint32 eventId = events.ExecuteEvent())
+                {
+                    switch(eventId)
+                    {
+                        case EVENT_BERSERK:
+                            DoScriptText(EMOTE_ENRAGE, me);
+                            DoCast(me, SPELL_BERSERK);
+                            return;
+                        case EVENT_CLEAVE:
+                            DoCast(me->getVictim(), SPELL_CLEAVE);
+                            events.ScheduleEvent(EVENT_CLEAVE, 5000+rand()%10000, 0, PHASE_GROUND);
+                            return;
+                        case EVENT_TAIL:
+                            DoCastAOE(SPELL_TAIL_SWEEP);
+                            events.ScheduleEvent(EVENT_TAIL, 5000+rand()%10000, 0, PHASE_GROUND);
+                            return;
+                        case EVENT_DRAIN:
+                            DoCastAOE(SPELL_LIFE_DRAIN);
+                            events.ScheduleEvent(EVENT_DRAIN, 24000, 0, PHASE_GROUND);
+                            return;
+                        case EVENT_BLIZZARD:
                         {
-                            _delayedDrain = false;
+                            //DoCastAOE(SPELL_SUMMON_BLIZZARD);
+                            if (Creature *pSummon = DoSummon(MOB_BLIZZARD, me, 0.0f, urand(25000,30000), TEMPSUMMON_TIMED_DESPAWN))
+                                pSummon->GetMotionMaster()->MoveRandom(40);
+                            events.ScheduleEvent(EVENT_BLIZZARD, RAID_MODE(20000,7000), 0, PHASE_GROUND);
+                            break;
+                        }
+                        case EVENT_FLIGHT:
+                            phase = PHASE_FLIGHT;
                             events.SetPhase(PHASE_FLIGHT);
                             me->SetReactState(REACT_PASSIVE);
                             me->AttackStop();
@@ -317,338 +279,123 @@ struct boss_sapphiron : public BossAI
                             me->GetHomePosition(x, y, z, o);
                             me->GetMotionMaster()->MovePoint(1, x, y, z);
                             return;
-                        }
-                        break;
+                    }
                 }
-            }
 
-            DoMeleeAttackIfReady();
-        }
-        else
-        {
-            if (uint32 eventId = events.ExecuteEvent())
-            {
-                switch (eventId)
-                {
-                    case EVENT_CHECK_RESISTS:
-                        DoCast(me, SPELL_CHECK_RESISTS);
-                        events.Repeat(Seconds(30));
-                        return;
-                    case EVENT_LIFTOFF:
-                    {
-                        Talk(EMOTE_AIR_PHASE);
-                        DoCastSelf(SPELL_SUMMON_WING_BUFFET);
-                        me->HandleEmoteCommand(EMOTE_ONESHOT_LIFTOFF);
-                        me->SetHover(true);
-                        events.ScheduleEvent(EVENT_ICEBOLT, Seconds(7), 0, PHASE_FLIGHT);
-
-                        _iceboltTargets.clear();
-                        std::list<Unit*> targets;
-                        SelectTargetList(targets, RAID_MODE(2, 3), SelectTargetMethod::Random, 0, 200.0f, true);
-                        for (Unit* target : targets)
-                            if (target)
-                                _iceboltTargets.push_back(target->GetGUID());
-                        return;
-                    }
-                    case EVENT_ICEBOLT:
-                    {
-                        if (_iceboltTargets.empty())
-                        {
-                            events.ScheduleEvent(EVENT_BREATH, Seconds(2), 0, PHASE_FLIGHT);
-                            return;
-                        }
-                        ObjectGuid target = _iceboltTargets.back();
-                        if (Player* pTarget = ObjectAccessor::GetPlayer(*me, target))
-                            if (pTarget->IsAlive())
-                                DoCast(pTarget, SPELL_ICEBOLT);
-                        _iceboltTargets.pop_back();
-
-                        if (_iceboltTargets.empty())
-                            events.ScheduleEvent(EVENT_BREATH, Seconds(2), 0, PHASE_FLIGHT);
-                        else
-                            events.Repeat(Seconds(3));
-                        return;
-                    }
-                    case EVENT_BREATH:
-                    {
-                        Talk(EMOTE_BREATH);
-                        DoCastAOE(SPELL_FROST_MISSILE);
-                        events.ScheduleEvent(EVENT_EXPLOSION, Seconds(8), 0, PHASE_FLIGHT);
-                        return;
-                    }
-                    case EVENT_EXPLOSION:
-                        DoCastAOE(SPELL_FROST_BREATH);
-                        DoCastAOE(SPELL_FROST_BREATH_ANTICHEAT);
-                        instance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ICEBOLT, true, true);
-                        events.ScheduleEvent(EVENT_LAND, Seconds(3) + Milliseconds(500), 0, PHASE_FLIGHT);
-                        return;
-                    case EVENT_LAND:
-                        DoCastSelf(SPELL_DESPAWN_BUFFET); /// @todo: at this point it should already despawn, probably that spell is used in another place
-                        if (_delayedDrain)
-                            CastDrain();
-                        me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
-                        Talk(EMOTE_GROUND_PHASE);
-                        me->SetHover(false);
-                        events.SetPhase(PHASE_GROUND);
-                        events.ScheduleEvent(EVENT_GROUND, Seconds(3) + Milliseconds(500), 0, PHASE_GROUND);
-                        return;
-                    case EVENT_BIRTH:
-                        me->SetVisible(true);
-                        me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-                        me->SetReactState(REACT_AGGRESSIVE);
-                        return;
-                    case EVENT_DRAIN:
-                        _delayedDrain = true;
-                        break;
-                }
-            }
-        }
-    }
-
-private:
-    GuidVector _iceboltTargets;
-    bool _delayedDrain;
-    bool _canTheHundredClub;
-};
-
-struct npc_sapphiron_blizzard : public ScriptedAI
-{
-    npc_sapphiron_blizzard(Creature* creature) : ScriptedAI(creature) { }
-
-    void Reset() override
-    {
-        me->SetReactState(REACT_PASSIVE);
-        _scheduler.Schedule(Seconds(3), [this](TaskContext chill)
-        {
-            DoCastSelf(me->m_spells[0], true);
-            chill.Repeat();
-        });
-    }
-
-    ObjectGuid GetGUID(int32 data) const override
-    {
-        return data == DATA_BLIZZARD_TARGET ? _targetGuid : ObjectGuid::Empty;
-    }
-
-    void SetGUID(ObjectGuid const& guid, int32 id) override
-    {
-        if (id == DATA_BLIZZARD_TARGET)
-            _targetGuid = guid;
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _scheduler.Update(diff);
-    }
-
-private:
-    TaskScheduler _scheduler;
-    ObjectGuid _targetGuid;
-};
-
-struct npc_sapphiron_wing_buffet : public ScriptedAI
-{
-    npc_sapphiron_wing_buffet(Creature* creature) : ScriptedAI(creature) { }
-
-    void InitializeAI() override
-    {
-        me->SetReactState(REACT_PASSIVE);
-    }
-
-    void JustAppeared() override
-    {
-        DoCastSelf(SPELL_WING_BUFFET_PERIODIC);
-        DoCastSelf(SPELL_WING_BUFFET_DESPAWN_PERIODIC);
-    }
-};
-
-struct go_sapphiron_birth : public GameObjectAI
-{
-    go_sapphiron_birth(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
-
-    void OnLootStateChanged(uint32 state, Unit* who) override
-    {
-        if (state == GO_ACTIVATED)
-        {
-            if (who)
-            {
-                if (Creature* sapphiron = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_SAPPHIRON)))
-                    sapphiron->AI()->DoAction(ACTION_BIRTH);
-                instance->SetData(DATA_HAD_SAPPHIRON_BIRTH, 1u);
-            }
-        }
-        else if (state == GO_JUST_DEACTIVATED)
-        { // prevent ourselves from going back to _READY and resetting the client anim
-            me->SetRespawnTime(0);
-            me->Delete();
-        }
-    }
-
-    InstanceScript* instance;
-};
-
-// 24780 - Dream Fog
-class spell_sapphiron_change_blizzard_target : public AuraScript
-{
-    PrepareAuraScript(spell_sapphiron_change_blizzard_target);
-
-    void HandlePeriodic(AuraEffect const* /*eff*/)
-    {
-        TempSummon* me = GetTarget()->ToTempSummon();
-        if (Creature* owner = me ? me->GetSummonerCreatureBase() : nullptr)
-        {
-            me->GetAI()->SetGUID(ObjectGuid::Empty, DATA_BLIZZARD_TARGET);
-            if (Unit* newTarget = ObjectAccessor::GetUnit(*owner, owner->AI()->GetGUID(DATA_BLIZZARD_TARGET)))
-            {
-                me->GetAI()->SetGUID(newTarget->GetGUID(), DATA_BLIZZARD_TARGET);
-                me->GetMotionMaster()->MoveFollow(newTarget, 0.1f, 0.0f);
+                DoMeleeAttackIfReady();
             }
             else
             {
-                me->StopMoving();
-                me->GetMotionMaster()->Clear();
-            }
-        }
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_sapphiron_change_blizzard_target::HandlePeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
-    }
-};
-
-// 28522 - Icebolt
-class spell_sapphiron_icebolt : public AuraScript
-{
-    PrepareAuraScript(spell_sapphiron_icebolt);
-
-    void HandleApply(AuraEffect const* /*eff*/, AuraEffectHandleModes /*mode*/)
-    {
-        GetTarget()->ApplySpellImmune(SPELL_ICEBOLT, IMMUNITY_DAMAGE, SPELL_SCHOOL_MASK_FROST, true);
-    }
-
-    void HandleRemove(AuraEffect const* /*eff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (!_block.IsEmpty())
-            if (GameObject* oBlock = ObjectAccessor::GetGameObject(*GetTarget(), _block))
-                oBlock->Delete();
-        GetTarget()->ApplySpellImmune(SPELL_ICEBOLT, IMMUNITY_DAMAGE, SPELL_SCHOOL_MASK_FROST, false);
-    }
-
-    void HandlePeriodic(AuraEffect const* /*eff*/)
-    {
-        if (!_block.IsEmpty())
-            return;
-        if (GetTarget()->isMoving())
-            return;
-        float x, y, z;
-        GetTarget()->GetPosition(x, y, z);
-        if (GameObject* block = GetTarget()->SummonGameObject(GO_ICEBLOCK, x, y, z, 0.f, QuaternionData(), 25s))
-            _block = block->GetGUID();
-    }
-
-    void Register() override
-    {
-        AfterEffectApply += AuraEffectApplyFn(spell_sapphiron_icebolt::HandleApply, EFFECT_0, SPELL_AURA_MOD_STUN, AURA_EFFECT_HANDLE_REAL);
-        AfterEffectRemove += AuraEffectRemoveFn(spell_sapphiron_icebolt::HandleRemove, EFFECT_0, SPELL_AURA_MOD_STUN, AURA_EFFECT_HANDLE_REAL);
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_sapphiron_icebolt::HandlePeriodic, EFFECT_2, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
-    }
-
-    ObjectGuid _block;
-};
-
-// 28560 - Summon Blizzard
-class spell_sapphiron_summon_blizzard : public SpellScript
-{
-    PrepareSpellScript(spell_sapphiron_summon_blizzard);
-
-    bool Validate(SpellInfo const* /*spell*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SUMMON_BLIZZARD });
-    }
-
-    void HandleDummy(SpellEffIndex /*effIndex*/)
-    {
-        if (Unit* target = GetHitUnit())
-            if (Creature* blizzard = GetCaster()->SummonCreature(NPC_BLIZZARD, *target, TEMPSUMMON_TIMED_DESPAWN, randtime(25s, 30s)))
-            {
-                blizzard->CastSpell(nullptr, blizzard->m_spells[0], TRIGGERED_NONE);
-                if (Creature* creatureCaster = GetCaster()->ToCreature())
+                if (uint32 eventId = events.ExecuteEvent())
                 {
-                    blizzard->AI()->SetGUID(ObjectGuid::Empty, DATA_BLIZZARD_TARGET);
-                    if (Unit* newTarget = ObjectAccessor::GetUnit(*creatureCaster, creatureCaster->AI()->GetGUID(DATA_BLIZZARD_TARGET)))
+                    switch(eventId)
                     {
-                        blizzard->AI()->SetGUID(newTarget->GetGUID(), DATA_BLIZZARD_TARGET);
-                        blizzard->GetMotionMaster()->MoveFollow(newTarget, 0.1f, 0.0f);
-                        return;
+                        case EVENT_LIFTOFF:
+                            me->HandleEmoteCommand(EMOTE_ONESHOT_LIFTOFF);
+                            me->AddUnitMovementFlag(MOVEMENTFLAG_LEVITATING);
+                            me->SendMovementFlagUpdate();
+                            events.ScheduleEvent(EVENT_ICEBOLT, 1500);
+                            iceboltCount = RAID_MODE(2,3);
+                            return;
+                        case EVENT_ICEBOLT:
+                        {
+                            std::vector<Unit*> targets;
+                            std::list<HostileReference*>::const_iterator i = me->getThreatManager().getThreatList().begin();
+                            for (; i != me->getThreatManager().getThreatList().end(); ++i)
+                                if ((*i)->getTarget()->GetTypeId() == TYPEID_PLAYER && !(*i)->getTarget()->HasAura(SPELL_ICEBOLT))
+                                    targets.push_back((*i)->getTarget());
+
+                            if (targets.empty())
+                                iceboltCount = 0;
+                            else
+                            {
+                                std::vector<Unit*>::const_iterator itr = targets.begin();
+                                advance(itr, rand()%targets.size());
+                                iceblocks.insert(std::make_pair((*itr)->GetGUID(), 0));
+                                DoCast(*itr, SPELL_ICEBOLT);
+                                --iceboltCount;
+                            }
+
+                            if (iceboltCount)
+                                events.ScheduleEvent(EVENT_ICEBOLT, 1000);
+                            else
+                                events.ScheduleEvent(EVENT_BREATH, 1000);
+                            return;
+                        }
+                        case EVENT_BREATH:
+                        {
+                            DoScriptText(EMOTE_BREATH, me);
+                            DoCastAOE(SPELL_FROST_MISSILE);
+                            events.ScheduleEvent(EVENT_EXPLOSION, 8000);
+                            return;
+                        }
+                        case EVENT_EXPLOSION:
+                            CastExplosion();
+                            ClearIceBlock();
+                            events.ScheduleEvent(EVENT_LAND, 3000);
+                            return;
+                        case EVENT_LAND:
+                            me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
+                            me->RemoveUnitMovementFlag(MOVEMENTFLAG_LEVITATING);
+                            me->SendMovementFlagUpdate();
+                            events.ScheduleEvent(EVENT_GROUND, 1500);
+                            return;
+                        case EVENT_GROUND:
+                            EnterPhaseGround();
+                            return;
+                        case EVENT_BIRTH:
+                            me->SetVisible(true);
+                            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                            me->SetReactState(REACT_AGGRESSIVE);
+                            return;
+                    }
+                }//if (uint32 eventId = events.ExecuteEvent())
+            }//if (phase == PHASE_GROUND)
+        }
+
+        void CastExplosion()
+        {
+            DoZoneInCombat(); // make sure everyone is in threatlist
+            std::vector<Unit*> targets;
+            std::list<HostileReference*>::const_iterator i = me->getThreatManager().getThreatList().begin();
+            for (; i != me->getThreatManager().getThreatList().end(); ++i)
+            {
+                Unit *pTarget = (*i)->getTarget();
+                if (pTarget->GetTypeId() != TYPEID_PLAYER)
+                    continue;
+
+                if (pTarget->HasAura(SPELL_ICEBOLT))
+                {
+                    pTarget->ApplySpellImmune(0, IMMUNITY_ID, SPELL_FROST_EXPLOSION, true);
+                    targets.push_back(pTarget);
+                    continue;
+                }
+
+                for (IceBlockMap::const_iterator itr = iceblocks.begin(); itr != iceblocks.end(); ++itr)
+                {
+                    if (GameObject* pGo = GameObject::GetGameObject(*me, itr->second))
+                    {
+                        if (pGo->IsInBetween(me, pTarget, 2.0f)
+                            && me->GetExactDist2d(pTarget->GetPositionX(), pTarget->GetPositionY()) - me->GetExactDist2d(pGo->GetPositionX(), pGo->GetPositionY()) < 5.0f)
+                        {
+                            pTarget->ApplySpellImmune(0, IMMUNITY_ID, SPELL_FROST_EXPLOSION, true);
+                            targets.push_back(pTarget);
+                            break;
+                        }
                     }
                 }
-                blizzard->GetMotionMaster()->MoveFollow(target, 0.1f, 0.0f);
             }
-    }
 
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_sapphiron_summon_blizzard::HandleDummy, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
-};
+            me->CastSpell(me, SPELL_FROST_EXPLOSION, true);
 
-// 29330 - Sapphiron's Wing Buffet Despawn
-class spell_sapphiron_wing_buffet_despawn_periodic : public AuraScript
-{
-    PrepareAuraScript(spell_sapphiron_wing_buffet_despawn_periodic);
-
-    void PeriodicTick(AuraEffect const* /*aurEff*/)
-    {
-        Unit* target = GetTarget();
-        if (Creature* creature = target->ToCreature())
-            creature->DespawnOrUnsummon();
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_sapphiron_wing_buffet_despawn_periodic::PeriodicTick, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
-    }
-};
-
-// 29336 - Despawn Buffet
-class spell_sapphiron_despawn_buffet : public SpellScript
-{
-    PrepareSpellScript(spell_sapphiron_despawn_buffet);
-
-    void HandleScriptEffect(SpellEffIndex /* effIndex */)
-    {
-        if (Creature* target = GetHitCreature())
-            target->DespawnOrUnsummon();
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_sapphiron_despawn_buffet::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
-};
-
-class achievement_the_hundred_club : public AchievementCriteriaScript
-{
-    public:
-        achievement_the_hundred_club() : AchievementCriteriaScript("achievement_the_hundred_club") { }
-
-        bool OnCheck(Player* /*source*/, Unit* target) override
-        {
-            return target && target->GetAI()->GetData(DATA_THE_HUNDRED_CLUB);
+            for (std::vector<Unit*>::const_iterator itr = targets.begin(); itr != targets.end(); ++itr)
+                (*itr)->ApplySpellImmune(0, IMMUNITY_ID, SPELL_FROST_EXPLOSION, false);
         }
+    };
+
 };
 
 void AddSC_boss_sapphiron()
 {
-    RegisterNaxxramasCreatureAI(boss_sapphiron);
-    RegisterNaxxramasCreatureAI(npc_sapphiron_blizzard);
-    RegisterNaxxramasCreatureAI(npc_sapphiron_wing_buffet);
-    RegisterNaxxramasGameObjectAI(go_sapphiron_birth);
-    RegisterSpellScript(spell_sapphiron_change_blizzard_target);
-    RegisterSpellScript(spell_sapphiron_icebolt);
-    RegisterSpellScript(spell_sapphiron_summon_blizzard);
-    RegisterSpellScript(spell_sapphiron_wing_buffet_despawn_periodic);
-    RegisterSpellScript(spell_sapphiron_despawn_buffet);
-    new achievement_the_hundred_club();
+    new boss_sapphiron();
 }

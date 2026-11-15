@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,42 +16,59 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TRINITYCORE_WORLD_SOCKET_MGR_H
-#define TRINITYCORE_WORLD_SOCKET_MGR_H
+/** \addtogroup u2w User to World Communication
+ *  @{
+ *  \file WorldSocketMgr.h
+ *  \author Derex <derex101@gmail.com>
+ */
 
-#include "SocketMgr.h"
+#ifndef __WORLDSOCKETMGR_H
+#define __WORLDSOCKETMGR_H
+
+#include <ace/Basic_Types.h>
+#include <ace/Singleton.h>
+#include <ace/Thread_Mutex.h>
 
 class WorldSocket;
+class ReactorRunnable;
+class ACE_Event_Handler;
 
 /// Manages all sockets connected to peers and network threads
-class TC_GAME_API WorldSocketMgr : public Trinity::Net::SocketMgr<WorldSocket>
+class WorldSocketMgr
 {
-    typedef SocketMgr<WorldSocket> BaseSocketMgr;
-
 public:
-    static WorldSocketMgr& Instance();
+    friend class WorldSocket;
+    friend class ACE_Singleton<WorldSocketMgr, ACE_Thread_Mutex>;
 
     /// Start network, listen at address:port .
-    bool StartWorldNetwork(Trinity::Asio::IoContext& ioContext, std::string const& bindIp, uint16 port, int networkThreads);
+    int StartNetwork(ACE_UINT16 port, const char* address);
 
     /// Stops all network threads, It will wait for all running threads .
-    void StopNetwork() override;
+    void StopNetwork();
 
-    void OnSocketOpen(Trinity::Net::IoContextTcpSocket&& sock, uint32 threadIndex) override;
-
-    std::size_t GetApplicationSendBufferSize() const { return _socketApplicationSendBufferSize; }
-
-protected:
-    WorldSocketMgr();
-
-    Trinity::Net::NetworkThread<WorldSocket>* CreateThreads() const override;
+    /// Wait untill all network threads have "joined" .
+    void Wait();
 
 private:
-    int32 _socketSystemSendBufferSize;
-    int32 _socketApplicationSendBufferSize;
-    bool _tcpNoDelay;
+    int OnSocketOpen(WorldSocket* sock);
+
+    int StartReactiveIO(ACE_UINT16 port, const char* address);
+
+private:
+    WorldSocketMgr();
+    virtual ~WorldSocketMgr();
+
+    ReactorRunnable* m_NetThreads;
+    size_t m_NetThreadsCount;
+
+    int m_SockOutKBuff;
+    int m_SockOutUBuff;
+    bool m_UseNoDelay;
+
+    ACE_Event_Handler* m_Acceptor;
 };
 
-#define sWorldSocketMgr WorldSocketMgr::Instance()
+#define sWorldSocketMgr ACE_Singleton<WorldSocketMgr,ACE_Thread_Mutex>::instance()
 
 #endif
+/// @}

@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,172 +15,178 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
+/* Script Data Start
+SDName: Boss krystallus
+SDAuthor: LordVanMartin
+SD%Complete:
+SDComment:
+SDCategory:
+Script Data End */
+
+#include "ScriptPCH.h"
 #include "halls_of_stone.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellMgr.h"
-#include "SpellScript.h"
 
-enum KrystallusTexts
+enum Spells
 {
-    SAY_AGGRO                = 0,
-    SAY_SLAY                 = 1,
-    SAY_DEATH                = 2,
-    SAY_SHATTER              = 3
+    SPELL_BOULDER_TOSS                             = 50843,
+    H_SPELL_BOULDER_TOSS                           = 59742,
+    SPELL_GROUND_SPIKE                             = 59750,
+    SPELL_GROUND_SLAM                              = 50827,
+    SPELL_SHATTER                                  = 50810,
+    H_SPELL_SHATTER                                = 61546,
+    SPELL_SHATTER_EFFECT                           = 50811,
+    H_SPELL_SHATTER_EFFECT                         = 61547,
+    SPELL_STONED                                   = 50812,
+    SPELL_STOMP                                    = 48131,
+    H_SPELL_STOMP                                  = 59744
 };
 
-enum KrystallusSpells
+enum Yells
 {
-    SPELL_BOULDER_TOSS       = 50843,
-    SPELL_GROUND_SPIKE       = 59750,
-    SPELL_GROUND_SLAM        = 50827,
-    SPELL_SHATTER            = 50810,
-    SPELL_SHATTER_EFFECT     = 50811,
-    SPELL_STONED             = 50812,
-    SPELL_STOMP              = 48131
+    SAY_AGGRO                                   = -1599007,
+    SAY_KILL                                    = -1599008,
+    SAY_DEATH                                   = -1599009,
+    SAY_SHATTER                                 = -1599010
 };
 
-enum KrystallusEvents
+class boss_krystallus : public CreatureScript
 {
-    EVENT_BOULDER_TOSS       = 1,
-    EVENT_GROUND_SPIKE,
-    EVENT_GROUND_SLAM,
-    EVENT_STOMP,
-    EVENT_SHATTER
-};
+public:
+    boss_krystallus() : CreatureScript("boss_krystallus") { }
 
-// 27977 - Krystallus
-struct boss_krystallus : public BossAI
-{
-    boss_krystallus(Creature* creature) : BossAI(creature, DATA_KRYSTALLUS) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        Talk(SAY_AGGRO);
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_BOULDER_TOSS, 3s, 9s);
-        events.ScheduleEvent(EVENT_GROUND_SLAM, 15s, 18s);
-        events.ScheduleEvent(EVENT_STOMP, 20s, 29s);
-        if (IsHeroic())
-            events.ScheduleEvent(EVENT_GROUND_SPIKE, 9s, 14s);
+        return new boss_krystallusAI (pCreature);
     }
 
-    void OnSpellCast(SpellInfo const* spell) override
+    struct boss_krystallusAI : public ScriptedAI
     {
-        if (spell->Id == sSpellMgr->GetSpellIdForDifficulty(SPELL_SHATTER, me))
-            Talk(SAY_SHATTER);
-    }
-
-    void KilledUnit(Unit* victim) override
-    {
-        if (victim->GetTypeId() == TYPEID_PLAYER)
-            Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        Talk(SAY_DEATH);
-        _JustDied();
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_krystallusAI(Creature *c) : ScriptedAI(c)
         {
-            switch (eventId)
+            pInstance = c->GetInstanceScript();
+        }
+
+        uint32 uiBoulderTossTimer;
+        uint32 uiGroundSpikeTimer;
+        uint32 uiGroundSlamTimer;
+        uint32 uiShatterTimer;
+        uint32 uiStompTimer;
+
+        bool bIsSlam;
+
+        InstanceScript* pInstance;
+
+        void Reset()
+        {
+            bIsSlam = false;
+
+            uiBoulderTossTimer = 3000 + rand()%6000;
+            uiGroundSpikeTimer = 9000 + rand()%5000;
+            uiGroundSlamTimer = 15000 + rand()%3000;
+            uiStompTimer = 20000 + rand()%9000;
+            uiShatterTimer = 0;
+
+            if (pInstance)
+                pInstance->SetData(DATA_KRYSTALLUS_EVENT, NOT_STARTED);
+        }
+        void EnterCombat(Unit* /*who*/)
+        {
+            DoScriptText(SAY_AGGRO, me);
+
+            if (pInstance)
+                pInstance->SetData(DATA_KRYSTALLUS_EVENT, IN_PROGRESS);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            if (uiBoulderTossTimer <= diff)
             {
-                case EVENT_BOULDER_TOSS:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 50.0f, true))
-                        DoCast(target, SPELL_BOULDER_TOSS);
-                    events.Repeat(9s, 15s);
-                    break;
-                case EVENT_GROUND_SPIKE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
-                        DoCast(target, SPELL_GROUND_SPIKE);
-                    events.Repeat(12s, 17s);
-                    break;
-                case EVENT_GROUND_SLAM:
-                    DoCastSelf(SPELL_GROUND_SLAM);
-                    events.ScheduleEvent(EVENT_SHATTER, 10s);
-                    events.Repeat(15s, 18s);
-                    break;
-                case EVENT_STOMP:
-                    DoCastSelf(SPELL_STOMP);
-                    events.Repeat(20s, 29s);
-                    break;
-                case EVENT_SHATTER:
-                    DoCastSelf(SPELL_SHATTER);
-                    break;
-                default:
-                    break;
+                if (Unit* pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                    DoCast(pTarget, SPELL_BOULDER_TOSS);
+                uiBoulderTossTimer = 9000 + rand()%6000;
+            } else uiBoulderTossTimer -= diff;
+
+            if (uiGroundSpikeTimer <= diff)
+            {
+                if (Unit* pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                    DoCast(pTarget, SPELL_GROUND_SPIKE);
+                uiGroundSpikeTimer = 12000 + rand()%5000;
+            } else uiGroundSpikeTimer -= diff;
+
+            if (uiStompTimer <= diff)
+            {
+                DoCast(me, SPELL_STOMP);
+                uiStompTimer = 20000 + rand()%9000;
+            } else uiStompTimer -= diff;
+
+            if (uiGroundSlamTimer <= diff)
+            {
+                DoCast(me, SPELL_GROUND_SLAM);
+                bIsSlam = true;
+                uiShatterTimer = 10000;
+                uiGroundSlamTimer = 15000 + rand()%3000;
+            } else uiGroundSlamTimer -= diff;
+
+            if (bIsSlam)
+            {
+                if (uiShatterTimer <= diff)
+                {
+                    DoCast(me, DUNGEON_MODE(SPELL_SHATTER, H_SPELL_SHATTER));
+                } else uiShatterTimer -= diff;
             }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            DoMeleeAttackIfReady();
         }
 
-        DoMeleeAttackIfReady();
-    }
-};
-
-// 50810, 61546 - Shatter
-class spell_krystallus_shatter : public SpellScript
-{
-    PrepareSpellScript(spell_krystallus_shatter);
-
-    void HandleScript(SpellEffIndex /*effIndex*/)
-    {
-        if (Unit* target = GetHitUnit())
+        void JustDied(Unit* /*killer*/)
         {
-            target->RemoveAurasDueToSpell(SPELL_STONED);
-            target->CastSpell(nullptr, SPELL_SHATTER_EFFECT, true);
+            DoScriptText(SAY_DEATH, me);
+
+            if (pInstance)
+                pInstance->SetData(DATA_KRYSTALLUS_EVENT, DONE);
         }
-    }
 
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_krystallus_shatter::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
-};
+        void KilledUnit(Unit * victim)
+        {
+            if (victim == me)
+                return;
+            DoScriptText(SAY_KILL, me);
+        }
 
-// 50811, 61547 - Shatter
-class spell_krystallus_shatter_effect : public SpellScript
-{
-    PrepareSpellScript(spell_krystallus_shatter_effect);
+        void SpellHitTarget(Unit* pTarget, const SpellEntry* pSpell)
+        {
+            //this part should be in the core
+            if (pSpell->Id == SPELL_SHATTER || pSpell->Id == H_SPELL_SHATTER)
+            {
+                //this spell must have custom handling in the core, dealing damage based on distance
+                pTarget->CastSpell(pTarget, DUNGEON_MODE(SPELL_SHATTER_EFFECT, H_SPELL_SHATTER_EFFECT), true);
 
-    void CalculateDamage()
-    {
-        if (!GetHitUnit())
-            return;
+                if (pTarget->HasAura(SPELL_STONED))
+                    pTarget->RemoveAurasDueToSpell(SPELL_STONED);
 
-        float radius = GetEffectInfo(EFFECT_0).CalcRadius(GetCaster());
-        if (!radius)
-            return;
+                //clear this, if we are still performing
+                if (bIsSlam)
+                {
+                    bIsSlam = false;
 
-        float distance = GetCaster()->GetDistance2d(GetHitUnit());
-        if (distance > 1.0f)
-            SetHitDamage(int32(GetHitDamage() * ((radius - distance) / radius)));
-    }
+                    //and correct movement, if not already
+                    if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() != TARGETED_MOTION_TYPE)
+                    {
+                        if (me->getVictim())
+                            me->GetMotionMaster()->MoveChase(me->getVictim());
+                    }
+                }
+            }
+        }
+    };
 
-    void Register() override
-    {
-        OnHit += SpellHitFn(spell_krystallus_shatter_effect::CalculateDamage);
-    }
 };
 
 void AddSC_boss_krystallus()
 {
-    RegisterHallsOfStoneCreatureAI(boss_krystallus);
-    RegisterSpellScript(spell_krystallus_shatter);
-    RegisterSpellScript(spell_krystallus_shatter_effect);
+    new boss_krystallus();
 }

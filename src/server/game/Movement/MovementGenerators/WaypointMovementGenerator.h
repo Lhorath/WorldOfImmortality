@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,60 +19,113 @@
 #ifndef TRINITY_WAYPOINTMOVEMENTGENERATOR_H
 #define TRINITY_WAYPOINTMOVEMENTGENERATOR_H
 
+/** @page PathMovementGenerator is used to generate movements
+ * of waypoints and flight paths.  Each serves the purpose
+ * of generate activities so that it generates updated
+ * packets for the players.
+ */
+
 #include "MovementGenerator.h"
-#include "PathMovementBase.h"
-#include "Timer.h"
+#include "DestinationHolder.h"
+#include "WaypointManager.h"
+#include "Path.h"
+#include "Traveller.h"
 
-class Creature;
-class Unit;
-struct WaypointPath;
+#include "Player.h"
 
-template<class T>
-class WaypointMovementGenerator;
+#include <vector>
+#include <set>
 
-template<>
-class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creature, WaypointMovementGenerator<Creature>>, public PathMovementBase<Creature, WaypointPath const*>
+#define FLIGHT_TRAVEL_UPDATE  100
+#define STOP_TIME_FOR_PLAYER  3 * MINUTE * IN_MILLISECONDS           // 3 Minutes
+#define TIMEDIFF_NEXT_WP      250
+
+template<class T, class P>
+class PathMovementBase
 {
     public:
-        explicit WaypointMovementGenerator(uint32 pathId = 0, bool repeating = true);
-        explicit WaypointMovementGenerator(WaypointPath& path, bool repeating = true);
-        ~WaypointMovementGenerator() { _path = nullptr; }
+        PathMovementBase() : i_currentNode(0) {}
+        virtual ~PathMovementBase() {};
 
-        MovementGeneratorType GetMovementGeneratorType() const override;
+        bool MovementInProgress(void) const { return i_currentNode < i_path->size(); }
 
-        void UnitSpeedChanged() override { AddFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING); }
-        void Pause(uint32 timer = 0) override;
-        void Resume(uint32 overrideTimer = 0) override;
-        bool GetResetPosition(Unit*, float& x, float& y, float& z) override;
+        void LoadPath(T &);
+        void ReloadPath(T &);
+        uint32 GetCurrentNode() const { return i_currentNode; }
 
-        bool DoInitialize(Creature*);
-        bool DoReset(Creature*);
-        bool DoUpdate(Creature*, uint32);
-        void DoDeactivate(Creature*);
-        void DoFinalize(Creature*, bool, bool);
+        bool GetDestination(float& x, float& y, float& z) const { i_destinationHolder.GetDestination(x,y,z); return true; }
+        bool GetPosition(float& x, float& y, float& z) const { i_destinationHolder.GetLocationNowNoMicroMovement(x,y,z); return true; }
 
-        std::string GetDebugInfo() const override;
-
-    private:
-        void MovementInform(Creature*);
-        void OnArrived(Creature*);
-        void StartMove(Creature*, bool relaunch = false);
-        bool ComputeNextNode();
-        bool UpdateTimer(uint32 diff)
-        {
-            _nextMoveTime.Update(diff);
-            if (_nextMoveTime.Passed())
-            {
-                _nextMoveTime.Reset(0);
-                return true;
-            }
-            return false;
-        }
-
-        TimeTracker _nextMoveTime;
-        uint32 _pathId;
-        bool _repeating;
-        bool _loadedFromDB;
+    protected:
+        uint32 i_currentNode;
+        DestinationHolder< Traveller<T> > i_destinationHolder;
+        P i_path;
 };
 
+template<class T>
+
+class WaypointMovementGenerator
+    : public MovementGeneratorMedium< T, WaypointMovementGenerator<T> >, public PathMovementBase<T, WaypointPath const*>
+{
+    public:
+        WaypointMovementGenerator(uint32 _path_id = 0, bool _repeating = true) :
+          node(NULL), path_id(_path_id), i_nextMoveTime(0), repeating(_repeating), StopedByPlayer(false) {}
+
+        void Initialize(T &);
+        void Finalize(T &);
+        void MovementInform(T &);
+        void InitTraveller(T &, const WaypointData &);
+        void GeneratePathId(T &);
+        void Reset(T &unit);
+        bool Update(T &, const uint32 &);
+        bool GetDestination(float &x, float &y, float &z) const;
+        MovementGeneratorType GetMovementGeneratorType() { return WAYPOINT_MOTION_TYPE; }
+
+    private:
+        WaypointData *node;
+        uint32 path_id;
+        TimeTrackerSmall i_nextMoveTime;
+        WaypointPath *waypoints;
+        bool repeating, StopedByPlayer;
+};
+
+/** FlightPathMovementGenerator generates movement of the player for the paths
+ * and hence generates ground and activities for the player.
+ */
+class FlightPathMovementGenerator
+: public MovementGeneratorMedium< Player, FlightPathMovementGenerator >,
+public PathMovementBase<Player,TaxiPathNodeList const*>
+{
+    public:
+        explicit FlightPathMovementGenerator(TaxiPathNodeList const& pathnodes, uint32 startNode = 0)
+        {
+            i_path = &pathnodes;
+            i_currentNode = startNode;
+        }
+        void Initialize(Player &);
+        void Reset(Player & /*u*/){};
+        void Finalize(Player &);
+        bool Update(Player &, const uint32 &);
+        MovementGeneratorType GetMovementGeneratorType() { return FLIGHT_MOTION_TYPE; }
+
+        TaxiPathNodeList const& GetPath() { return *i_path; }
+        uint32 GetPathAtMapEnd() const;
+        bool HasArrived() const { return (i_currentNode >= i_path->size()); }
+        void SetCurrentNodeAfterTeleport();
+        void SkipCurrentNode() { ++i_currentNode; }
+        void DoEventIfAny(Player& player, TaxiPathNodeEntry const& node, bool departure);
+
+        bool GetDestination(float& x, float& y, float& z) const { return PathMovementBase<Player,TaxiPathNodeList const*>::GetDestination(x,y,z); }
+
+        void PreloadEndGrid();
+        void InitEndGridInfo();
+    private:
+        // storage for preloading the flightmaster grid at end
+        // before reaching final waypoint
+        uint32 m_endMapId;
+        uint32 m_preloadTargetNode;
+        float m_endGridX;
+        float m_endGridY;
+};
 #endif
+

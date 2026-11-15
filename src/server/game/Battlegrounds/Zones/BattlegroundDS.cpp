@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,80 +16,66 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "Battleground.h"
 #include "BattlegroundDS.h"
-#include "Creature.h"
-#include "Log.h"
+#include "Language.h"
 #include "Player.h"
-#include "Random.h"
+#include "Object.h"
+#include "ObjectMgr.h"
 #include "WorldPacket.h"
-#include "WorldStatePackets.h"
 
 BattlegroundDS::BattlegroundDS()
 {
-    BgObjects.resize(BG_DS_OBJECT_MAX);
-    BgCreatures.resize(BG_DS_NPC_MAX);
+    m_BgObjects.resize(BG_DS_OBJECT_MAX);
 
-    _pipeKnockBackTimer = 0;
-    _pipeKnockBackCount = 0;
+    m_StartDelayTimes[BG_STARTING_EVENT_FIRST]  = BG_START_DELAY_1M;
+    m_StartDelayTimes[BG_STARTING_EVENT_SECOND] = BG_START_DELAY_30S;
+    m_StartDelayTimes[BG_STARTING_EVENT_THIRD]  = BG_START_DELAY_15S;
+    m_StartDelayTimes[BG_STARTING_EVENT_FOURTH] = BG_START_DELAY_NONE;
+    //we must set messageIds
+    m_StartMessageIds[BG_STARTING_EVENT_FIRST]  = LANG_ARENA_ONE_MINUTE;
+    m_StartMessageIds[BG_STARTING_EVENT_SECOND] = LANG_ARENA_THIRTY_SECONDS;
+    m_StartMessageIds[BG_STARTING_EVENT_THIRD]  = LANG_ARENA_FIFTEEN_SECONDS;
+    m_StartMessageIds[BG_STARTING_EVENT_FOURTH] = LANG_ARENA_HAS_BEGUN;
 }
 
-void BattlegroundDS::PostUpdateImpl(uint32 diff)
+BattlegroundDS::~BattlegroundDS()
 {
-    if (GetStatus() != STATUS_IN_PROGRESS)
-        return;
 
-    _events.Update(diff);
+}
 
-    while (uint32 eventId = _events.ExecuteEvent())
+void BattlegroundDS::Update(uint32 diff)
+{
+    Battleground::Update(diff);
+
+    if (GetStatus() == STATUS_IN_PROGRESS)
     {
-        switch (eventId)
+        if (GetStartTime() >= 47*MINUTE*IN_MILLISECONDS)    // after 47 minutes without one team losing, the arena closes with no winner and no rating change
         {
-            case BG_DS_EVENT_WATERFALL_WARNING:
-                // Add the water
-                DoorClose(BG_DS_OBJECT_WATER_2);
-                _events.ScheduleEvent(BG_DS_EVENT_WATERFALL_ON, BG_DS_WATERFALL_WARNING_DURATION);
-                break;
-            case BG_DS_EVENT_WATERFALL_ON:
-                // Active collision and start knockback timer
-                DoorClose(BG_DS_OBJECT_WATER_1);
-                _events.ScheduleEvent(BG_DS_EVENT_WATERFALL_OFF, BG_DS_WATERFALL_DURATION);
-                _events.ScheduleEvent(BG_DS_EVENT_WATERFALL_KNOCKBACK, BG_DS_WATERFALL_KNOCKBACK_TIMER);
-                break;
-            case BG_DS_EVENT_WATERFALL_OFF:
-                // Remove collision and water
-                DoorOpen(BG_DS_OBJECT_WATER_1);
-                DoorOpen(BG_DS_OBJECT_WATER_2);
-                _events.CancelEvent(BG_DS_EVENT_WATERFALL_KNOCKBACK);
-                _events.ScheduleEvent(BG_DS_EVENT_WATERFALL_WARNING, BG_DS_WATERFALL_TIMER_MIN, BG_DS_WATERFALL_TIMER_MAX);
-                break;
-            case BG_DS_EVENT_WATERFALL_KNOCKBACK:
-                // Repeat knockback while the waterfall still active
-                if (Creature* waterSpout = GetBGCreature(BG_DS_NPC_WATERFALL_KNOCKBACK))
-                    waterSpout->CastSpell(waterSpout, BG_DS_SPELL_WATER_SPOUT, true);
-                _events.ScheduleEvent(eventId, BG_DS_WATERFALL_KNOCKBACK_TIMER);
-                break;
-            case BG_DS_EVENT_PIPE_KNOCKBACK:
-                for (uint32 i = BG_DS_NPC_PIPE_KNOCKBACK_1; i <= BG_DS_NPC_PIPE_KNOCKBACK_2; ++i)
-                    if (Creature* waterSpout = GetBGCreature(i))
-                        waterSpout->CastSpell(waterSpout, BG_DS_SPELL_FLUSH, true);
-                break;
+            UpdateArenaWorldState();
+            CheckArenaAfterTimerConditions();
         }
     }
 
-    if (_pipeKnockBackCount < BG_DS_PIPE_KNOCKBACK_TOTAL_COUNT)
+    if (getWaterFallTimer() < diff)
     {
-        if (_pipeKnockBackTimer < diff)
+        if (isWaterFallActive())
         {
-            for (uint32 i = BG_DS_NPC_PIPE_KNOCKBACK_1; i <= BG_DS_NPC_PIPE_KNOCKBACK_2; ++i)
-                if (Creature* waterSpout = GetBGCreature(i))
-                    waterSpout->CastSpell(waterSpout, BG_DS_SPELL_FLUSH, true);
-
-            ++_pipeKnockBackCount;
-            _pipeKnockBackTimer = BG_DS_PIPE_KNOCKBACK_DELAY;
+            setWaterFallTimer(urand(BG_DS_WATERFALL_TIMER_MIN, BG_DS_WATERFALL_TIMER_MAX));
+            for (uint32 i = BG_DS_OBJECT_WATER_1; i <= BG_DS_OBJECT_WATER_2; ++i)
+                SpawnBGObject(i, getWaterFallTimer());
+            setWaterFallActive(false);
         }
         else
-            _pipeKnockBackTimer -= diff;
+        {
+            setWaterFallTimer(BG_DS_WATERFALL_DURATION);
+            for (uint32 i = BG_DS_OBJECT_WATER_1; i <= BG_DS_OBJECT_WATER_2; ++i)
+                SpawnBGObject(i, RESPAWN_IMMEDIATELY);
+            setWaterFallActive(true);
+        }
     }
+    else
+        setWaterFallTimer(getWaterFallTimer() - diff);
 }
 
 void BattlegroundDS::StartingEventCloseDoors()
@@ -105,52 +92,83 @@ void BattlegroundDS::StartingEventOpenDoors()
     for (uint32 i = BG_DS_OBJECT_BUFF_1; i <= BG_DS_OBJECT_BUFF_2; ++i)
         SpawnBGObject(i, 60);
 
-    _events.ScheduleEvent(BG_DS_EVENT_WATERFALL_WARNING, BG_DS_WATERFALL_TIMER_MIN, BG_DS_WATERFALL_TIMER_MAX);
-    //for (uint8 i = 0; i < BG_DS_PIPE_KNOCKBACK_TOTAL_COUNT; ++i)
-    //    _events.ScheduleEvent(BG_DS_EVENT_PIPE_KNOCKBACK, BG_DS_PIPE_KNOCKBACK_FIRST_DELAY + i * BG_DS_PIPE_KNOCKBACK_DELAY);
+    setWaterFallTimer(urand(BG_DS_WATERFALL_TIMER_MIN, BG_DS_WATERFALL_TIMER_MAX));
+    setWaterFallActive(false);
 
-    _pipeKnockBackCount = 0;
-    _pipeKnockBackTimer = BG_DS_PIPE_KNOCKBACK_FIRST_DELAY;
-
-    SpawnBGObject(BG_DS_OBJECT_WATER_2, RESPAWN_IMMEDIATELY);
-
-    DoorOpen(BG_DS_OBJECT_WATER_1); // Turn off collision
-    DoorOpen(BG_DS_OBJECT_WATER_2);
-
-    // Remove effects of Demonic Circle Summon
-    for (BattlegroundPlayerMap::const_iterator itr = GetPlayers().begin(); itr != GetPlayers().end(); ++itr)
-        if (Player* player = _GetPlayer(itr, "BattlegroundDS::StartingEventOpenDoors"))
-            player->RemoveAurasDueToSpell(SPELL_WARL_DEMONIC_CIRCLE);
+    for (uint32 i = BG_DS_OBJECT_WATER_1; i <= BG_DS_OBJECT_WATER_2; ++i)
+        SpawnBGObject(i, getWaterFallTimer());
 }
 
-void BattlegroundDS::HandleAreaTrigger(Player* player, uint32 trigger)
+void BattlegroundDS::AddPlayer(Player *plr)
+{
+    Battleground::AddPlayer(plr);
+    //create score and add it to map, default values are set in constructor
+    BattlegroundDSScore* sc = new BattlegroundDSScore;
+
+    m_PlayerScores[plr->GetGUID()] = sc;
+
+    UpdateArenaWorldState();
+}
+
+void BattlegroundDS::RemovePlayer(Player * /*plr*/, uint64 /*guid*/)
+{
+    if (GetStatus() == STATUS_WAIT_LEAVE)
+        return;
+
+    UpdateArenaWorldState();
+    CheckArenaWinConditions();
+}
+
+void BattlegroundDS::HandleKillPlayer(Player* player, Player* killer)
 {
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
-    switch (trigger)
+    if (!killer)
+    {
+        sLog->outError("BattlegroundDS: Killer player not found");
+        return;
+    }
+
+    Battleground::HandleKillPlayer(player,killer);
+
+    UpdateArenaWorldState();
+    CheckArenaWinConditions();
+}
+
+void BattlegroundDS::HandleAreaTrigger(Player *Source, uint32 Trigger)
+{
+    if (GetStatus() != STATUS_IN_PROGRESS)
+        return;
+
+    switch(Trigger)
     {
         case 5347:
         case 5348:
-            // Remove effects of Demonic Circle Summon
-            player->RemoveAurasDueToSpell(SPELL_WARL_DEMONIC_CIRCLE);
-
-            // Someone has get back into the pipes and the knockback has already been performed,
-            // so we reset the knockback count for kicking the player again into the arena.
-            if (_pipeKnockBackCount >= BG_DS_PIPE_KNOCKBACK_TOTAL_COUNT)
-                _pipeKnockBackCount = 0;
             break;
         default:
-            Battleground::HandleAreaTrigger(player, trigger);
+            sLog->outError("WARNING: Unhandled AreaTrigger in Battleground: %u", Trigger);
+            Source->GetSession()->SendAreaTriggerMessage("Warning: Unhandled AreaTrigger in Battleground: %u", Trigger);
             break;
     }
 }
 
-void BattlegroundDS::FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet)
+bool BattlegroundDS::HandlePlayerUnderMap(Player *player)
 {
-    packet.Worldstates.emplace_back(3610, 1); // ARENA_WORLD_STATE_ALIVE_PLAYERS_SHOW
+    player->TeleportTo(GetMapId(), 1299.046f, 784.825f, 9.338f, 2.422f, false);
+    return true;
+}
 
-    Arena::FillInitialWorldStates(packet);
+void BattlegroundDS::FillInitialWorldStates(WorldPacket &data)
+{
+    data << uint32(3610) << uint32(1);                                              // 9 show
+    UpdateArenaWorldState();
+}
+
+void BattlegroundDS::Reset()
+{
+    //call parent's class reset
+    Battleground::Reset();
 }
 
 bool BattlegroundDS::SetupBattleground()
@@ -158,18 +176,14 @@ bool BattlegroundDS::SetupBattleground()
     // gates
     if (!AddObject(BG_DS_OBJECT_DOOR_1, BG_DS_OBJECT_TYPE_DOOR_1, 1350.95f, 817.2f, 20.8096f, 3.15f, 0, 0, 0.99627f, 0.0862864f, RESPAWN_IMMEDIATELY)
         || !AddObject(BG_DS_OBJECT_DOOR_2, BG_DS_OBJECT_TYPE_DOOR_2, 1232.65f, 764.913f, 20.0729f, 6.3f, 0, 0, 0.0310211f, -0.999519f, RESPAWN_IMMEDIATELY)
-        // water
+    // water
         || !AddObject(BG_DS_OBJECT_WATER_1, BG_DS_OBJECT_TYPE_WATER_1, 1291.56f, 790.837f, 7.1f, 3.14238f, 0, 0, 0.694215f, -0.719768f, 120)
         || !AddObject(BG_DS_OBJECT_WATER_2, BG_DS_OBJECT_TYPE_WATER_2, 1291.56f, 790.837f, 7.1f, 3.14238f, 0, 0, 0.694215f, -0.719768f, 120)
-        // buffs
+    // buffs
         || !AddObject(BG_DS_OBJECT_BUFF_1, BG_DS_OBJECT_TYPE_BUFF_1, 1291.7f, 813.424f, 7.11472f, 4.64562f, 0, 0, 0.730314f, -0.683111f, 120)
-        || !AddObject(BG_DS_OBJECT_BUFF_2, BG_DS_OBJECT_TYPE_BUFF_2, 1291.7f, 768.911f, 7.11472f, 1.55194f, 0, 0, 0.700409f, 0.713742f, 120)
-        // knockback creatures
-        || !AddCreature(BG_DS_NPC_TYPE_WATER_SPOUT, BG_DS_NPC_WATERFALL_KNOCKBACK, 1292.587f, 790.2205f, 7.19796f, 3.054326f, TEAM_NEUTRAL, RESPAWN_IMMEDIATELY)
-        || !AddCreature(BG_DS_NPC_TYPE_WATER_SPOUT, BG_DS_NPC_PIPE_KNOCKBACK_1, 1369.977f, 817.2882f, 16.08718f, 3.106686f, TEAM_NEUTRAL, RESPAWN_IMMEDIATELY)
-        || !AddCreature(BG_DS_NPC_TYPE_WATER_SPOUT, BG_DS_NPC_PIPE_KNOCKBACK_2, 1212.833f, 765.3871f, 16.09484f, 0.0f, TEAM_NEUTRAL, RESPAWN_IMMEDIATELY))
+        || !AddObject(BG_DS_OBJECT_BUFF_2, BG_DS_OBJECT_TYPE_BUFF_2, 1291.7f, 768.911f, 7.11472f, 1.55194f, 0, 0, 0.700409f, 0.713742f, 120))
     {
-        TC_LOG_ERROR("sql.sql", "BatteGroundDS: Failed to spawn some object!");
+        sLog->outErrorDb("BatteGroundDS: Failed to spawn some object!");
         return false;
     }
 

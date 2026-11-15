@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,85 +16,87 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "zulgurub.h"
-#include "ScriptedCreature.h"
-#include "ScriptMgr.h"
+/* ScriptData
+SDName: Boss_Gahz'ranka
+SD%Complete: 85
+SDComment: Massive Geyser with knockback not working. Spell buggy.
+SDCategory: Zul'Gurub
+EndScriptData */
 
-enum Spells
+#include "ScriptPCH.h"
+
+#define SPELL_FROSTBREATH            16099
+#define SPELL_MASSIVEGEYSER          22421                  //Not working. Cause its a summon...
+#define SPELL_SLAM                   24326
+
+class boss_gahzranka : public CreatureScript
 {
-    SPELL_FROSTBREATH = 16099,
-    SPELL_MASSIVEGEYSER = 22421, // Not working. (summon)
-    SPELL_SLAM = 24326
-};
+    public:
 
-enum Events
-{
-    EVENT_FROSTBREATH = 1,
-    EVENT_MASSIVEGEYSER = 2,
-    EVENT_SLAM = 3
-};
-
-struct boss_gahzranka : public BossAI
-{
-    boss_gahzranka(Creature* creature) : BossAI(creature, DATA_GAHZRANKA) { }
-
-    void Reset() override
-    {
-        _Reset();
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-        events.ScheduleEvent(EVENT_FROSTBREATH, 8s);
-        events.ScheduleEvent(EVENT_MASSIVEGEYSER, 25s);
-        events.ScheduleEvent(EVENT_SLAM, 15s);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_gahzranka()
+            : CreatureScript("boss_gahzranka")
         {
-            switch (eventId)
-            {
-                case EVENT_FROSTBREATH:
-                    DoCastVictim(SPELL_FROSTBREATH, true);
-                    events.ScheduleEvent(EVENT_FROSTBREATH, 7s, 11s);
-                    break;
-                case EVENT_MASSIVEGEYSER:
-                    DoCastVictim(SPELL_MASSIVEGEYSER, true);
-                    events.ScheduleEvent(EVENT_MASSIVEGEYSER, 22s, 32s);
-                    break;
-                case EVENT_SLAM:
-                    DoCastVictim(SPELL_SLAM, true);
-                    events.ScheduleEvent(EVENT_SLAM, 12s, 20s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        struct boss_gahzrankaAI : public ScriptedAI
+        {
+            boss_gahzrankaAI(Creature *c) : ScriptedAI(c) {}
+            uint32 Frostbreath_Timer;
+            uint32 MassiveGeyser_Timer;
+            uint32 Slam_Timer;
+
+            void Reset()
+            {
+                Frostbreath_Timer = 8000;
+                MassiveGeyser_Timer = 25000;
+                Slam_Timer = 17000;
+            }
+
+            void EnterCombat(Unit * /*who*/)
+            {
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                //Return since we have no target
+                if (!UpdateVictim())
+                    return;
+
+                //Frostbreath_Timer
+                if (Frostbreath_Timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_FROSTBREATH);
+                    Frostbreath_Timer = 7000 + rand()%4000;
+                } else Frostbreath_Timer -= diff;
+
+                //MassiveGeyser_Timer
+                if (MassiveGeyser_Timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_MASSIVEGEYSER);
+                    DoResetThreat();
+
+                    MassiveGeyser_Timer = 22000 + rand()%10000;
+                } else MassiveGeyser_Timer -= diff;
+
+                //Slam_Timer
+                if (Slam_Timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_SLAM);
+                    Slam_Timer = 12000 + rand()%8000;
+                } else Slam_Timer -= diff;
+
+                DoMeleeAttackIfReady();
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_gahzrankaAI(creature);
+        }
 };
 
 void AddSC_boss_gahzranka()
 {
-    RegisterZulGurubCreatureAI(boss_gahzranka);
+    new boss_gahzranka();
 }
+

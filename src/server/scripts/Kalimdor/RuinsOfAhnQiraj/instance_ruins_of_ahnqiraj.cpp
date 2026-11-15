@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,179 +16,200 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "Creature.h"
-#include "CreatureAI.h"
-#include "InstanceScript.h"
-#include "Map.h"
+/* ScriptData
+SDName: Instance_Ruins_of_Ahnqiraj
+SD%Complete: 0
+SDComment: Place holder
+SDCategory: Ruins of Ahn'Qiraj
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "ruins_of_ahnqiraj.h"
-#include <algorithm>
 
-static constexpr ObjectData creatureData[] =
-{
-    { NPC_KURINAXX,        DATA_KURINNAXX    },
-    { NPC_RAJAXX,          DATA_RAJAXX       },
-    { NPC_MOAM,            DATA_MOAM         },
-    { NPC_BURU,            DATA_BURU         },
-    { NPC_AYAMISS,         DATA_AYAMISS      },
-    { NPC_OSSIRIAN,        DATA_OSSIRIAN     },
-    { NPC_ANDOROV,         DATA_ANDOROV      },
-    { 0,                   0                 } // END
-};
+#define MAX_ENCOUNTER 6
 
-struct RajaxxWave
-{
-    std::string_view StringId;
-    int32 BossActionIdOnClear;
-};
-
-static constexpr std::array<RajaxxWave, 7> RajaxxWaves =
-{{
-    { "GeneralRajaxxWave1", 0 },
-    { "GeneralRajaxxWave2", ACTION_WAVE_STARTS_3 },
-    { "GeneralRajaxxWave3", ACTION_WAVE_STARTS_4 },
-    { "GeneralRajaxxWave4", ACTION_WAVE_STARTS_5 },
-    { "GeneralRajaxxWave5", ACTION_WAVE_STARTS_6 },
-    { "GeneralRajaxxWave6", ACTION_WAVE_STARTS_7 },
-    { "GeneralRajaxxWave7", ACTION_RAJAXX_ENTER }
-}};
+/* Ruins of Ahn'Qiraj encounters:
+0 - Kurinnaxx
+1 - General Rajaxx
+2 - Moam
+3 - Buru the Gorger
+4 - Ayamiss the Hunter
+5 - Ossirian the Unscarred */
 
 class instance_ruins_of_ahnqiraj : public InstanceMapScript
 {
-    public:
-        instance_ruins_of_ahnqiraj() : InstanceMapScript(AQ20ScriptName, 509) { }
+public:
+    instance_ruins_of_ahnqiraj() : InstanceMapScript("instance_ruins_of_ahnqiraj", 509) { }
 
-        struct instance_ruins_of_ahnqiraj_InstanceMapScript : public InstanceScript
+    InstanceScript* GetInstanceScript(InstanceMap* pMap) const
+    {
+        return new instance_ruins_of_ahn_qiraj_InstanceMapScript(pMap);
+    }
+
+    struct instance_ruins_of_ahn_qiraj_InstanceMapScript : public InstanceScript
+    {
+        instance_ruins_of_ahn_qiraj_InstanceMapScript(Map* pMap) : InstanceScript(pMap) { Initialize(); }
+
+        uint64 uiKurinaxx;
+        uint64 uiRajaxx;
+        uint64 uiMoam;
+        uint64 uiBuru;
+        uint64 uiAyamiss;
+        uint64 uiOssirian;
+
+        uint16 m_auiEncounter[MAX_ENCOUNTER];
+        std::string str_data;
+
+        void Initialize()
         {
-            instance_ruins_of_ahnqiraj_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
-            {
-                SetHeaders(DataHeader);
-                SetBossNumber(EncounterCount);
-                LoadObjectData(creatureData, nullptr);
+            memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
 
-                AndorovEventState = NOT_STARTED;
-            }
-
-            void OnCreatureCreate(Creature* creature) override
-            {
-                InstanceScript::OnCreatureCreate(creature);
-
-                auto rajaxxWave = std::ranges::find_if(RajaxxWaves, [creature](std::string_view stringId) { return creature->HasStringId(stringId); }, &RajaxxWave::StringId);
-                if (rajaxxWave != RajaxxWaves.end())
-                    WaveGuidList[std::ranges::distance(RajaxxWaves.begin(), rajaxxWave)].insert(creature->GetGUID());
-            }
-
-            void OnUnitDeath(Unit* unit) override
-            {
-                InstanceScript::OnUnitDeath(unit);
-
-                if (unit->GetTypeId() != TYPEID_UNIT)
-                    return;
-
-                auto rajaxxWave = std::ranges::find_if(RajaxxWaves, [creature = unit->ToCreature()](std::string_view stringId) { return creature->HasStringId(stringId); }, &RajaxxWave::StringId);
-                if (rajaxxWave != RajaxxWaves.end())
-                {
-                    std::ptrdiff_t waveIndex = std::ranges::distance(RajaxxWaves.begin(), rajaxxWave);
-                    if (WaveGuidList[waveIndex].erase(unit->GetGUID()) && WaveGuidList[waveIndex].empty())
-                    {
-                        // start next wave
-                        if (waveIndex + 1 < std::ranges::ssize(WaveGuidList))
-                            for (ObjectGuid guid : WaveGuidList[waveIndex + 1])
-                                if (Creature* creature = instance->GetCreature(guid))
-                                    if (creature->IsAlive() && !creature->IsInCombat())
-                                        creature->AI()->DoZoneInCombat();
-
-                        if (rajaxxWave->BossActionIdOnClear)
-                            if (Creature* rajaxx = GetCreature(DATA_RAJAXX))
-                                rajaxx->AI()->DoAction(rajaxxWave->BossActionIdOnClear);
-                    }
-                }
-            }
-
-            bool SetBossState(uint32 bossId, EncounterState state) override
-            {
-                if (!InstanceScript::SetBossState(bossId, state))
-                    return false;
-
-                switch (bossId)
-                {
-                    case DATA_KURINNAXX:
-                        if (state == DONE)
-                        {
-                            instance->SpawnGroupSpawn(SPAWN_GROUP_ANDOROV);
-
-                            if (Creature* ossirian = GetCreature(DATA_OSSIRIAN))
-                                ossirian->AI()->DoAction(ACTION_KURINNAXX_DEFEATED);
-                        }
-                        break;
-                    case DATA_RAJAXX:
-                        if (state == DONE)
-                        {
-                            /// @todo: This part requires additional research. Here we check if Andorov's event was started
-                            /// and only then change it to finished to enable vendor. Otherwise players can complete
-                            /// Rajaxx's encounter without Andorov and then talk to him to buy items, doubt that should happen
-                            if (GetData(DATA_ANDOROV_EVENT_STATE) == IN_PROGRESS)
-                            {
-                                SetData(DATA_ANDOROV_EVENT_STATE, DONE);
-
-                                if (Creature* andorov = GetCreature(DATA_ANDOROV))
-                                    andorov->AI()->DoAction(ACTION_RAJAXX_DEFEATED);
-                            }
-                        }
-                        break;
-                }
-
-                return true;
-            }
-
-            void SetData(uint32 type, uint32 data) override
-            {
-                if (type == DATA_ANDOROV_EVENT_STATE)
-                {
-                    AndorovEventState = data;
-                    if (data == IN_PROGRESS)
-                    {
-                        // Wave 1
-                        for (ObjectGuid guid : WaveGuidList[0])
-                            if (Creature* creature = instance->GetCreature(guid))
-                                if (creature->IsAlive() && !creature->IsInCombat())
-                                    creature->AI()->DoZoneInCombat();
-                    }
-                }
-            }
-
-            uint32 GetData(uint32 type) const override
-            {
-                if (type == DATA_ANDOROV_EVENT_STATE)
-                    return AndorovEventState;
-
-                return 0;
-            }
-
-            void SetGuidData(uint32 type, ObjectGuid data) override
-            {
-                if (type == DATA_PARALYZED)
-                    ParalyzedGUID = data;
-            }
-
-            ObjectGuid GetGuidData(uint32 type) const override
-            {
-                if (type == DATA_PARALYZED)
-                    return ParalyzedGUID;
-
-                return ObjectGuid::Empty;
-            }
-
-        protected:
-            uint8 AndorovEventState;
-            GuidSet WaveGuidList[7];
-            ObjectGuid ParalyzedGUID;
-        };
-
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
-        {
-            return new instance_ruins_of_ahnqiraj_InstanceMapScript(map);
+            uiKurinaxx = 0;
+            uiRajaxx = 0;
+            uiMoam = 0;
+            uiBuru = 0;
+            uiAyamiss = 0;
+            uiOssirian = 0;
         }
+
+        bool IsEncounterInProgress() const
+        {
+            for (uint8 i = 0; i < MAX_ENCOUNTER; ++i)
+                if (m_auiEncounter[i] == IN_PROGRESS) return true;
+
+            return false;
+        }
+
+        void OnCreatureCreate(Creature* creature)
+        {
+            switch (creature->GetEntry())
+            {
+                case CREATURE_KURINAXX:
+                    uiKurinaxx = creature->GetGUID();
+                    break;
+                case CREATURE_RAJAXX:
+                    uiRajaxx = creature->GetGUID();
+                    break;
+                case CREATURE_MOAM:
+                    uiMoam = creature->GetGUID();
+                    break;
+                case CREATURE_BURU:
+                    uiBuru = creature->GetGUID();
+                    break;
+                case CREATURE_AYAMISS:
+                    uiAyamiss = creature->GetGUID();
+                    break;
+                case CREATURE_OSSIRIAN:
+                    uiOssirian = creature->GetGUID();
+                    break;
+            }
+        }
+
+        uint32 GetData(uint32 identifier)
+        {
+            switch(identifier)
+            {
+                case DATA_KURINNAXX_EVENT:               return m_auiEncounter[0];
+                case DATA_RAJAXX_EVENT:                  return m_auiEncounter[1];
+                case DATA_MOAM_EVENT:                    return m_auiEncounter[2];
+                case DATA_BURU_EVENT:                    return m_auiEncounter[3];
+                case DATA_AYAMISS_EVENT:                 return m_auiEncounter[4];
+                case DATA_OSSIRIAN_EVENT:                return m_auiEncounter[5];
+            }
+
+            return 0;
+        }
+
+        void SetData(uint32 identifier, uint32 data)
+        {
+            switch(identifier)
+            {
+                case DATA_KURINNAXX_EVENT:
+                    m_auiEncounter[0] = data;
+                    break;
+                case DATA_RAJAXX_EVENT:
+                    m_auiEncounter[1] = data;
+                    break;
+                case DATA_MOAM_EVENT:
+                    m_auiEncounter[2] = data;
+                    break;
+                case DATA_BURU_EVENT:
+                    m_auiEncounter[3] = data;
+                    break;
+                case DATA_AYAMISS_EVENT:
+                    m_auiEncounter[4] = data;
+                    break;
+                case DATA_OSSIRIAN_EVENT:
+                    m_auiEncounter[5] = data;
+                    break;
+            }
+
+            if (data == DONE)
+                SaveToDB();
+        }
+
+        uint64 GetData64(uint32 uiIdentifier)
+        {
+            switch(uiIdentifier)
+            {
+                case DATA_KURINNAXX:              return uiKurinaxx;
+                case DATA_RAJAXX:                 return uiRajaxx;
+                case DATA_MOAM:                   return uiMoam;
+                case DATA_BURU:                   return uiBuru;
+                case DATA_AYAMISS:                return uiAyamiss;
+                case DATA_OSSIRIAN:               return uiOssirian;
+            }
+
+            return 0;
+        }
+
+        std::string GetSaveData()
+        {
+            OUT_SAVE_INST_DATA;
+
+            std::ostringstream saveStream;
+            saveStream << "R A " << m_auiEncounter[0] << " " << m_auiEncounter[1] << " "
+                << m_auiEncounter[2] << " " << m_auiEncounter[3] << " " << m_auiEncounter[4] << " " << m_auiEncounter[5];
+
+            str_data = saveStream.str();
+
+            OUT_SAVE_INST_DATA_COMPLETE;
+            return str_data;
+        }
+
+        void Load(const char* in)
+        {
+            if (!in)
+            {
+                OUT_LOAD_INST_DATA_FAIL;
+                return;
+            }
+
+            OUT_LOAD_INST_DATA(in);
+
+            char dataHead1, dataHead2;
+            uint16 data0, data1, data2, data3, data4, data5;
+
+            std::istringstream loadStream(in);
+            loadStream >> dataHead1 >> dataHead2 >> data0 >> data1 >> data2 >> data3 >> data4 >> data5;
+
+            if (dataHead1 == 'R' && dataHead2 == 'A')
+            {
+                m_auiEncounter[0] = data0;
+                m_auiEncounter[1] = data1;
+                m_auiEncounter[2] = data2;
+                m_auiEncounter[3] = data3;
+                m_auiEncounter[4] = data4;
+                m_auiEncounter[5] = data5;
+
+                for (uint8 i = 0; i < MAX_ENCOUNTER; ++i)
+                    if (m_auiEncounter[i] == IN_PROGRESS)
+                        m_auiEncounter[i] = NOT_STARTED;
+
+            } else OUT_LOAD_INST_DATA_FAIL;
+        }
+    };
+
 };
 
 void AddSC_instance_ruins_of_ahnqiraj()

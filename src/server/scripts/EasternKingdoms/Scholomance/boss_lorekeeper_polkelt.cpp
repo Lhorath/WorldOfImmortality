@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,81 +16,104 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Lorekeeper_Polkelt
+SD%Complete: 100
+SDComment:
+SDCategory: Scholomance
+EndScriptData */
 
-#include "ScriptMgr.h"
+#include "ScriptPCH.h"
 #include "scholomance.h"
-#include "ScriptedCreature.h"
 
-enum PolkeltSpells
+#define SPELL_VOLATILEINFECTION      24928
+#define SPELL_DARKPLAGUE             18270
+#define SPELL_CORROSIVEACID          23313
+#define SPELL_NOXIOUSCATALYST        18151
+
+class boss_lorekeeper_polkelt : public CreatureScript
 {
-    SPELL_VOLATILE_INFECTION    = 18149,
-    SPELL_NOXIOUS_CATALYST      = 18151,
-    SPELL_CORROSIVE_ACID        = 8245
-};
+public:
+    boss_lorekeeper_polkelt() : CreatureScript("boss_lorekeeper_polkelt") { }
 
-enum PolkeltEvents
-{
-    EVENT_VOLATILE_INFECTION    = 1,
-    EVENT_NOXIOUS_CATALYST,
-    EVENT_CORROSIVE_ACID
-};
-
-// 10901 - Lorekeeper Polkelt
-struct boss_lorekeeper_polkelt : public BossAI
-{
-    boss_lorekeeper_polkelt(Creature* creature) : BossAI(creature, DATA_LOREKEEPER_POLKELT) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_VOLATILE_INFECTION, 15s, 20s);
-        events.ScheduleEvent(EVENT_NOXIOUS_CATALYST, 10s, 20s);
-        events.ScheduleEvent(EVENT_CORROSIVE_ACID, 20s, 30s);
+        return new boss_lorekeeperpolkeltAI (pCreature);
     }
 
-    void UpdateAI(uint32 diff) override
+    struct boss_lorekeeperpolkeltAI : public ScriptedAI
     {
-        if (!UpdateVictim())
-            return;
+        boss_lorekeeperpolkeltAI(Creature *c) : ScriptedAI(c) {}
 
-        events.Update(diff);
+        uint32 VolatileInfection_Timer;
+        uint32 Darkplague_Timer;
+        uint32 CorrosiveAcid_Timer;
+        uint32 NoxiousCatalyst_Timer;
 
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_VOLATILE_INFECTION:
-                    DoCastVictim(SPELL_VOLATILE_INFECTION);
-                    events.Repeat(10s, 20s);
-                    break;
-                case EVENT_NOXIOUS_CATALYST:
-                    DoCastVictim(SPELL_NOXIOUS_CATALYST);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_CORROSIVE_ACID:
-                    DoCastSelf(SPELL_CORROSIVE_ACID);
-                    events.Repeat(30s, 40s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            VolatileInfection_Timer = 38000;
+            Darkplague_Timer = 8000;
+            CorrosiveAcid_Timer = 45000;
+            NoxiousCatalyst_Timer = 35000;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void JustDied(Unit * /*killer*/)
+        {
+            InstanceScript *pInstance = me->GetInstanceScript();
+            if (pInstance)
+            {
+                pInstance->SetData(DATA_LOREKEEPERPOLKELT_DEATH, 0);
+
+                if (pInstance->GetData(TYPE_GANDLING) == IN_PROGRESS)
+                    me->SummonCreature(1853, 180.73f, -9.43856f, 75.507f, 1.61399f, TEMPSUMMON_DEAD_DESPAWN, 0);
+            }
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //VolatileInfection_Timer
+            if (VolatileInfection_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_VOLATILEINFECTION);
+                VolatileInfection_Timer = 32000;
+            } else VolatileInfection_Timer -= diff;
+
+            //Darkplague_Timer
+            if (Darkplague_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_DARKPLAGUE);
+                Darkplague_Timer = 8000;
+            } else Darkplague_Timer -= diff;
+
+            //CorrosiveAcid_Timer
+            if (CorrosiveAcid_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_CORROSIVEACID);
+                CorrosiveAcid_Timer = 25000;
+            } else CorrosiveAcid_Timer -= diff;
+
+            //NoxiousCatalyst_Timer
+            if (NoxiousCatalyst_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_NOXIOUSCATALYST);
+                NoxiousCatalyst_Timer = 38000;
+            } else NoxiousCatalyst_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_lorekeeperpolkelt()
 {
-    RegisterScholomanceCreatureAI(boss_lorekeeper_polkelt);
+    new boss_lorekeeper_polkelt();
 }

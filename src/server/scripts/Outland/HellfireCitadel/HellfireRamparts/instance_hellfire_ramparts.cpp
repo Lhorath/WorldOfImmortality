@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,125 +16,87 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "EventMap.h"
-#include "Creature.h"
-#include "CreatureAI.h"
-#include "GameObject.h"
+/* ScriptData
+SDName: Instance_Hellfire_Ramparts
+SD%Complete: 50
+SDComment:
+SDCategory: Hellfire Ramparts
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "hellfire_ramparts.h"
-#include "InstanceScript.h"
-#include "Map.h"
-
-static constexpr ObjectData creatureData[] =
-{
-    { NPC_VAZRUDEN_HERALD,         DATA_VAZRUDEN_THE_HERALD },
-    { NPC_VAZRUDEN,                DATA_VAZRUDEN            },
-    { 0,                           0                        } // END
-};
-
-static constexpr ObjectData gameObjectData[] =
-{
-    { GO_FEL_IRON_CHEST_NORMAL,    DATA_FEL_IRON_CHEST },
-    { GO_FEL_IRON_CHEST_HEROIC,    DATA_FEL_IRON_CHEST },
-    { 0,                           0                   } // END
-};
 
 class instance_ramparts : public InstanceMapScript
 {
     public:
-        instance_ramparts() : InstanceMapScript(HRScriptName, 543) { }
+        instance_ramparts()
+            : InstanceMapScript("instance_ramparts", 543)
+        {
+        }
 
         struct instance_ramparts_InstanceMapScript : public InstanceScript
         {
-            instance_ramparts_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
-            {
-                SetHeaders(DataHeader);
-                SetBossNumber(EncounterCount);
-                LoadObjectData(creatureData, gameObjectData);
+            instance_ramparts_InstanceMapScript(Map* pMap) : InstanceScript(pMap) {Initialize();}
 
-                HellfireSentryDeadCount = 0;
-                ShouldResetVazruden = false;
+            uint32 m_auiEncounter[MAX_ENCOUNTER];
+            uint64 m_uiChestNGUID;
+            uint64 m_uiChestHGUID;
+            bool spawned;
+
+            void Initialize()
+            {
+                memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
+
+                m_uiChestNGUID = 0;
+                m_uiChestHGUID = 0;
             }
 
-            void OnPlayerEnter(Player* /*player*/) override
+            void OnGameObjectCreate(GameObject* go)
             {
-                if (ShouldResetVazruden)
-                    Events.ScheduleEvent(EVENT_RESET_VAZRUDEN, 0s);
-            }
-
-            void OnUnitDeath(Unit* unit) override
-            {
-                InstanceScript::OnUnitDeath(unit);
-
-                if (unit->GetEntry() == NPC_HELLFIRE_SENTRY)
+                switch(go->GetEntry())
                 {
-                    HellfireSentryDeadCount++;
-
-                    if (HellfireSentryDeadCount == 2)
-                    {
-                        if (Creature* vazruden = GetCreature(DATA_VAZRUDEN_THE_HERALD))
-                            vazruden->AI()->DoAction(ACTION_START_ENCOUNTER);
-
-                        HellfireSentryDeadCount = 0;
-                    }
+                    case 185168:
+                        m_uiChestNGUID = go->GetGUID();
+                        break;
+                    case 185169:
+                        m_uiChestHGUID = go->GetGUID();
+                        break;
                 }
             }
 
-            bool SetBossState(uint32 type, EncounterState state) override
+            void SetData(uint32 uiType, uint32 uiData)
             {
-                if (!InstanceScript::SetBossState(type, state))
-                    return false;
+                sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Ramparts: SetData received for type %u with data %u",uiType,uiData);
 
-                if (type == DATA_VAZRUDEN_THE_HERALD)
+                switch(uiType)
                 {
-                    if (state == DONE)
-                    {
-                        if (GameObject* chest = GetGameObject(DATA_FEL_IRON_CHEST))
-                            chest->ActivateObject(GameObjectActions::MakeActive);
-                    }
-                    else if (state == FAIL)
-                        Events.ScheduleEvent(EVENT_RESET_VAZRUDEN, 30s);
-                }
-
-                return true;
-            }
-
-            void Update(uint32 diff) override
-            {
-                Events.Update(diff);
-
-                if (Events.ExecuteEvent() == EVENT_RESET_VAZRUDEN)
-                {
-                    instance->SpawnGroupSpawn(SPAWN_GROUP_VAZRUDEN, true);
-
-                    HellfireSentryDeadCount = 0;
-
-                    ShouldResetVazruden = false;
-
-                    if (Creature* vazruden = GetCreature(DATA_VAZRUDEN))
-                        vazruden->DespawnOrUnsummon();
+                    case TYPE_VAZRUDEN:
+                        if (uiData == DONE && m_auiEncounter[1] == DONE && !spawned)
+                        {
+                            DoRespawnGameObject(instance->IsHeroic() ? m_uiChestHGUID : m_uiChestNGUID, HOUR*IN_MILLISECONDS);
+                            spawned = true;
+                        }
+                        m_auiEncounter[0] = uiData;
+                        break;
+                    case TYPE_NAZAN:
+                        if (uiData == DONE && m_auiEncounter[0] == DONE && !spawned)
+                        {
+                            DoRespawnGameObject(instance->IsHeroic() ? m_uiChestHGUID : m_uiChestNGUID, HOUR*IN_MILLISECONDS);
+                            spawned = true;
+                        }
+                        m_auiEncounter[1] = uiData;
+                        break;
                 }
             }
-
-            void ReadSaveDataMore(std::istringstream& /*data*/) override
-            {
-                if (GetBossState(DATA_VAZRUDEN_THE_HERALD) != DONE)
-                    ShouldResetVazruden = true;
-            }
-
-        protected:
-            EventMap Events;
-            uint8 HellfireSentryDeadCount;
-            bool ShouldResetVazruden;
         };
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
+        InstanceScript* GetInstanceScript(InstanceMap* pMap) const
         {
-            return new instance_ramparts_InstanceMapScript(map);
+            return new instance_ramparts_InstanceMapScript(pMap);
         }
 };
 
 void AddSC_instance_ramparts()
 {
-    new instance_ramparts();
+    new instance_ramparts;
 }

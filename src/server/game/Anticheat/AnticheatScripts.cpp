@@ -1,22 +1,14 @@
 #include "AnticheatScripts.h"
-
 #include "AnticheatMgr.h"
 
-AnticheatScripts::AnticheatScripts() : PlayerScript("AnticheatScripts")
-{
-}
-
-void AnticheatScripts::OnLogin(Player* player, bool /*firstLogin*/)
-{
-    sAnticheatMgr.HandlePlayerLogin(player);
-}
+AnticheatScripts::AnticheatScripts(): PlayerScript("AnticheatScripts") {}
 
 void AnticheatScripts::OnLogout(Player* player)
 {
-    sAnticheatMgr.HandlePlayerLogout(player);
+    sAnticheatMgr->HandlePlayerLogout(player);
 }
 
-void AddSC_anticheat_scripts()
+void AnticheatScripts::OnLogin(Player* player)
 {
-    new AnticheatScripts();
+    sAnticheatMgr->HandlePlayerLogin(player);
 }

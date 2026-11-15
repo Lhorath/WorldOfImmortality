@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,287 +16,259 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* ScriptData
+SDName: Boss_Marli
+SD%Complete: 80
+SDComment: Charging healers and casters not working. Perhaps wrong Spell Timers.
+SDCategory: Zul'Gurub
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "zulgurub.h"
-#include "GameObject.h"
-#include "GameObjectAI.h"
-#include "InstanceScript.h"
-#include "Object.h"
-#include "ScriptedCreature.h"
-#include "ScriptMgr.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
-#include "TemporarySummon.h"
 
-enum Says
+#define SAY_AGGRO               -1309005
+#define SAY_TRANSFORM           -1309006
+#define SAY_SPIDER_SPAWN        -1309007
+#define SAY_DEATH               -1309008
+
+#define SPELL_CHARGE              22911
+#define SPELL_ASPECT_OF_MARLI     24686                     // A stun spell
+#define SPELL_ENVOLWINGWEB        24110
+#define SPELL_POISONVOLLEY        24099
+#define SPELL_SPIDER_FORM         24084
+
+//The Spider Spells
+#define SPELL_LEVELUP             24312                     //Not right Spell.
+
+class boss_marli : public CreatureScript
 {
-    SAY_AGGRO                 = 0,
-    SAY_TRANSFORM             = 1,
-    SAY_SPIDER_SPAWN          = 2,
-    SAY_DEATH                 = 3
-};
+    public:
 
-enum Spells
-{
-    SPELL_CHARGE              = 22911,
-    SPELL_ASPECT_OF_MARLI     = 24686, // A stun spell
-    SPELL_ENVOLWINGWEB        = 24110,
-    SPELL_POISON_VOLLEY       = 24099,
-    SPELL_SPIDER_FORM         = 24084,
-    SPELL_HATCH_EGGS          = 24083,
-    SPELL_HATCH_SPIDER_EGG    = 24082,
-    // The Spider Spell
-    SPELL_LEVELUP             = 24312  // Not right Spell.
-};
-
-enum Events
-{
-    EVENT_SPAWN_START_SPIDERS = 1, // Phase 1
-    EVENT_POISON_VOLLEY       = 2, // Phase All
-    EVENT_HATCH_SPIDER_EGG    = 3, // Phase All
-    EVENT_CHARGE_PLAYER       = 4, // Phase 3
-    EVENT_ASPECT_OF_MARLI     = 5, // Phase 2
-    EVENT_TRANSFORM           = 6, // Phase 2
-    EVENT_TRANSFORM_BACK      = 7  // Phase 3
-};
-
-enum Phases
-{
-    PHASE_ONE                 = 1,
-    PHASE_TWO                 = 2,
-    PHASE_THREE               = 3
-};
-
-enum Misc
-{
-    NPC_SPIDER                = 15041,
-    GOB_SPIDER_EGG            = 179985,
-};
-
-// AWFUL HACK WARNING
-// To whoever reads this: Zul'Gurub needs your love
-// Need to do this calculation to increase/decrease Mar'li's damage by 35% (probably some aura missing)
-// This is only to compile the scripts after the aura calculation revamp
-float const DamageIncrease = 35.0f;
-float const DamageDecrease = 100.f / (1.f + DamageIncrease / 100.f) - 100.f;
-
-struct boss_marli : public BossAI
-{
-    boss_marli(Creature* creature) : BossAI(creature, DATA_MARLI) { }
-
-    void Reset() override
-    {
-        if (events.IsInPhase(PHASE_THREE))
-            me->ApplyStatPctModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, DamageDecrease); // hack
-
-        std::list<GameObject*> eggs;
-        me->GetGameObjectListWithEntryInGrid(eggs, GOB_SPIDER_EGG);
-        for (GameObject* egg : eggs)
+        boss_marli()
+            : CreatureScript("boss_marli")
         {
-            egg->Respawn();
-            egg->UpdateObjectVisibility(true);
         }
 
-        summons.DespawnAll();
-        _Reset();
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-        events.ScheduleEvent(EVENT_SPAWN_START_SPIDERS, 1s, 0, PHASE_ONE);
-        Talk(SAY_AGGRO);
-    }
-
-    void JustSummoned(Creature* creature) override
-    {
-        creature->AI()->AttackStart(SelectTarget(SelectTargetMethod::Random, 0, 0.f, true));
-        summons.Summon(creature);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        struct boss_marliAI : public ScriptedAI
         {
-            switch (eventId)
+            boss_marliAI(Creature *c) : ScriptedAI(c)
             {
-                case EVENT_SPAWN_START_SPIDERS:
-                    Talk(SAY_SPIDER_SPAWN);
-                    DoCastAOE(SPELL_HATCH_EGGS);
-                    events.ScheduleEvent(EVENT_ASPECT_OF_MARLI, 12s, 0, PHASE_TWO);
-                    events.ScheduleEvent(EVENT_TRANSFORM, 45s, 0, PHASE_TWO);
-                    events.ScheduleEvent(EVENT_POISON_VOLLEY, 15s);
-                    events.ScheduleEvent(EVENT_HATCH_SPIDER_EGG, 30s);
-                    events.ScheduleEvent(EVENT_TRANSFORM, 45s, 0, PHASE_TWO);
-                    events.SetPhase(PHASE_TWO);
-                    break;
-                case EVENT_POISON_VOLLEY:
-                    DoCastVictim(SPELL_POISON_VOLLEY, true);
-                    events.ScheduleEvent(EVENT_POISON_VOLLEY, 10s, 20s);
-                    break;
-                case EVENT_ASPECT_OF_MARLI:
-                    DoCastVictim(SPELL_ASPECT_OF_MARLI, true);
-                    events.ScheduleEvent(EVENT_ASPECT_OF_MARLI, 13s, 18s, 0, PHASE_TWO);
-                    break;
-                case EVENT_HATCH_SPIDER_EGG:
-                    me->CastSpell(me, SPELL_HATCH_SPIDER_EGG);
-                    events.ScheduleEvent(EVENT_HATCH_SPIDER_EGG, 12s, 17s);
-                    break;
-                case EVENT_TRANSFORM:
-                {
-                    Talk(SAY_TRANSFORM);
-                    DoCast(me, SPELL_SPIDER_FORM); // SPELL_AURA_TRANSFORM
-                    /*
-                    CreatureTemplate const* cinfo = me->GetCreatureTemplate();
-                    me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 35)));
-                    me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 35)));
-                    me->UpdateDamagePhysical(BASE_ATTACK);
-                    */
-                    me->ApplyStatPctModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, DamageIncrease); // hack
-                    DoCastVictim(SPELL_ENVOLWINGWEB);
-                    if (GetThreat(me->GetVictim()))
-                        ModifyThreatByPercent(me->GetVictim(), -100);
-                    events.ScheduleEvent(EVENT_CHARGE_PLAYER, 1500ms, 0, PHASE_THREE);
-                    events.ScheduleEvent(EVENT_TRANSFORM_BACK, 25s, 0, PHASE_THREE);
-                    events.CancelEvent(EVENT_HATCH_SPIDER_EGG);
-                    events.SetPhase(PHASE_THREE);
-                    break;
-                }
-                case EVENT_CHARGE_PLAYER:
-                {
-                    Unit* target = nullptr;
-                    int i = 0;
-                    while (i++ < 3) // max 3 tries to get a random target with power_mana
-                    {
-                        target = SelectTarget(SelectTargetMethod::Random, 1, 100, true);  // not aggro leader
-                        if (target && target->GetPowerType() == POWER_MANA)
-                            break;
-                    }
-                    if (target)
-                    {
-                        DoCast(target, SPELL_CHARGE);
-                        AttackStart(target);
-                    }
-                    events.ScheduleEvent(EVENT_CHARGE_PLAYER, 8s, 0, PHASE_THREE);
-                    break;
-                }
-                case EVENT_TRANSFORM_BACK:
-                {
-                    me->RemoveAura(SPELL_SPIDER_FORM);
-                    /*
-                    CreatureTemplate const* cinfo = me->GetCreatureTemplate();
-                    me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 1)));
-                    me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 1)));
-                    me->UpdateDamagePhysical(BASE_ATTACK);
-                    */
-                    me->ApplyStatPctModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, DamageDecrease); // hack
-                    events.ScheduleEvent(EVENT_ASPECT_OF_MARLI, 12s, 0, PHASE_TWO);
-                    events.ScheduleEvent(EVENT_TRANSFORM, 45s, 0, PHASE_TWO);
-                    events.ScheduleEvent(EVENT_POISON_VOLLEY, 15s);
-                    events.ScheduleEvent(EVENT_HATCH_SPIDER_EGG, 12s, 17s);
-                    events.ScheduleEvent(EVENT_TRANSFORM, 35s, 60s, 0, PHASE_TWO);
-                    events.SetPhase(PHASE_TWO);
-                    break;
-                }
-                default:
-                    break;
+                m_pInstance = c->GetInstanceScript();
             }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
-        }
+            InstanceScript *m_pInstance;
 
-        DoMeleeAttackIfReady();
-    }
-};
+            uint32 SpawnStartSpiders_Timer;
+            uint32 PoisonVolley_Timer;
+            uint32 SpawnSpider_Timer;
+            uint32 Charge_Timer;
+            uint32 Aspect_Timer;
+            uint32 Transform_Timer;
+            uint32 TransformBack_Timer;
 
-struct gob_spider_egg : public GameObjectAI
-{
-    gob_spider_egg(GameObject* gob) : GameObjectAI(gob), _instance(gob->GetInstanceScript()) { }
+            bool Spawned;
+            bool PhaseTwo;
 
-    void JustSummoned(Creature* creature) override
-    {
-        if (Creature * marli = _instance->GetCreature(DATA_MARLI))
-            marli->AI()->JustSummoned(creature);
+            void Reset()
+            {
+                SpawnStartSpiders_Timer = 1000;
+                PoisonVolley_Timer = 15000;
+                SpawnSpider_Timer = 30000;
+                Charge_Timer = 1500;
+                Aspect_Timer = 12000;
+                Transform_Timer = 45000;
+                TransformBack_Timer = 25000;
 
-        me->SetRespawnCompatibilityMode(true);
-    }
-private:
-    InstanceScript* const _instance;
-};
+                Spawned = false;
+                PhaseTwo = false;
+            }
 
-// Spawn of Marli
-struct npc_spawn_of_marli : public ScriptedAI
-{
-    npc_spawn_of_marli(Creature* creature) : ScriptedAI(creature)
-    {
-        Initialize();
-    }
+            void EnterCombat(Unit * /*who*/)
+            {
+                DoScriptText(SAY_AGGRO, me);
+            }
 
-    void Initialize()
-    {
-        _levelUpTimer = 3000;
-    }
+            void JustDied(Unit* /*Killer*/)
+            {
+                DoScriptText(SAY_DEATH, me);
+                if (m_pInstance)
+                    m_pInstance->SetData(TYPE_MARLI, DONE);
+            }
 
-    void Reset() override
-    {
-        Initialize();
-    }
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
+                if (me->getVictim() && me->isAlive())
+                {
+                    if (PoisonVolley_Timer <= diff)
+                    {
+                        DoCast(me->getVictim(), SPELL_POISONVOLLEY);
+                        PoisonVolley_Timer = 10000 + rand()%10000;
+                    } else PoisonVolley_Timer -= diff;
 
-        if (_levelUpTimer <= diff)
+                    if (!PhaseTwo && Aspect_Timer <= diff)
+                    {
+                        DoCast(me->getVictim(), SPELL_ASPECT_OF_MARLI);
+                        Aspect_Timer = 13000 + rand()%5000;
+                    } else Aspect_Timer -= diff;
+
+                    if (!Spawned && SpawnStartSpiders_Timer <= diff)
+                    {
+                        DoScriptText(SAY_SPIDER_SPAWN, me);
+
+                        Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0);
+                        if (!pTarget)
+                            return;
+
+                        Creature *Spider = NULL;
+
+                        Spider = me->SummonCreature(15041,pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(),0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 15000);
+                        if (Spider)
+                            Spider->AI()->AttackStart(pTarget);
+                        Spider = me->SummonCreature(15041,pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(),0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 15000);
+                        if (Spider)
+                            Spider->AI()->AttackStart(pTarget);
+                        Spider = me->SummonCreature(15041,pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(),0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 15000);
+                        if (Spider)
+                            Spider->AI()->AttackStart(pTarget);
+                        Spider = me->SummonCreature(15041,pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(),0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 15000);
+                        if (Spider)
+                            Spider->AI()->AttackStart(pTarget);
+
+                        Spawned = true;
+                    } else SpawnStartSpiders_Timer -= diff;
+
+                    if (SpawnSpider_Timer <= diff)
+                    {
+                        Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0);
+                        if (!pTarget)
+                            return;
+
+                        Creature *Spider = me->SummonCreature(15041,pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(),0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 15000);
+                        if (Spider)
+                            Spider->AI()->AttackStart(pTarget);
+                        SpawnSpider_Timer = 12000 + rand()%5000;
+                    } else SpawnSpider_Timer -= diff;
+
+                    if (!PhaseTwo && Transform_Timer <= diff)
+                    {
+                        DoScriptText(SAY_TRANSFORM, me);
+                        DoCast(me, SPELL_SPIDER_FORM);
+                        const CreatureInfo *cinfo = me->GetCreatureInfo();
+                        me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 35)));
+                        me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 35)));
+                        me->UpdateDamagePhysical(BASE_ATTACK);
+                        DoCast(me->getVictim(), SPELL_ENVOLWINGWEB);
+
+                        if (DoGetThreat(me->getVictim()))
+                            DoModifyThreatPercent(me->getVictim(),-100);
+
+                        PhaseTwo = true;
+                        Transform_Timer = urand(35000,60000);
+                    } else Transform_Timer -= diff;
+
+                    if (PhaseTwo)
+                    {
+                        if (Charge_Timer <= diff)
+                        {
+                            Unit *pTarget = NULL;
+                            int i = 0;
+                            while (i < 3)                           // max 3 tries to get a random target with power_mana
+                            {
+                                ++i;
+                                pTarget = SelectTarget(SELECT_TARGET_RANDOM,1, 100, true);  // not aggro leader
+                                if (pTarget && pTarget->getPowerType() == POWER_MANA)
+                                        i = 3;
+                            }
+                            if (pTarget)
+                            {
+                                DoCast(pTarget, SPELL_CHARGE);
+                                //me->GetMap()->CreatureRelocation(me, pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), 0);
+                                //me->SendMonsterMove(pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), 0, true,1);
+                                AttackStart(pTarget);
+                            }
+
+                            Charge_Timer = 8000;
+                        } else Charge_Timer -= diff;
+
+                        if (TransformBack_Timer <= diff)
+                        {
+                            me->SetDisplayId(15220);
+                            const CreatureInfo *cinfo = me->GetCreatureInfo();
+                            me->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, (cinfo->mindmg +((cinfo->mindmg/100) * 1)));
+                            me->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, (cinfo->maxdmg +((cinfo->maxdmg/100) * 1)));
+                            me->UpdateDamagePhysical(BASE_ATTACK);
+
+                            PhaseTwo = false;
+                            TransformBack_Timer = urand(25000,40000);
+                        } else TransformBack_Timer -= diff;
+
+                    }
+
+                    DoMeleeAttackIfReady();
+                }
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
         {
-            DoCast(me, SPELL_LEVELUP);
-            _levelUpTimer = 3000;
+            return new boss_marliAI(creature);
         }
-        else
-            _levelUpTimer -= diff;
-
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    uint32 _levelUpTimer;
 };
 
-// 24083 - Hatch Eggs
-class spell_hatch_spiders : public SpellScript
+//Spawn of Marli
+class mob_spawn_of_marli : public CreatureScript
 {
-    PrepareSpellScript(spell_hatch_spiders);
+    public:
 
-    void HandleObjectAreaTargetSelect(std::list<WorldObject*>& targets)
-    {
-        targets.sort(Trinity::ObjectDistanceOrderPred(GetCaster()));
-        targets.resize(GetSpellInfo()->MaxAffectedTargets);
-    }
+        mob_spawn_of_marli()
+            : CreatureScript("mob_spawn_of_marli")
+        {
+        }
 
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_hatch_spiders::HandleObjectAreaTargetSelect, EFFECT_0, TARGET_GAMEOBJECT_DEST_AREA);
-    }
+        struct mob_spawn_of_marliAI : public ScriptedAI
+        {
+            mob_spawn_of_marliAI(Creature *c) : ScriptedAI(c) {}
+
+            uint32 LevelUp_Timer;
+
+            void Reset()
+            {
+                LevelUp_Timer = 3000;
+            }
+
+            void EnterCombat(Unit * /*who*/)
+            {
+            }
+
+            void UpdateAI (const uint32 diff)
+            {
+                //Return since we have no target
+                if (!UpdateVictim())
+                    return;
+
+                //LevelUp_Timer
+                if (LevelUp_Timer <= diff)
+                {
+                    DoCast(me, SPELL_LEVELUP);
+                    LevelUp_Timer = 3000;
+                } else LevelUp_Timer -= diff;
+
+                DoMeleeAttackIfReady();
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new mob_spawn_of_marliAI(creature);
+        }
 };
 
 void AddSC_boss_marli()
 {
-    RegisterZulGurubCreatureAI(boss_marli);
-    RegisterZulGurubCreatureAI(npc_spawn_of_marli);
-    RegisterZulGurubGameObjectAI(gob_spider_egg);
-    RegisterSpellScript(spell_hatch_spiders);
+    new boss_marli();
+    new mob_spawn_of_marli();
 }
+

@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,252 +17,781 @@
 
 /*
  * Scripts for spells with SPELLFAMILY_GENERIC spells used for quests.
- * This file is only for spells used in multiple zones.
- * Scriptnames of files in this file should be prefixed with "spell_quest_".
+ * Ordered alphabetically using questId and scriptname.
+ * Scriptnames of files in this file should be prefixed with "spell_q#questID_".
  */
 
-#include "ScriptMgr.h"
-#include "ObjectMgr.h"
-#include "Player.h"
-#include "SpellAuras.h"
-#include "SpellScript.h"
+#include "ScriptPCH.h"
 
-enum TamingTheBeast
+class spell_generic_quest_update_entry_SpellScript : public SpellScript
 {
-    SPELL_TAME_ICE_CLAW_BEAR           = 19548,
-    SPELL_TAME_LARGE_CRAG_BOAR         = 19674,
-    SPELL_TAME_SNOW_LEOPARD            = 19687,
-    SPELL_TAME_ADULT_PLAINSTRIDER      = 19688,
-    SPELL_TAME_PRAIRIE_STALKER         = 19689,
-    SPELL_TAME_SWOOP                   = 19692,
-    SPELL_TAME_WEBWOOD_LURKER          = 19693,
-    SPELL_TAME_DIRE_MOTTLED_BOAR       = 19694,
-    SPELL_TAME_SURF_CRAWLER            = 19696,
-    SPELL_TAME_ARMORED_SCORPID         = 19697,
-    SPELL_TAME_NIGHTSABER_STALKER      = 19699,
-    SPELL_TAME_STRIGID_SCREECHER       = 19700,
-    SPELL_TAME_BARBED_CRAWLER          = 30646,
-    SPELL_TAME_GREATER_TIMBERSTRIDER   = 30653,
-    SPELL_TAME_NIGHTSTALKER            = 30654,
-    SPELL_TAME_CRAZED_DRAGONHAWK       = 30099,
-    SPELL_TAME_ELDER_SPRINGPAW         = 30102,
-    SPELL_TAME_MISTBAT                 = 30105,
-    SPELL_TAME_ICE_CLAW_BEAR_1         = 19597,
-    SPELL_TAME_LARGE_CRAG_BOAR_1       = 19677,
-    SPELL_TAME_SNOW_LEOPARD_1          = 19676,
-    SPELL_TAME_ADULT_PLAINSTRIDER_1    = 19678,
-    SPELL_TAME_PRAIRIE_STALKER_1       = 19679,
-    SPELL_TAME_SWOOP_1                 = 19680,
-    SPELL_TAME_WEBWOOD_LURKER_1        = 19684,
-    SPELL_TAME_DIRE_MOTTLED_BOAR_1     = 19681,
-    SPELL_TAME_SURF_CRAWLER_1          = 19682,
-    SPELL_TAME_ARMORED_SCORPID_1       = 19683,
-    SPELL_TAME_NIGHTSABER_STALKER_1    = 19685,
-    SPELL_TAME_STRIGID_SCREECHER_1     = 19686,
-    SPELL_TAME_BARBED_CRAWLER_1        = 30647,
-    SPELL_TAME_GREATER_TIMBERSTRIDER_1 = 30648,
-    SPELL_TAME_NIGHTSTALKER_1          = 30652,
-    SPELL_TAME_CRAZED_DRAGONHAWK_1     = 30100,
-    SPELL_TAME_ELDER_SPRINGPAW_1       = 30103,
-    SPELL_TAME_MISTBAT_1               = 30104
-};
+    PrepareSpellScript(spell_generic_quest_update_entry_SpellScript)
+private:
+    uint16 _spellEffect;
+    uint8 _effIndex;
+    uint32 _originalEntry;
+    uint32 _newEntry;
+    bool _shouldAttack;
+    uint32 _despawnTime;
 
-class spell_quest_taming_the_beast : public AuraScript
-{
-    PrepareAuraScript(spell_quest_taming_the_beast);
+public:
+    spell_generic_quest_update_entry_SpellScript(uint16 spellEffect, uint8 effIndex, uint32 originalEntry, uint32 newEntry, bool shouldAttack, uint32 despawnTime = 0) :
+        SpellScript(), _spellEffect(spellEffect), _effIndex(effIndex), _originalEntry(originalEntry),
+        _newEntry(newEntry), _shouldAttack(shouldAttack), _despawnTime(despawnTime) { }
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
+    void HandleDummy(SpellEffIndex /*effIndex*/)
     {
-        return ValidateSpellInfo(
-        {
-            SPELL_TAME_ICE_CLAW_BEAR_1,
-            SPELL_TAME_LARGE_CRAG_BOAR_1,
-            SPELL_TAME_SNOW_LEOPARD_1,
-            SPELL_TAME_ADULT_PLAINSTRIDER_1,
-            SPELL_TAME_PRAIRIE_STALKER_1,
-            SPELL_TAME_SWOOP_1,
-            SPELL_TAME_WEBWOOD_LURKER_1,
-            SPELL_TAME_DIRE_MOTTLED_BOAR_1,
-            SPELL_TAME_SURF_CRAWLER_1,
-            SPELL_TAME_ARMORED_SCORPID_1,
-            SPELL_TAME_NIGHTSABER_STALKER_1,
-            SPELL_TAME_STRIGID_SCREECHER_1,
-            SPELL_TAME_BARBED_CRAWLER_1,
-            SPELL_TAME_GREATER_TIMBERSTRIDER_1,
-            SPELL_TAME_NIGHTSTALKER_1,
-            SPELL_TAME_CRAZED_DRAGONHAWK_1,
-            SPELL_TAME_ELDER_SPRINGPAW_1,
-            SPELL_TAME_MISTBAT_1
-        });
+        if (Creature* creatureTarget = GetHitCreature())
+            if (!creatureTarget->isPet() && creatureTarget->GetEntry() == _originalEntry)
+            {
+                creatureTarget->UpdateEntry(_newEntry);
+                if (_shouldAttack && creatureTarget->IsAIEnabled)
+                    creatureTarget->AI()->AttackStart(GetCaster());
+
+                if (_despawnTime)
+                    creatureTarget->DespawnOrUnsummon(_despawnTime);
+            }
     }
 
-    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    void Register()
     {
-        if (!GetCaster() || !GetCaster()->IsAlive() || !GetTarget()->IsAlive())
-            return;
+        OnEffect += SpellEffectFn(spell_generic_quest_update_entry_SpellScript::HandleDummy, _effIndex, _spellEffect);
+    }
+};
 
-        if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
-            return;
+// http://www.wowhead.com/quest=55 Morbent Fel
+// 8913 Sacred Cleansing
+enum eQuest55Data
+{
+    NPC_MORBENT             = 1200,
+    NPC_WEAKENED_MORBENT    = 24782,
+};
 
-        uint32 finalSpellId = 0;
-        switch (GetId())
+class spell_q55_sacred_cleansing : public SpellScriptLoader
+{
+public:
+    spell_q55_sacred_cleansing() : SpellScriptLoader("spell_q55_sacred_cleansing") { }
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_generic_quest_update_entry_SpellScript(SPELL_EFFECT_DUMMY, EFFECT_1, NPC_MORBENT, NPC_WEAKENED_MORBENT, true);
+    }
+};
+
+// http://www.wowhead.com/quest=5206 Marauders of Darrowshire
+// 17271 Test Fetid Skull
+enum eQuest5206Data
+{
+    SPELL_CREATE_RESONATING_SKULL = 17269,
+    SPELL_CREATE_BONE_DUST = 17270
+};
+
+class spell_q5206_test_fetid_skull : public SpellScriptLoader
+{
+public:
+    spell_q5206_test_fetid_skull() : SpellScriptLoader("spell_q5206_test_fetid_skull") { }
+
+    class spell_q5206_test_fetid_skull_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_q5206_test_fetid_skull_SpellScript)
+        bool Validate(SpellEntry const * /*spellEntry*/)
         {
-            case SPELL_TAME_ICE_CLAW_BEAR:         finalSpellId = SPELL_TAME_ICE_CLAW_BEAR_1; break;
-            case SPELL_TAME_LARGE_CRAG_BOAR:       finalSpellId = SPELL_TAME_LARGE_CRAG_BOAR_1; break;
-            case SPELL_TAME_SNOW_LEOPARD:          finalSpellId = SPELL_TAME_SNOW_LEOPARD_1; break;
-            case SPELL_TAME_ADULT_PLAINSTRIDER:    finalSpellId = SPELL_TAME_ADULT_PLAINSTRIDER_1; break;
-            case SPELL_TAME_PRAIRIE_STALKER:       finalSpellId = SPELL_TAME_PRAIRIE_STALKER_1; break;
-            case SPELL_TAME_SWOOP:                 finalSpellId = SPELL_TAME_SWOOP_1; break;
-            case SPELL_TAME_WEBWOOD_LURKER:        finalSpellId = SPELL_TAME_WEBWOOD_LURKER_1; break;
-            case SPELL_TAME_DIRE_MOTTLED_BOAR:     finalSpellId = SPELL_TAME_DIRE_MOTTLED_BOAR_1; break;
-            case SPELL_TAME_SURF_CRAWLER:          finalSpellId = SPELL_TAME_SURF_CRAWLER_1; break;
-            case SPELL_TAME_ARMORED_SCORPID:       finalSpellId = SPELL_TAME_ARMORED_SCORPID_1; break;
-            case SPELL_TAME_NIGHTSABER_STALKER:    finalSpellId = SPELL_TAME_NIGHTSABER_STALKER_1; break;
-            case SPELL_TAME_STRIGID_SCREECHER:     finalSpellId = SPELL_TAME_STRIGID_SCREECHER_1; break;
-            case SPELL_TAME_BARBED_CRAWLER:        finalSpellId = SPELL_TAME_BARBED_CRAWLER_1; break;
-            case SPELL_TAME_GREATER_TIMBERSTRIDER: finalSpellId = SPELL_TAME_GREATER_TIMBERSTRIDER_1; break;
-            case SPELL_TAME_NIGHTSTALKER:          finalSpellId = SPELL_TAME_NIGHTSTALKER_1; break;
-            case SPELL_TAME_CRAZED_DRAGONHAWK:     finalSpellId = SPELL_TAME_CRAZED_DRAGONHAWK_1; break;
-            case SPELL_TAME_ELDER_SPRINGPAW:       finalSpellId = SPELL_TAME_ELDER_SPRINGPAW_1; break;
-            case SPELL_TAME_MISTBAT:               finalSpellId = SPELL_TAME_MISTBAT_1; break;
+            if (!sSpellStore.LookupEntry(SPELL_CREATE_RESONATING_SKULL))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_CREATE_BONE_DUST))
+                return false;
+            return true;
         }
 
-        if (finalSpellId)
-            GetCaster()->CastSpell(GetTarget(), finalSpellId, true);
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(spell_quest_taming_the_beast::OnRemove, EFFECT_1, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
-// 53099, 57896, 58418, 58420, 59064, 59065, 59439, 60900, 60940
-class spell_quest_portal_with_condition : public SpellScript
-{
-    PrepareSpellScript(spell_quest_portal_with_condition);
-
-    bool Validate(SpellInfo const* spellInfo) override
-    {
-        return ValidateSpellInfo({ uint32(spellInfo->GetEffect(EFFECT_0).CalcValue()) }) &&
-            sObjectMgr->GetQuestTemplate(uint32(spellInfo->GetEffect(EFFECT_1).CalcValue()));
-    }
-
-    void HandleScriptEffect(SpellEffIndex /* effIndex */)
-    {
-        Player* target = GetHitPlayer();
-        if (!target)
-            return;
-
-        uint32 spellId = GetEffectInfo().CalcValue();
-        uint32 questId = GetEffectInfo(EFFECT_1).CalcValue();
-
-        // This probably should be a way to throw error in SpellCastResult
-        if (target->IsActiveQuest(questId))
-            target->CastSpell(target, spellId, true);
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_quest_portal_with_condition::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
-};
-
-enum TributeSpells
-{
-    SPELL_GROMS_TROLL_TRIBUTE       = 24101,
-    SPELL_GROMS_TAUREN_TRIBUTE      = 24102,
-    SPELL_GROMS_UNDEAD_TRIBUTE      = 24103,
-    SPELL_GROMS_ORC_TRIBUTE         = 24104,
-    SPELL_GROMS_BLOODELF_TRIBUTE    = 69530,
-    SPELL_UTHERS_HUMAN_TRIBUTE      = 24105,
-    SPELL_UTHERS_GNOME_TRIBUTE      = 24106,
-    SPELL_UTHERS_DWARF_TRIBUTE      = 24107,
-    SPELL_UTHERS_NIGHTELF_TRIBUTE   = 24108,
-    SPELL_UTHERS_DRAENEI_TRIBUTE    = 69533
-};
-
-// 24194 - Uther's Tribute
-// 24195 - Grom's Tribute
-class spell_quest_uther_grom_tribute : public SpellScript
-{
-    PrepareSpellScript(spell_quest_uther_grom_tribute);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo(
+        void HandleDummy(SpellEffIndex /*effIndex*/)
         {
-            SPELL_GROMS_TROLL_TRIBUTE,    SPELL_UTHERS_HUMAN_TRIBUTE,
-            SPELL_GROMS_TAUREN_TRIBUTE,   SPELL_UTHERS_GNOME_TRIBUTE,
-            SPELL_GROMS_UNDEAD_TRIBUTE,   SPELL_UTHERS_DWARF_TRIBUTE,
-            SPELL_GROMS_ORC_TRIBUTE,      SPELL_UTHERS_NIGHTELF_TRIBUTE,
-            SPELL_GROMS_BLOODELF_TRIBUTE, SPELL_UTHERS_DRAENEI_TRIBUTE
-        });
-    }
-
-    void HandleScript(SpellEffIndex /*effIndex*/)
-    {
-        Player* caster = GetCaster()->ToPlayer();
-        if (!caster)
-            return;
-
-        uint32 spell = 0;
-        switch (caster->GetRace())
-        {
-            case RACE_TROLL:    spell = SPELL_GROMS_TROLL_TRIBUTE; break;
-            case RACE_TAUREN:   spell = SPELL_GROMS_TAUREN_TRIBUTE; break;
-            case RACE_UNDEAD_PLAYER: spell = SPELL_GROMS_UNDEAD_TRIBUTE; break;
-            case RACE_ORC:      spell = SPELL_GROMS_ORC_TRIBUTE; break;
-            case RACE_BLOODELF: spell = SPELL_GROMS_BLOODELF_TRIBUTE; break;
-            case RACE_HUMAN:    spell = SPELL_UTHERS_HUMAN_TRIBUTE; break;
-            case RACE_GNOME:    spell = SPELL_UTHERS_GNOME_TRIBUTE; break;
-            case RACE_DWARF:    spell = SPELL_UTHERS_DWARF_TRIBUTE; break;
-            case RACE_NIGHTELF: spell = SPELL_UTHERS_NIGHTELF_TRIBUTE; break;
-            case RACE_DRAENEI:  spell = SPELL_UTHERS_DRAENEI_TRIBUTE; break;
-            default: break;
+            Unit* pCaster = GetCaster();
+            if (pCaster->GetTypeId() == TYPEID_PLAYER)
+            {
+                uint32 spellId = roll_chance_i(50) ? SPELL_CREATE_RESONATING_SKULL : SPELL_CREATE_BONE_DUST;
+                pCaster->CastSpell(pCaster, spellId, true, NULL);
+            }
         }
 
-        if (spell)
-            caster->CastSpell(caster, spell);
-    }
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q5206_test_fetid_skull_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
 
-    void Register() override
+    SpellScript* GetSpellScript() const
     {
-        OnEffectHit += SpellEffectFn(spell_quest_uther_grom_tribute::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+        return new spell_q5206_test_fetid_skull_SpellScript();
     }
 };
 
-enum RelicOfTheEarthenRing
+// http://www.wowhead.com/quest=6124 Curing the Sick (A)
+// http://www.wowhead.com/quest=6129 Curing the Sick (H)
+// 19512 Apply Salve
+enum eQuests6124_6129Data
 {
-    SPELL_TOTEM_OF_THE_EARTHEN_RING     = 66747
+    NPC_SICKLY_GAZELLE  = 12296,
+    NPC_CURED_GAZELLE   = 12297,
+    NPC_SICKLY_DEER     = 12298,
+    NPC_CURED_DEER      = 12299,
+    DESPAWN_TIME        = 30000
 };
 
-// 66744 - Make Player Destroy Totems
-class spell_quest_make_player_destroy_totems : public SpellScript
+class spell_q6124_6129_apply_salve : public SpellScriptLoader
 {
-    PrepareSpellScript(spell_quest_make_player_destroy_totems);
+public:
+    spell_q6124_6129_apply_salve() : SpellScriptLoader("spell_q6124_6129_apply_salve") { }
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
+    class spell_q6124_6129_apply_salve_SpellScript : public SpellScript
     {
-        return ValidateSpellInfo({ SPELL_TOTEM_OF_THE_EARTHEN_RING });
-    }
+        PrepareSpellScript(spell_q6124_6129_apply_salve_SpellScript)
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            if (GetCastItem())
+                if (Player* pCaster = GetCaster()->ToPlayer())
+                    if (Creature* pCreatureTarget = GetHitCreature())
+                    {
+                        uint32 uiNewEntry = 0;
+                        switch (pCaster->GetTeam())
+                        {
+                            case HORDE:
+                                if (pCreatureTarget->GetEntry() == NPC_SICKLY_GAZELLE)
+                                    uiNewEntry = NPC_CURED_GAZELLE;
+                                break;
+                            case ALLIANCE:
+                                if (pCreatureTarget->GetEntry() == NPC_SICKLY_DEER)
+                                    uiNewEntry = NPC_CURED_DEER;
+                                break;
+                        }
+                        if (uiNewEntry)
+                        {
+                            pCreatureTarget->UpdateEntry(uiNewEntry);
+                            pCreatureTarget->DespawnOrUnsummon(DESPAWN_TIME);
+                        }
+                    }
+        }
 
-    void HandleScript(SpellEffIndex /*effIndex*/)
-    {
-        // Ignore reagent cost, consumed by quest
-        GetHitUnit()->CastSpell(GetHitUnit(), SPELL_TOTEM_OF_THE_EARTHEN_RING, TRIGGERED_IGNORE_POWER_AND_REAGENT_COST);
-    }
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q6124_6129_apply_salve_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
 
-    void Register() override
+    SpellScript* GetSpellScript() const
     {
-        OnEffectHitTarget += SpellEffectFn(spell_quest_make_player_destroy_totems::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+        return new spell_q6124_6129_apply_salve_SpellScript();
     }
+};
+
+// http://www.wowhead.com/quest=10255 Testing the Antidote
+// 34665 Administer Antidote
+enum eQuest10255Data
+{
+    NPC_HELBOAR     = 16880,
+    NPC_DREADTUSK   = 16992,
+};
+
+class spell_q10255_administer_antidote : public SpellScriptLoader
+{
+public:
+    spell_q10255_administer_antidote() : SpellScriptLoader("spell_q10255_administer_antidote") { }
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_generic_quest_update_entry_SpellScript(SPELL_EFFECT_DUMMY, EFFECT_0, NPC_HELBOAR, NPC_DREADTUSK, true);
+    }
+};
+
+// http://www.wowhead.com/quest=11396 Bring Down Those Shields (A)
+// http://www.wowhead.com/quest=11399 Bring Down Those Shields (H)
+enum eQuest11396_11399Data
+{
+    SPELL_FORCE_SHIELD_ARCANE_PURPLE_X3 = 43874,
+    SPELL_SCOURGING_CRYSTAL_CONTROLLER = 43878
+};
+
+// 43874 Scourge Mur'gul Camp: Force Shield Arcane Purple x3
+class spell_q11396_11399_force_shield_arcane_purple_x3 : public SpellScriptLoader
+{
+public:
+    spell_q11396_11399_force_shield_arcane_purple_x3() : SpellScriptLoader("spell_q11396_11399_force_shield_arcane_purple_x3") { }
+
+    class spell_q11396_11399_force_shield_arcane_purple_x3_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_q11396_11399_force_shield_arcane_purple_x3_AuraScript)
+        void HandleEffectApply(AuraEffect const * /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            Unit* pTarget = GetTarget();
+            pTarget->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE);
+            pTarget->AddUnitState(UNIT_STAT_ROOT);
+        }
+
+        void HandleEffectRemove(AuraEffect const * /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            GetTarget()->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE);
+        }
+
+        void Register()
+        {
+            OnEffectApply += AuraEffectApplyFn(spell_q11396_11399_force_shield_arcane_purple_x3_AuraScript::HandleEffectApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+            OnEffectRemove += AuraEffectRemoveFn(spell_q11396_11399_force_shield_arcane_purple_x3_AuraScript::HandleEffectRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        }
+
+    };
+
+    AuraScript* GetAuraScript() const
+    {
+        return new spell_q11396_11399_force_shield_arcane_purple_x3_AuraScript();
+    }
+};
+
+// 50133 Scourging Crystal Controller
+class spell_q11396_11399_scourging_crystal_controller : public SpellScriptLoader
+{
+public:
+    spell_q11396_11399_scourging_crystal_controller() : SpellScriptLoader("spell_q11396_11399_scourging_crystal_controller") { }
+
+    class spell_q11396_11399_scourging_crystal_controller_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_q11396_11399_scourging_crystal_controller_SpellScript);
+        bool Validate(SpellEntry const * /*spellEntry*/)
+        {
+            if (!sSpellStore.LookupEntry(SPELL_FORCE_SHIELD_ARCANE_PURPLE_X3))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_SCOURGING_CRYSTAL_CONTROLLER))
+                return false;
+            return true;
+        }
+
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            if (Unit* pTarget = GetTargetUnit())
+                if (pTarget->GetTypeId() == TYPEID_UNIT && pTarget->HasAura(SPELL_FORCE_SHIELD_ARCANE_PURPLE_X3))
+                    // Make sure nobody else is channeling the same target
+                    if (!pTarget->HasAura(SPELL_SCOURGING_CRYSTAL_CONTROLLER))
+                        GetCaster()->CastSpell(pTarget, SPELL_SCOURGING_CRYSTAL_CONTROLLER, true, GetCastItem());
+        }
+
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q11396_11399_scourging_crystal_controller_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_q11396_11399_scourging_crystal_controller_SpellScript();
+    };
+};
+
+// 43882 Scourging Crystal Controller Dummy
+class spell_q11396_11399_scourging_crystal_controller_dummy : public SpellScriptLoader
+{
+public:
+    spell_q11396_11399_scourging_crystal_controller_dummy() : SpellScriptLoader("spell_q11396_11399_scourging_crystal_controller_dummy") { }
+
+    class spell_q11396_11399_scourging_crystal_controller_dummy_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_q11396_11399_scourging_crystal_controller_dummy_SpellScript);
+        bool Validate(SpellEntry const * /*spellEntry*/)
+        {
+            if (!sSpellStore.LookupEntry(SPELL_FORCE_SHIELD_ARCANE_PURPLE_X3))
+                return false;
+            return true;
+        }
+
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            if (Unit* pTarget = GetTargetUnit())
+                if (pTarget->GetTypeId() == TYPEID_UNIT)
+                    pTarget->RemoveAurasDueToSpell(SPELL_FORCE_SHIELD_ARCANE_PURPLE_X3);
+        }
+
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q11396_11399_scourging_crystal_controller_dummy_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_q11396_11399_scourging_crystal_controller_dummy_SpellScript();
+    };
+};
+
+// http://www.wowhead.com/quest=11515 Blood for Blood
+// 44936 Quest - Fel Siphon Dummy
+enum eQuest11515Data
+{
+    NPC_FELBLOOD_INITIATE   = 24918,
+    NPC_EMACIATED_FELBLOOD  = 24955
+};
+
+class spell_q11515_fel_siphon_dummy : public SpellScriptLoader
+{
+public:
+    spell_q11515_fel_siphon_dummy() : SpellScriptLoader("spell_q11515_fel_siphon_dummy") { }
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_generic_quest_update_entry_SpellScript(SPELL_EFFECT_DUMMY, EFFECT_0, NPC_FELBLOOD_INITIATE, NPC_EMACIATED_FELBLOOD, true);
+    }
+};
+
+// http://www.wowhead.com/quest=11587 Prison Break
+// 45449 Arcane Prisoner Rescue
+enum eQuest11587Data
+{
+    SPELL_SUMMON_ARCANE_PRISONER_MALE    = 45446,    // Summon Arcane Prisoner - Male
+    SPELL_SUMMON_ARCANE_PRISONER_FEMALE  = 45448,    // Summon Arcane Prisoner - Female
+    SPELL_ARCANE_PRISONER_KILL_CREDIT    = 45456     // Arcane Prisoner Kill Credit
+};
+
+class spell_q11587_arcane_prisoner_rescue : public SpellScriptLoader
+{
+public:
+    spell_q11587_arcane_prisoner_rescue() : SpellScriptLoader("spell_q11587_arcane_prisoner_rescue") { }
+
+    class spell_q11587_arcane_prisoner_rescue_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_q11587_arcane_prisoner_rescue_SpellScript)
+        bool Validate(SpellEntry const * /*spellEntry*/)
+        {
+            if (!sSpellStore.LookupEntry(SPELL_SUMMON_ARCANE_PRISONER_MALE))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_SUMMON_ARCANE_PRISONER_FEMALE))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_ARCANE_PRISONER_KILL_CREDIT))
+                return false;
+            return true;
+        }
+
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            Unit* caster = GetCaster();
+            if (Unit* unitTarget = GetHitUnit())
+            {
+                uint32 spellId = SPELL_SUMMON_ARCANE_PRISONER_MALE;
+                if (rand() % 2)
+                    spellId = SPELL_SUMMON_ARCANE_PRISONER_FEMALE;
+                caster->CastSpell(caster, spellId, true);
+                unitTarget->CastSpell(caster, SPELL_ARCANE_PRISONER_KILL_CREDIT, true);
+            }
+        }
+
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q11587_arcane_prisoner_rescue_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_q11587_arcane_prisoner_rescue_SpellScript();
+    }
+};
+
+// http://www.wowhead.com/quest=11730 Master and Servant
+// 46023 The Ultrasonic Screwdriver
+enum eQuest11730Data
+{
+    SPELL_SUMMON_SCAVENGEBOT_004A8  = 46063,
+    SPELL_SUMMON_SENTRYBOT_57K      = 46068,
+    SPELL_SUMMON_DEFENDOTANK_66D    = 46058,
+    SPELL_SUMMON_SCAVENGEBOT_005B6  = 46066,
+    SPELL_SUMMON_55D_COLLECTATRON   = 46034,
+    SPELL_ROBOT_KILL_CREDIT         = 46027,
+    NPC_SCAVENGEBOT_004A8           = 25752,
+    NPC_SENTRYBOT_57K               = 25753,
+    NPC_DEFENDOTANK_66D             = 25758,
+    NPC_SCAVENGEBOT_005B6           = 25792,
+    NPC_55D_COLLECTATRON            = 25793
+};
+
+class spell_q11730_ultrasonic_screwdriver : public SpellScriptLoader
+{
+public:
+    spell_q11730_ultrasonic_screwdriver() : SpellScriptLoader("spell_q11730_ultrasonic_screwdriver") { }
+
+    class spell_q11730_ultrasonic_screwdriver_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_q11730_ultrasonic_screwdriver_SpellScript)
+        bool Validate(SpellEntry const * /*spellEntry*/)
+        {
+            if (!sSpellStore.LookupEntry(SPELL_SUMMON_SCAVENGEBOT_004A8))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_SUMMON_SENTRYBOT_57K))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_SUMMON_DEFENDOTANK_66D))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_SUMMON_SCAVENGEBOT_005B6))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_SUMMON_55D_COLLECTATRON))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_ROBOT_KILL_CREDIT))
+                return false;
+            return true;
+        }
+
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            Item *castItem = GetCastItem();
+            if (!castItem)
+                return;
+
+            Unit* pCaster = GetCaster();
+            if (pCaster->GetTypeId() != TYPEID_PLAYER)
+                return;
+
+            Creature* pTarget = GetHitCreature();
+            if (!pTarget)
+                return;
+
+            uint32 spellId = 0;
+            switch (pTarget->GetEntry())
+            {
+                case NPC_SCAVENGEBOT_004A8: spellId = SPELL_SUMMON_SCAVENGEBOT_004A8;    break;
+                case NPC_SENTRYBOT_57K:     spellId = SPELL_SUMMON_SENTRYBOT_57K;        break;
+                case NPC_DEFENDOTANK_66D:   spellId = SPELL_SUMMON_DEFENDOTANK_66D;      break;
+                case NPC_SCAVENGEBOT_005B6: spellId = SPELL_SUMMON_SCAVENGEBOT_005B6;    break;
+                case NPC_55D_COLLECTATRON:  spellId = SPELL_SUMMON_55D_COLLECTATRON;     break;
+                default:
+                    return;
+            }
+            pCaster->CastSpell(pCaster, spellId, true, castItem);
+            pCaster->CastSpell(pCaster, SPELL_ROBOT_KILL_CREDIT, true);
+            pTarget->DespawnOrUnsummon();
+        }
+
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q11730_ultrasonic_screwdriver_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript * GetSpellScript() const
+    {
+        return new spell_q11730_ultrasonic_screwdriver_SpellScript();
+    }
+};
+
+// http://www.wowhead.com/quest=12459 That Which Creates Can Also Destroy
+// 49587 Seeds of Nature's Wrath
+enum eQuest12459Data
+{
+    NPC_REANIMATED_FROSTWYRM        = 26841,
+    NPC_WEAK_REANIMATED_FROSTWYRM   = 27821,
+
+    NPC_TURGID                      = 27808,
+    NPC_WEAK_TURGID                 = 27809,
+
+    NPC_DEATHGAZE                   = 27122,
+    NPC_WEAK_DEATHGAZE              = 27807,
+};
+
+class spell_q12459_seeds_of_natures_wrath : public SpellScriptLoader
+{
+public:
+    spell_q12459_seeds_of_natures_wrath() : SpellScriptLoader("spell_q12459_seeds_of_natures_wrath") { }
+
+    class spell_q12459_seeds_of_natures_wrath_SpellScript : public SpellScript
+    {
+    public:
+        PrepareSpellScript(spell_q12459_seeds_of_natures_wrath_SpellScript)
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            if (Creature* pCreatureTarget = GetHitCreature())
+            {
+                uint32 uiNewEntry = 0;
+                switch (pCreatureTarget->GetEntry())
+                {
+                    case NPC_REANIMATED_FROSTWYRM:  uiNewEntry = NPC_WEAK_REANIMATED_FROSTWYRM; break;
+                    case NPC_TURGID:                uiNewEntry = NPC_WEAK_TURGID;               break;
+                    case NPC_DEATHGAZE:             uiNewEntry = NPC_WEAK_DEATHGAZE;            break;
+                }
+                if (uiNewEntry)
+                    pCreatureTarget->UpdateEntry(uiNewEntry);
+            }
+        }
+
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q12459_seeds_of_natures_wrath_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_q12459_seeds_of_natures_wrath_SpellScript();
+    }
+};
+
+// http://www.wowhead.com/quest=12634 Some Make Lemonade, Some Make Liquor
+// 51840 Despawn Fruit Tosser
+enum eQuest12634Data
+{
+    SPELL_BANANAS_FALL_TO_GROUND    = 51836,
+    SPELL_ORANGE_FALLS_TO_GROUND    = 51837,
+    SPELL_PAPAYA_FALLS_TO_GROUND    = 51839,
+    SPELL_SUMMON_ADVENTUROUS_DWARF  = 52070
+};
+
+class spell_q12634_despawn_fruit_tosser : public SpellScriptLoader
+{
+public:
+    spell_q12634_despawn_fruit_tosser() : SpellScriptLoader("spell_q12634_despawn_fruit_tosser") { }
+
+    class spell_q12634_despawn_fruit_tosser_SpellScript : public SpellScript
+    {
+    public:
+        PrepareSpellScript(spell_q12634_despawn_fruit_tosser_SpellScript)
+        bool Validate(SpellEntry const * /*spellEntry*/)
+        {
+            if (!sSpellStore.LookupEntry(SPELL_BANANAS_FALL_TO_GROUND))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_ORANGE_FALLS_TO_GROUND))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_PAPAYA_FALLS_TO_GROUND))
+                return false;
+            if (!sSpellStore.LookupEntry(SPELL_SUMMON_ADVENTUROUS_DWARF))
+                return false;
+            return true;
+        }
+
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            uint32 spellId = SPELL_BANANAS_FALL_TO_GROUND;
+            switch (urand(0, 3))
+            {
+                case 1: spellId = SPELL_ORANGE_FALLS_TO_GROUND; break;
+                case 2: spellId = SPELL_PAPAYA_FALLS_TO_GROUND; break;
+            }
+            // sometimes, if you're lucky, you get a dwarf
+            if (roll_chance_i(5))
+                spellId = SPELL_SUMMON_ADVENTUROUS_DWARF;
+            GetCaster()->CastSpell(GetCaster(), spellId, true, NULL);
+        }
+
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q12634_despawn_fruit_tosser_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_q12634_despawn_fruit_tosser_SpellScript();
+    }
+};
+
+// http://www.wowhead.com/quest=12683 Burning to Help
+// 52308 Take Sputum Sample
+class spell_q12683_take_sputum_sample : public SpellScriptLoader
+{
+public:
+    spell_q12683_take_sputum_sample() : SpellScriptLoader("spell_q12683_take_sputum_sample") { }
+
+    class spell_q12683_take_sputum_sample_SpellScript : public SpellScript
+    {
+    public:
+        PrepareSpellScript(spell_q12683_take_sputum_sample_SpellScript)
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            uint32 reqAuraId = SpellMgr::CalculateSpellEffectAmount(GetSpellInfo(), 1);
+
+            Unit* pCaster = GetCaster();
+            if (pCaster->HasAuraEffect(reqAuraId, 0))
+            {
+                uint32 spellId = SpellMgr::CalculateSpellEffectAmount(GetSpellInfo(), 0);
+                pCaster->CastSpell(pCaster, spellId, true, NULL);
+            }
+        }
+
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q12683_take_sputum_sample_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_q12683_take_sputum_sample_SpellScript();
+    }
+};
+
+// http://www.wowhead.com/quest=12851 Going Bearback
+// 54798 FLAMING Arrow Triggered Effect
+enum eQuest12851Data
+{
+    NPC_FROSTGIANT = 29351,
+    NPC_FROSTWORG  = 29358,
+    SPELL_FROSTGIANT_CREDIT = 58184,
+    SPELL_FROSTWORG_CREDIT  = 58183,
+    SPELL_IMMOLATION        = 54690,
+    SPELL_ABLAZE            = 54683,
+};
+
+class spell_q12851_going_bearback : public SpellScriptLoader
+{
+public:
+    spell_q12851_going_bearback() : SpellScriptLoader("spell_q12851_going_bearback") { }
+
+    class spell_q12851_going_bearback_AuraScript : public AuraScript
+    {
+    public:
+        PrepareAuraScript(spell_q12851_going_bearback_AuraScript)
+        void HandleEffectApply(AuraEffect const * /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            if (Unit* caster = GetCaster())
+            {
+                if (Unit* target = GetTarget())
+                {
+                    if (Player* player = caster->GetCharmerOrOwnerPlayerOrPlayerItself())
+                    {
+                        switch(target->GetEntry())
+                        {
+                            case NPC_FROSTWORG:
+                                target->CastSpell(player, SPELL_FROSTWORG_CREDIT, true);
+                                target->CastSpell(target, SPELL_IMMOLATION, true);
+                                target->CastSpell(target, SPELL_ABLAZE, true);
+                                break;
+                            case NPC_FROSTGIANT:
+                                target->CastSpell(player, SPELL_FROSTGIANT_CREDIT, true);
+                                target->CastSpell(target, SPELL_IMMOLATION, true);
+                                target->CastSpell(target, SPELL_ABLAZE, true);
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+
+        void Register()
+        {
+            OnEffectApply += AuraEffectApplyFn(spell_q12851_going_bearback_AuraScript::HandleEffectApply, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        }
+
+    };
+
+    AuraScript* GetAuraScript() const
+    {
+        return new spell_q12851_going_bearback_AuraScript();
+    }
+};
+
+// http://www.wowhead.com/quest=12937 Relief for the Fallen
+// 55804 Healing Finished
+enum eQuest12937Data
+{
+    SPELL_TRIGGER_AID_OF_THE_EARTHEN    = 55809,
+    NPC_FALLEN_EARTHEN_DEFENDER         = 30035,
+};
+
+class spell_q12937_relief_for_the_fallen : public SpellScriptLoader
+{
+public:
+    spell_q12937_relief_for_the_fallen() : SpellScriptLoader("spell_q12937_relief_for_the_fallen") { }
+
+    class spell_q12937_relief_for_the_fallen_SpellScript : public SpellScript
+    {
+    public:
+        PrepareSpellScript(spell_q12937_relief_for_the_fallen_SpellScript)
+        bool Validate(SpellEntry const * /*spellEntry*/)
+        {
+            if (!sSpellStore.LookupEntry(SPELL_TRIGGER_AID_OF_THE_EARTHEN))
+                return false;
+            return true;
+        }
+
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            Unit* pCaster = GetCaster();
+            if (Player* pPlayer = pCaster->ToPlayer())
+            {
+                if(Creature* pTarget = GetHitCreature())
+                {
+                    pPlayer->CastSpell(pPlayer, SPELL_TRIGGER_AID_OF_THE_EARTHEN, true, NULL);
+                    pPlayer->KilledMonsterCredit(NPC_FALLEN_EARTHEN_DEFENDER, 0);
+                    pTarget->DespawnOrUnsummon();
+                }
+            }
+        }
+
+        void Register()
+        {
+            OnEffect += SpellEffectFn(spell_q12937_relief_for_the_fallen_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_q12937_relief_for_the_fallen_SpellScript();
+    }
+};
+
+enum eWhoarethey
+{
+    SPELL_QUESTGIVER = 48917,
+
+    SPELL_MALE_DISGUISE = 38080,
+    SPELL_FEMALE_DISGUISE = 38081,
+    SPELL_GENERIC_DISGUISE = 32756
+};
+
+class spell_q10041_q10040_who_are_they : public SpellScriptLoader
+{
+    public:
+        spell_q10041_q10040_who_are_they() : SpellScriptLoader("spell_q10041_q10040_who_are_they") { }
+
+        class spell_q10041_q10040_who_are_they_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(spell_q10041_q10040_who_are_they_SpellScript);
+
+            bool Validate(SpellEntry const * /*spellEntry*/)
+            {
+                if (!sSpellStore.LookupEntry(SPELL_QUESTGIVER))
+                    return false;
+                return true;
+            }
+
+            void HandleScript(SpellEffIndex effIndex)
+            {
+                PreventHitDefaultEffect(effIndex);
+                if (!GetHitUnit() || !GetHitUnit()->ToPlayer())
+                    return;
+
+                GetHitUnit()->CastSpell(GetHitUnit(), GetHitUnit()->getGender() == GENDER_MALE ? SPELL_MALE_DISGUISE : SPELL_FEMALE_DISGUISE, true);
+                GetHitUnit()->CastSpell(GetHitUnit(), SPELL_GENERIC_DISGUISE, true);
+            }
+
+            void Register()
+            {
+                OnEffect += SpellEffectFn(spell_q10041_q10040_who_are_they_SpellScript::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+            }
+        };
+
+        SpellScript* GetSpellScript() const
+        {
+            return new spell_q10041_q10040_who_are_they_SpellScript();
+        }
 };
 
 void AddSC_quest_spell_scripts()
 {
-    RegisterSpellScript(spell_quest_taming_the_beast);
-    RegisterSpellScript(spell_quest_portal_with_condition);
-    RegisterSpellScript(spell_quest_uther_grom_tribute);
-    RegisterSpellScript(spell_quest_make_player_destroy_totems);
+    new spell_q55_sacred_cleansing();
+    new spell_q5206_test_fetid_skull();
+    new spell_q6124_6129_apply_salve();
+    new spell_q10255_administer_antidote();
+    new spell_q11396_11399_force_shield_arcane_purple_x3();
+    new spell_q11396_11399_scourging_crystal_controller();
+    new spell_q11396_11399_scourging_crystal_controller_dummy();
+    new spell_q11515_fel_siphon_dummy();
+    new spell_q11587_arcane_prisoner_rescue();
+    new spell_q11730_ultrasonic_screwdriver();
+    new spell_q12459_seeds_of_natures_wrath();
+    new spell_q12634_despawn_fruit_tosser();
+    new spell_q12683_take_sputum_sample();
+    new spell_q12851_going_bearback();
+    new spell_q12937_relief_for_the_fallen();
+    new spell_q10041_q10040_who_are_they();
 }

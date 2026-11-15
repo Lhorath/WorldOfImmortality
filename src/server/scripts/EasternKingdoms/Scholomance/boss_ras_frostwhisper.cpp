@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,112 +16,113 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Ras_Frostwhisper
+SD%Complete: 100
+SDComment:
+SDCategory: Scholomance
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "scholomance.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 
-enum RasSpells
+#define SPELL_FROSTBOLT         21369
+#define SPELL_ICEARMOR          18100                       //This is actually a buff he gives himself
+#define SPELL_FREEZE            18763
+#define SPELL_FEAR              26070
+#define SPELL_CHILLNOVA         18099
+#define SPELL_FROSTVOLLEY       8398
+
+class boss_boss_ras_frostwhisper : public CreatureScript
 {
-    SPELL_ICE_ARMOR         = 18100,
-    SPELL_FREEZE            = 18763,
-    SPELL_FEAR              = 12096,
-    SPELL_CHILL_NOVA        = 18099,
-    SPELL_KNOCK_AWAY        = 11130,
-    SPELL_FROSTBOLT_VOLLEY  = 8398
-};
+public:
+    boss_boss_ras_frostwhisper() : CreatureScript("boss_boss_ras_frostwhisper") { }
 
-enum RasEvents
-{
-    EVENT_ICE_ARMOR         = 1,
-    EVENT_FREEZE,
-    EVENT_FEAR,
-    EVENT_CHILL_NOVA,
-    EVENT_KNOCK_AWAY,
-    EVENT_FROSTBOLT_VOLLEY
-};
-
-// 10508 - Ras Frostwhisper
-struct boss_boss_ras_frostwhisper : public ScriptedAI
-{
-    boss_boss_ras_frostwhisper(Creature* creature) : ScriptedAI(creature) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _events.Reset();
-
-        DoCastSelf(SPELL_ICE_ARMOR);
+        return new boss_rasfrostAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    struct boss_rasfrostAI : public ScriptedAI
     {
-        _events.ScheduleEvent(EVENT_ICE_ARMOR, 30s);
-        _events.ScheduleEvent(EVENT_FREEZE, 20s, 30s);
-        _events.ScheduleEvent(EVENT_FEAR, 10s, 20s);
-        _events.ScheduleEvent(EVENT_CHILL_NOVA, 10s, 15s);
-        _events.ScheduleEvent(EVENT_KNOCK_AWAY, 20s, 30s);
-        _events.ScheduleEvent(EVENT_FROSTBOLT_VOLLEY, 10s, 20s);
-    }
+        boss_rasfrostAI(Creature *c) : ScriptedAI(c) {}
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
+        uint32 IceArmor_Timer;
+        uint32 Frostbolt_Timer;
+        uint32 Freeze_Timer;
+        uint32 Fear_Timer;
+        uint32 ChillNova_Timer;
+        uint32 FrostVolley_Timer;
 
-        _events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = _events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_ICE_ARMOR:
-                    if (!me->HasAura(SPELL_ICE_ARMOR))
-                        DoCastSelf(SPELL_ICE_ARMOR);
-                    _events.Repeat(30s);
-                    break;
-                case EVENT_FREEZE:
-                    DoCastVictim(SPELL_FREEZE);
-                    _events.Repeat(30s, 40s);
-                    break;
-                case EVENT_FEAR:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                        DoCast(target, SPELL_FEAR);
-                    _events.Repeat(20s, 30s);
-                    break;
-                case EVENT_CHILL_NOVA:
-                    DoCastSelf(SPELL_CHILL_NOVA);
-                    _events.Repeat(15s, 25s);
-                    break;
-                case EVENT_KNOCK_AWAY:
-                    DoCastSelf(SPELL_KNOCK_AWAY);
-                    _events.Repeat(20s, 30s);
-                    break;
-                case EVENT_FROSTBOLT_VOLLEY:
-                    DoCastSelf(SPELL_FROSTBOLT_VOLLEY);
-                    _events.Repeat(10s, 20s);
-                    break;
-                default:
-                    break;
-            }
+            IceArmor_Timer = 2000;
+            Frostbolt_Timer = 8000;
+            ChillNova_Timer = 12000;
+            Freeze_Timer = 18000;
+            FrostVolley_Timer = 24000;
+            Fear_Timer = 45000;
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            DoCast(me, SPELL_ICEARMOR, true);
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void EnterCombat(Unit * /*who*/){}
 
-private:
-    EventMap _events;
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //IceArmor_Timer
+            if (IceArmor_Timer <= diff)
+            {
+                DoCast(me, SPELL_ICEARMOR);
+                IceArmor_Timer = 180000;
+            } else IceArmor_Timer -= diff;
+
+            //Frostbolt_Timer
+            if (Frostbolt_Timer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                    DoCast(pTarget, SPELL_FROSTBOLT);
+
+                Frostbolt_Timer = 8000;
+            } else Frostbolt_Timer -= diff;
+
+            //Freeze_Timer
+            if (Freeze_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FREEZE);
+                Freeze_Timer = 24000;
+            } else Freeze_Timer -= diff;
+
+            //Fear_Timer
+            if (Fear_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FEAR);
+                Fear_Timer = 30000;
+            } else Fear_Timer -= diff;
+
+            //ChillNova_Timer
+            if (ChillNova_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_CHILLNOVA);
+                ChillNova_Timer = 14000;
+            } else ChillNova_Timer -= diff;
+
+            //FrostVolley_Timer
+            if (FrostVolley_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FROSTVOLLEY);
+                FrostVolley_Timer = 15000;
+            } else FrostVolley_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_rasfrost()
 {
-    RegisterScholomanceCreatureAI(boss_boss_ras_frostwhisper);
+    new boss_boss_ras_frostwhisper();
 }

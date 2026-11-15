@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,15 +23,9 @@ SDComment: Placeholder
 SDCategory: Deadmines
 EndScriptData */
 
-#include "ScriptMgr.h"
+#include "ScriptPCH.h"
 #include "deadmines.h"
-#include "GameObject.h"
-#include "InstanceScript.h"
-#include "Item.h"
-#include "Player.h"
-#include "ScriptedCreature.h"
 #include "Spell.h"
-#include "WorldSession.h"
 
 /*#####
 # item_Defias_Gunpowder
@@ -41,25 +36,27 @@ class item_defias_gunpowder : public ItemScript
 public:
     item_defias_gunpowder() : ItemScript("item_defias_gunpowder") { }
 
-    bool OnUse(Player* player, Item* item, SpellCastTargets const& targets) override
+    bool OnUse(Player* player, Item* item, SpellCastTargets const& targets)
     {
-        InstanceScript* instance = player->GetInstanceScript();
+        InstanceScript *pInstance = player->GetInstanceScript();
 
-        if (!instance)
+        if (!pInstance)
         {
             player->GetSession()->SendNotification("Instance script not initialized");
             return true;
         }
-
-        if (instance->GetData(EVENT_STATE) != CANNON_NOT_USED)
+        if (pInstance->GetData(EVENT_STATE)!= CANNON_NOT_USED)
             return false;
-
-        if (targets.GetGOTarget() && targets.GetGOTarget()->GetEntry() == GO_DEFIAS_CANNON)
-            instance->SetData(EVENT_STATE, CANNON_GUNPOWDER_USED);
+        if (targets.getGOTarget() && targets.getGOTarget()->GetTypeId() == TYPEID_GAMEOBJECT &&
+           targets.getGOTarget()->GetEntry() == GO_DEFIAS_CANNON)
+        {
+            pInstance->SetData(EVENT_STATE, CANNON_GUNPOWDER_USED);
+        }
 
         player->DestroyItemCount(item->GetEntry(), 1, true);
         return true;
     }
+
 };
 
 void AddSC_deadmines()

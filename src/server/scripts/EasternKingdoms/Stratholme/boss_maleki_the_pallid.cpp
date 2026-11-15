@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,98 +16,98 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: boss_maleki_the_pallid
+SD%Complete: 100
+SDComment:
+SDCategory: Stratholme
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "stratholme.h"
 
-enum MalekiSpells
-{
-    SPELL_FROST_ARMOR   = 12556,
-    SPELL_FROSTBOLT     = 17503,
-    SPELL_DRAIN_LIFE    = 17238,
-    SPELL_DRAIN_MANA    = 17243,
-    SPELL_ICE_TOMB      = 16869
-};
+#define SPELL_FROSTBOLT    17503
+#define SPELL_DRAINLIFE    20743
+#define SPELL_DRAIN_MANA    17243
+#define SPELL_ICETOMB    16869
 
-enum MalekiEvents
+class boss_maleki_the_pallid : public CreatureScript
 {
-    EVENT_FROSTBOLT     = 1,
-    EVENT_DRAIN_LIFE,
-    EVENT_DRAIN_MANA,
-    EVENT_ICE_TOMB
-};
+public:
+    boss_maleki_the_pallid() : CreatureScript("boss_maleki_the_pallid") { }
 
-// 10438 - Maleki the Pallid
-struct boss_maleki_the_pallid : public BossAI
-{
-    boss_maleki_the_pallid(Creature* creature) : BossAI(creature, BOSS_MALEKI_THE_PALLID) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::Reset();
-
-        DoCastSelf(SPELL_FROST_ARMOR);
+        return new boss_maleki_the_pallidAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_maleki_the_pallidAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_FROSTBOLT, 0s, 8s);
-        events.ScheduleEvent(EVENT_DRAIN_LIFE, 20s, 25s);
-        events.ScheduleEvent(EVENT_DRAIN_MANA, 15s, 25s);
-        events.ScheduleEvent(EVENT_ICE_TOMB, 10s, 20s);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_maleki_the_pallidAI(Creature *c) : ScriptedAI(c)
         {
-            switch (eventId)
-            {
-                case EVENT_FROSTBOLT:
-                    DoCastVictim(SPELL_FROSTBOLT);
-                    events.Repeat(2s, 8s);
-                    break;
-                case EVENT_DRAIN_LIFE:
-                    DoCastVictim(SPELL_DRAIN_LIFE);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_DRAIN_MANA:
-                {
-                    Unit* target = me->GetVictim();
-                    if (target && target->GetPowerType() == POWER_MANA)
-                        DoCast(target, SPELL_DRAIN_MANA);
-                    events.Repeat(15s, 20s);
-                    break;
-                }
-                case EVENT_ICE_TOMB:
-                    DoCastVictim(SPELL_ICE_TOMB);
-                    events.Repeat(15s, 25s);
-                    break;
-                default:
-                    break;
-            }
+            pInstance = me->GetInstanceScript();
         }
 
-        DoMeleeAttackIfReady();
-    }
+        InstanceScript* pInstance;
+
+        uint32 Frostbolt_Timer;
+        uint32 IceTomb_Timer;
+        uint32 DrainLife_Timer;
+
+        void Reset()
+        {
+            Frostbolt_Timer = 1000;
+            IceTomb_Timer = 16000;
+            DrainLife_Timer = 31000;
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void JustDied(Unit* /*Killer*/)
+        {
+            if (pInstance)
+                pInstance->SetData(TYPE_PALLID,IN_PROGRESS);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            //Frostbolt
+            if (Frostbolt_Timer <= diff)
+            {
+                 if (rand()%100 < 90)
+                    DoCast(me->getVictim(), SPELL_FROSTBOLT);
+                Frostbolt_Timer = 3500;
+            } else Frostbolt_Timer -= diff;
+
+            //IceTomb
+            if (IceTomb_Timer <= diff)
+            {
+                if (rand()%100 < 65)
+                    DoCast(me->getVictim(), SPELL_ICETOMB);
+                IceTomb_Timer = 28000;
+            } else IceTomb_Timer -= diff;
+
+            //DrainLife
+            if (DrainLife_Timer <= diff)
+            {
+                  if (rand()%100 < 55)
+                    DoCast(me->getVictim(), SPELL_DRAINLIFE);
+                DrainLife_Timer = 31000;
+            } else DrainLife_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_maleki_the_pallid()
 {
-    RegisterStratholmeCreatureAI(boss_maleki_the_pallid);
+    new boss_maleki_the_pallid();
 }

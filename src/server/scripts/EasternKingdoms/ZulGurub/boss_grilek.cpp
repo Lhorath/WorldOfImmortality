@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,86 +16,87 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* ScriptData
+SDName: Boss_Grilek
+SD%Complete: 100
+SDComment:
+SDCategory: Zul'Gurub
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "zulgurub.h"
-#include "ScriptedCreature.h"
-#include "ScriptMgr.h"
 
-enum Spells
+#define SPELL_AVARTAR                24646                  //The Enrage Spell
+#define SPELL_GROUNDTREMOR            6524
+
+class boss_grilek : public CreatureScript
 {
-    SPELL_AVATAR = 24646, // Enrage Spell
-    SPELL_GROUND_TREMOR = 6524
-};
+    public:
 
-enum Events
-{
-    EVENT_AVATAR = 1,
-    EVENT_GROUND_TREMOR = 2
-};
-
-struct boss_grilek : public BossAI
-{
-    boss_grilek(Creature* creature) : BossAI(creature, DATA_EDGE_OF_MADNESS) { }
-
-    void Reset() override
-    {
-        _Reset();
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-        events.ScheduleEvent(EVENT_AVATAR, 15s, 25s);
-        events.ScheduleEvent(EVENT_GROUND_TREMOR, 15s, 25s);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_grilek()
+            : CreatureScript("boss_grilek")
         {
-            switch (eventId)
-            {
-                case EVENT_AVATAR:
-                    DoCast(me, SPELL_AVATAR);
-                    if (Unit* victim = me->GetVictim())
-                    {
-                        if (GetThreat(victim))
-                            ModifyThreatByPercent(victim, -50);
-                    }
-
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1))
-                        AttackStart(target);
-                    events.ScheduleEvent(EVENT_AVATAR, 25s, 35s);
-                    break;
-                case EVENT_GROUND_TREMOR:
-                    DoCastVictim(SPELL_GROUND_TREMOR, true);
-                    events.ScheduleEvent(EVENT_GROUND_TREMOR, 12s, 16s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        struct boss_grilekAI : public ScriptedAI
+        {
+            boss_grilekAI(Creature *c) : ScriptedAI(c) {}
+
+            uint32 Avartar_Timer;
+            uint32 GroundTremor_Timer;
+
+            void Reset()
+            {
+                Avartar_Timer = 15000 + rand()%10000;
+                GroundTremor_Timer = 8000 + rand()%8000;
+            }
+
+            void EnterCombat(Unit * /*who*/)
+            {
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                //Return since we have no target
+                if (!UpdateVictim())
+                    return;
+
+                //Avartar_Timer
+                if (Avartar_Timer <= diff)
+                {
+
+                    DoCast(me, SPELL_AVARTAR);
+                    Unit *pTarget = NULL;
+
+                    pTarget = SelectTarget(SELECT_TARGET_RANDOM,1);
+
+                    if (DoGetThreat(me->getVictim()))
+                        DoModifyThreatPercent(me->getVictim(),-50);
+                    if (pTarget)
+                        AttackStart(pTarget);
+
+                    Avartar_Timer = 25000 + rand()%10000;
+                } else Avartar_Timer -= diff;
+
+                //GroundTremor_Timer
+                if (GroundTremor_Timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_GROUNDTREMOR);
+                    GroundTremor_Timer = 12000 + rand()%4000;
+                } else GroundTremor_Timer -= diff;
+
+                DoMeleeAttackIfReady();
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new boss_grilekAI(creature);
+        }
 };
 
 void AddSC_boss_grilek()
 {
-    RegisterZulGurubCreatureAI(boss_grilek);
+    new boss_grilek();
 }
+

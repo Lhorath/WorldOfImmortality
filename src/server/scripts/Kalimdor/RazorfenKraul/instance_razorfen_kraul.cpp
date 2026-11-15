@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,12 +23,7 @@ SDComment:
 SDCategory: Razorfen Kraul
 EndScriptData */
 
-#include "ScriptMgr.h"
-#include "GameObject.h"
-#include "InstanceScript.h"
-#include "Log.h"
-#include "Map.h"
-#include "Player.h"
+#include "ScriptPCH.h"
 #include "razorfen_kraul.h"
 
 #define WARD_KEEPERS_NR 2
@@ -35,60 +31,71 @@ EndScriptData */
 class instance_razorfen_kraul : public InstanceMapScript
 {
 public:
-    instance_razorfen_kraul() : InstanceMapScript(RFKScriptName, 47) { }
+    instance_razorfen_kraul() : InstanceMapScript("instance_razorfen_kraul", 47) { }
 
-    InstanceScript* GetInstanceScript(InstanceMap* map) const override
+    InstanceScript* GetInstanceScript(InstanceMap* pMap) const
     {
-        return new instance_razorfen_kraul_InstanceMapScript(map);
+        return new instance_razorfen_kraul_InstanceMapScript(pMap);
     }
 
     struct instance_razorfen_kraul_InstanceMapScript : public InstanceScript
     {
-        instance_razorfen_kraul_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
-        {
-            SetHeaders(DataHeader);
-            WardKeeperDeath = 0;
-        }
+        instance_razorfen_kraul_InstanceMapScript(Map* pMap) : InstanceScript(pMap) {Initialize();};
 
-        ObjectGuid DoorWardGUID;
-        int WardKeeperDeath;
+        uint64 DoorWardGUID;
+        uint32 WardCheck_Timer;
+        int WardKeeperAlive;
+
+        void Initialize()
+        {
+            WardKeeperAlive = 1;
+            WardCheck_Timer = 4000;
+            DoorWardGUID = 0;
+        }
 
         Player* GetPlayerInMap()
         {
             Map::PlayerList const& players = instance->GetPlayers();
-            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-            {
-                if (Player* player = itr->GetSource())
-                    return player;
-            }
-            TC_LOG_DEBUG("scripts", "Instance Razorfen Kraul: GetPlayerInMap, but PlayerList is empty!");
-            return nullptr;
-        }
 
-        void OnGameObjectCreate(GameObject* go) override
-        {
-            switch (go->GetEntry())
+            if (!players.isEmpty())
             {
-                case 21099: DoorWardGUID = go->GetGUID(); break;
-                case 20920: go->SetFaction(FACTION_NONE); break; // big fat fugly hack
-            }
-        }
-
-        void Update(uint32 /*diff*/) override
-        {
-            if (WardKeeperDeath == WARD_KEEPERS_NR)
-                if (GameObject* go = instance->GetGameObject(DoorWardGUID))
+                for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
                 {
-                    go->ReplaceAllFlags(GO_FLAG_IN_USE | GO_FLAG_NODESPAWN);
-                    go->SetGoState(GO_STATE_ACTIVE);
+                    if (Player* plr = itr->getSource())
+                        return plr;
                 }
+            }
+            sLog->outDebug(LOG_FILTER_TSCR, "TSCR: Instance Razorfen Kraul: GetPlayerInMap, but PlayerList is empty!");
+            return NULL;
         }
 
-        void SetData(uint32 type, uint32 /*data*/) override
+        void OnGameObjectCreate(GameObject* go)
         {
-            switch (type)
+            switch(go->GetEntry())
             {
-                case EVENT_WARD_KEEPER: WardKeeperDeath++; break;
+            case 21099: DoorWardGUID = go->GetGUID(); break;
+            }
+        }
+
+        void Update(uint32 diff)
+        {
+            if (WardCheck_Timer <= diff)
+            {
+                HandleGameObject(DoorWardGUID, WardKeeperAlive);
+                WardKeeperAlive = 0;
+                WardCheck_Timer = 4000;
+            }else
+                WardCheck_Timer -= diff;
+        }
+
+        void SetData(uint32 type, uint32 data)
+        {
+            switch(type)
+            {
+                case TYPE_WARD_KEEPERS:
+                    if (data == NOT_STARTED)
+                        WardKeeperAlive = 1;
+                    break;
             }
         }
 

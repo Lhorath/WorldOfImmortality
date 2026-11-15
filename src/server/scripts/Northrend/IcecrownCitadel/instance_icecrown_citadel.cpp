@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,95 +15,37 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "icecrown_citadel.h"
-#include "AreaBoundary.h"
-#include "Creature.h"
-#include "CreatureAI.h"
-#include "EventMap.h"
-#include "InstanceScript.h"
-#include "Map.h"
 #include "ObjectMgr.h"
-#include "Player.h"
-#include "QuestPools.h"
 #include "ScriptMgr.h"
-#include "TemporarySummon.h"
-#include "Transport.h"
-#include "TransportMgr.h"
-#include "WorldStatePackets.h"
-#include <unordered_set>
+#include "InstanceScript.h"
+#include "ScriptedCreature.h"
+#include "Map.h"
+#include "PoolMgr.h"
+#include "icecrown_citadel.h"
 
-enum EventIds
+static const DoorData doorData[] =
 {
-    EVENT_PLAYERS_GUNSHIP_SPAWN     = 22663,
-    EVENT_PLAYERS_GUNSHIP_COMBAT    = 22664,
-    EVENT_PLAYERS_GUNSHIP_SAURFANG  = 22665,
-    EVENT_ENEMY_GUNSHIP_COMBAT      = 22860,
-    EVENT_ENEMY_GUNSHIP_DESPAWN     = 22861,
-    EVENT_QUAKE                     = 23437,
-    EVENT_SECOND_REMORSELESS_WINTER = 23507,
-    EVENT_TELEPORT_TO_FROSTMOURNE   = 23617
-};
-
-enum TimedEvents
-{
-    EVENT_UPDATE_EXECUTION_TIME = 1,
-    EVENT_QUAKE_SHATTER         = 2,
-    EVENT_REBUILD_PLATFORM      = 3,
-    EVENT_RESPAWN_GUNSHIP       = 4
-};
-
-enum SpawnGroups
-{
-    SPAWN_GROUP_ALLIANCE_ROS   = 57,
-    SPAWN_GROUP_HORDE_ROS      = 58
-};
-
-BossBoundaryData const boundaries =
-{
-    { DATA_LORD_MARROWGAR,        new CircleBoundary(Position(-428.0f,2211.0f), 95.0) },
-    { DATA_LORD_MARROWGAR,        new RectangleBoundary(-430.0f, -330.0f, 2110.0f, 2310.0f) },
-    { DATA_LADY_DEATHWHISPER,     new RectangleBoundary(-670.0f, -520.0f, 2145.0f, 2280.0f) },
-    { DATA_DEATHBRINGER_SAURFANG, new RectangleBoundary(-565.0f, -465.0f, 2160.0f, 2260.0f) },
-    { DATA_ROTFACE,               new RectangleBoundary(4385.0f, 4505.0f, 3082.0f, 3195.0f) },
-    { DATA_FESTERGUT,             new RectangleBoundary(4205.0f, 4325.0f, 3082.0f, 3195.0f) },
-    { DATA_PROFESSOR_PUTRICIDE,   new ParallelogramBoundary(Position(4356.0f, 3290.0f), Position(4435.0f, 3194.0f), Position(4280.0f, 3194.0f)) },
-    { DATA_PROFESSOR_PUTRICIDE,   new RectangleBoundary(4280.0f, 4435.0f, 3150.0f, 4360.0f) },
-    { DATA_BLOOD_PRINCE_COUNCIL,  new EllipseBoundary(Position(4660.95f, 2769.194f), 85.0, 60.0) },
-    { DATA_BLOOD_QUEEN_LANA_THEL, new CircleBoundary(Position(4595.93f, 2769.365f), 64.0) },
-    { DATA_BLOOD_QUEEN_LANA_THEL, new ZRangeBoundary(391.78f, 473.43f) },
-    { DATA_SISTER_SVALNA,         new RectangleBoundary(4291.0f, 4423.0f, 2438.0f, 2653.0f) },
-    { DATA_VALITHRIA_DREAMWALKER, new RectangleBoundary(4112.5f, 4293.5f, 2385.0f, 2585.0f) },
-    { DATA_SINDRAGOSA,            new EllipseBoundary(Position(4408.6f, 2484.0f), 100.0, 75.0) }
-};
-
-DoorData const doorData[] =
-{
-    { GO_LORD_MARROWGAR_S_ENTRANCE,           DATA_LORD_MARROWGAR,        DOOR_TYPE_ROOM },
-    { GO_ICEWALL,                             DATA_LORD_MARROWGAR,        DOOR_TYPE_PASSAGE },
-    { GO_DOODAD_ICECROWN_ICEWALL02,           DATA_LORD_MARROWGAR,        DOOR_TYPE_PASSAGE },
-    { GO_ORATORY_OF_THE_DAMNED_ENTRANCE,      DATA_LADY_DEATHWHISPER,     DOOR_TYPE_ROOM  },
-    { GO_SAURFANG_S_DOOR,                     DATA_DEATHBRINGER_SAURFANG, DOOR_TYPE_PASSAGE },
-    { GO_ORANGE_PLAGUE_MONSTER_ENTRANCE,      DATA_FESTERGUT,             DOOR_TYPE_ROOM },
-    { GO_GREEN_PLAGUE_MONSTER_ENTRANCE,       DATA_ROTFACE,               DOOR_TYPE_ROOM },
-    { GO_SCIENTIST_ENTRANCE,                  DATA_PROFESSOR_PUTRICIDE,   DOOR_TYPE_ROOM },
-    { GO_CRIMSON_HALL_DOOR,                   DATA_BLOOD_PRINCE_COUNCIL,  DOOR_TYPE_ROOM },
-    { GO_BLOOD_ELF_COUNCIL_DOOR,              DATA_BLOOD_PRINCE_COUNCIL,  DOOR_TYPE_PASSAGE },
-    { GO_BLOOD_ELF_COUNCIL_DOOR_RIGHT,        DATA_BLOOD_PRINCE_COUNCIL,  DOOR_TYPE_PASSAGE },
-    { GO_DOODAD_ICECROWN_BLOODPRINCE_DOOR_01, DATA_BLOOD_QUEEN_LANA_THEL, DOOR_TYPE_ROOM },
-    { GO_DOODAD_ICECROWN_GRATE_01,            DATA_BLOOD_QUEEN_LANA_THEL, DOOR_TYPE_PASSAGE },
-    { GO_GREEN_DRAGON_BOSS_ENTRANCE,          DATA_SISTER_SVALNA,         DOOR_TYPE_PASSAGE },
-    { GO_GREEN_DRAGON_BOSS_ENTRANCE,          DATA_VALITHRIA_DREAMWALKER, DOOR_TYPE_ROOM },
-    { GO_GREEN_DRAGON_BOSS_EXIT,              DATA_VALITHRIA_DREAMWALKER, DOOR_TYPE_PASSAGE },
-    { GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_01,  DATA_VALITHRIA_DREAMWALKER, DOOR_TYPE_SPAWN_HOLE },
-    { GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_02,  DATA_VALITHRIA_DREAMWALKER, DOOR_TYPE_SPAWN_HOLE },
-    { GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_03,  DATA_VALITHRIA_DREAMWALKER, DOOR_TYPE_SPAWN_HOLE },
-    { GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_04,  DATA_VALITHRIA_DREAMWALKER, DOOR_TYPE_SPAWN_HOLE },
-    { GO_SINDRAGOSA_ENTRANCE_DOOR,            DATA_SINDRAGOSA,            DOOR_TYPE_ROOM },
-    { GO_SINDRAGOSA_SHORTCUT_ENTRANCE_DOOR,   DATA_SINDRAGOSA,            DOOR_TYPE_PASSAGE },
-    { GO_SINDRAGOSA_SHORTCUT_EXIT_DOOR,       DATA_SINDRAGOSA,            DOOR_TYPE_PASSAGE },
-    { GO_ICE_WALL,                            DATA_SINDRAGOSA,            DOOR_TYPE_ROOM },
-    { GO_ICE_WALL,                            DATA_SINDRAGOSA,            DOOR_TYPE_ROOM },
-    { 0,                                      0,                          DOOR_TYPE_ROOM }  // END
+    {GO_LORD_MARROWGAR_S_ENTRANCE,           DATA_LORD_MARROWGAR,        DOOR_TYPE_ROOM,    BOUNDARY_N   },
+    {GO_ICEWALL,                             DATA_LORD_MARROWGAR,        DOOR_TYPE_PASSAGE, BOUNDARY_NONE},
+    {GO_DOODAD_ICECROWN_ICEWALL02,           DATA_LORD_MARROWGAR,        DOOR_TYPE_PASSAGE, BOUNDARY_NONE},
+    {GO_ORATORY_OF_THE_DAMNED_ENTRANCE,      DATA_LADY_DEATHWHISPER,     DOOR_TYPE_ROOM,    BOUNDARY_N   },
+    {GO_SAURFANG_S_DOOR,                     DATA_DEATHBRINGER_SAURFANG, DOOR_TYPE_PASSAGE, BOUNDARY_NONE},
+    {GO_ORANGE_PLAGUE_MONSTER_ENTRANCE,      DATA_FESTERGUT,             DOOR_TYPE_ROOM,    BOUNDARY_E   },
+    {GO_GREEN_PLAGUE_MONSTER_ENTRANCE,       DATA_ROTFACE,               DOOR_TYPE_ROOM,    BOUNDARY_E   },
+    {GO_SCIENTIST_ENTRANCE,                  DATA_PROFESSOR_PUTRICIDE,   DOOR_TYPE_ROOM,    BOUNDARY_E   },
+    {GO_CRIMSON_HALL_DOOR,                   DATA_BLOOD_PRINCE_COUNCIL,  DOOR_TYPE_ROOM,    BOUNDARY_S   },
+    {GO_BLOOD_ELF_COUNCIL_DOOR,              DATA_BLOOD_PRINCE_COUNCIL,  DOOR_TYPE_PASSAGE, BOUNDARY_W   },
+    {GO_BLOOD_ELF_COUNCIL_DOOR_RIGHT,        DATA_BLOOD_PRINCE_COUNCIL,  DOOR_TYPE_PASSAGE, BOUNDARY_E   },
+    {GO_DOODAD_ICECROWN_BLOODPRINCE_DOOR_01, DATA_BLOOD_QUEEN_LANA_THEL, DOOR_TYPE_ROOM,    BOUNDARY_S   },
+    {GO_DOODAD_ICECROWN_GRATE_01,            DATA_BLOOD_QUEEN_LANA_THEL, DOOR_TYPE_PASSAGE, BOUNDARY_NONE},
+    {GO_GREEN_DRAGON_BOSS_ENTRANCE,          DATA_VALITHRIA_DREAMWALKER, DOOR_TYPE_ROOM,    BOUNDARY_N   },
+    {GO_GREEN_DRAGON_BOSS_EXIT,              DATA_VALITHRIA_DREAMWALKER, DOOR_TYPE_PASSAGE, BOUNDARY_S   },
+    {GO_SINDRAGOSA_ENTRANCE_DOOR,            DATA_SINDRAGOSA,            DOOR_TYPE_ROOM,    BOUNDARY_S   },
+    {GO_SINDRAGOSA_SHORTCUT_ENTRANCE_DOOR,   DATA_SINDRAGOSA,            DOOR_TYPE_PASSAGE, BOUNDARY_E   },
+    {GO_SINDRAGOSA_SHORTCUT_EXIT_DOOR,       DATA_SINDRAGOSA,            DOOR_TYPE_PASSAGE, BOUNDARY_NONE},
+    {GO_ICE_WALL,                            DATA_SINDRAGOSA,            DOOR_TYPE_ROOM,    BOUNDARY_SE  },
+    {GO_ICE_WALL,                            DATA_SINDRAGOSA,            DOOR_TYPE_ROOM,    BOUNDARY_SW  },
+    {0,                                      0,                          DOOR_TYPE_ROOM,    BOUNDARY_NONE} // END
 };
 
 // this doesnt have to only store questgivers, also can be used for related quest spawns
@@ -111,27 +53,16 @@ struct WeeklyQuest
 {
     uint32 creatureEntry;
     uint32 questId[2];  // 10 and 25 man versions
-};
-
-// when changing the content, remember to update SetData, DATA_BLOOD_QUICKENING_STATE case for NPC_ALRIN_THE_AGILE index
-WeeklyQuest const WeeklyQuestData[WeeklyNPCs] =
+} WeeklyQuestData[WeeklyNPCs] =
 {
-    { NPC_INFILTRATOR_MINCHAR,         { QUEST_DEPROGRAMMING_10,                 QUEST_DEPROGRAMMING_25                 } }, // Deprogramming
-    { NPC_KOR_KRON_LIEUTENANT,         { QUEST_SECURING_THE_RAMPARTS_10,         QUEST_SECURING_THE_RAMPARTS_25         } }, // Securing the Ramparts
-    { NPC_ROTTING_FROST_GIANT_10,      { QUEST_SECURING_THE_RAMPARTS_10,         QUEST_SECURING_THE_RAMPARTS_25         } }, // Securing the Ramparts
-    { NPC_ROTTING_FROST_GIANT_25,      { QUEST_SECURING_THE_RAMPARTS_10,         QUEST_SECURING_THE_RAMPARTS_25         } }, // Securing the Ramparts
-    { NPC_ALCHEMIST_ADRIANNA,          { QUEST_RESIDUE_RENDEZVOUS_10,            QUEST_RESIDUE_RENDEZVOUS_25            } }, // Residue Rendezvous
-    { NPC_ALRIN_THE_AGILE,             { QUEST_BLOOD_QUICKENING_10,              QUEST_BLOOD_QUICKENING_25              } }, // Blood Quickening
-    { NPC_INFILTRATOR_MINCHAR_BQ,      { QUEST_BLOOD_QUICKENING_10,              QUEST_BLOOD_QUICKENING_25              } }, // Blood Quickening
-    { NPC_MINCHAR_BEAM_STALKER,        { QUEST_BLOOD_QUICKENING_10,              QUEST_BLOOD_QUICKENING_25              } }, // Blood Quickening
-    { NPC_VALITHRIA_DREAMWALKER_QUEST, { QUEST_RESPITE_FOR_A_TORNMENTED_SOUL_10, QUEST_RESPITE_FOR_A_TORNMENTED_SOUL_25 } }  // Respite for a Tormented Soul
+    {NPC_INFILTRATOR_MINCHAR,         {QUEST_DEPROGRAMMING_10,                 QUEST_DEPROGRAMMING_25                }}, // Deprogramming
+    {NPC_KOR_KRON_LIEUTENANT,         {QUEST_SECURING_THE_RAMPARTS_10,         QUEST_SECURING_THE_RAMPARTS_25        }}, // Securing the Ramparts
+    {NPC_ALCHEMIST_ADRIANNA,          {QUEST_RESIDUE_RENDEZVOUS_10,            QUEST_RESIDUE_RENDEZVOUS_25           }}, // Residue Rendezvous
+    {NPC_ALRIN_THE_AGILE,             {QUEST_BLOOD_QUICKENING_10,              QUEST_BLOOD_QUICKENING_25             }}, // Blood Quickening
+    {NPC_INFILTRATOR_MINCHAR_BQ,      {QUEST_BLOOD_QUICKENING_10,              QUEST_BLOOD_QUICKENING_25             }}, // Blood Quickening
+    {NPC_MINCHAR_BEAM_STALKER,        {QUEST_BLOOD_QUICKENING_10,              QUEST_BLOOD_QUICKENING_25             }}, // Blood Quickening
+    {NPC_VALITHRIA_DREAMWALKER_QUEST, {QUEST_RESPITE_FOR_A_TORNMENTED_SOUL_10, QUEST_RESPITE_FOR_A_TORNMENTED_SOUL_25}}, // Respite for a Tormented Soul
 };
-
-// NPCs spawned at Light's Hammer on Lich King dead
-Position const JainaSpawnPos    = { -48.65278f, 2211.026f, 27.98586f, 3.124139f };
-Position const MuradinSpawnPos  = { -47.34549f, 2208.087f, 27.98586f, 3.106686f };
-Position const UtherSpawnPos    = { -26.58507f, 2211.524f, 30.19898f, 3.124139f };
-Position const SylvanasSpawnPos = { -41.45833f, 2222.891f, 27.98586f, 3.647738f };
 
 class instance_icecrown_citadel : public InstanceMapScript
 {
@@ -142,204 +73,169 @@ class instance_icecrown_citadel : public InstanceMapScript
         {
             instance_icecrown_citadel_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
             {
-                SetHeaders(DataHeader);
                 SetBossNumber(EncounterCount);
-                LoadBossBoundaries(boundaries);
                 LoadDoorData(doorData);
-                TeamInInstance = map->GetTeamInInstance();
-                HeroicAttempts = MaxHeroicAttempts;
-                ColdflameJetsState = NOT_STARTED;
-                UpperSpireTeleporterActiveState = NOT_STARTED;
-                BloodQuickeningState = NOT_STARTED;
-                BloodQuickeningMinutes = 0;
-                BloodPrinceIntro = 1;
-                SindragosaIntro = 1;
-                IsBonedEligible = true;
-                IsOozeDanceEligible = true;
-                IsNauseaEligible = true;
-                IsOrbWhispererEligible = true;
-                IsFactionBuffActive = true;
+                teamInInstance = 0;
+                heroicAttempts = MaxHeroicAttempts;
+                ladyDeathwisperElevator = 0;
+                deathbringerSaurfang = 0;
+                saurfangDoor = 0;
+                saurfangEventNPC = 0;
+                deathbringersCache = 0;
+                saurfangTeleport = 0;
+                plagueSigil = 0;
+                bloodwingSigil = 0;
+                frostwingSigil = 0;
+                memset(putricidePipes, 0, 2*sizeof(uint64));
+                memset(putricideGates, 0, 2*sizeof(uint64));
+                putricideCollision = 0;
+                festergut = 0;
+                rotface = 0;
+                professorPutricide = 0;
+                putricideTable = 0;
+                memset(bloodCouncil, 0, 3*sizeof(uint64));
+                bloodCouncilController = 0;
+                bloodQueenLanaThel = 0;
+                sindragosa = 0;
+                spinestalker = 0;
+                rimefang = 0;
+                frostwyrms = 0;
+                spinestalkerTrash = 0;
+                rimefangTrash = 0;
+                isBonedEligible = true;
+                isOozeDanceEligible = true;
+                isNauseaEligible = true;
+                isOrbWhispererEligible = true;
+                coldflameJetsState = NOT_STARTED;
+                bloodQuickeningState = NOT_STARTED;
+                bloodQuickeningTimer = 0;
+                bloodQuickeningMinutes = 0;
             }
 
-            // A function to help reduce the number of lines for teleporter management.
-            void SetTeleporterState(GameObject* go, bool usable)
+            void FillInitialWorldStates(WorldPacket& data)
             {
-                if (usable)
+                data << uint32(WORLDSTATE_SHOW_TIMER)         << uint32(bloodQuickeningState == IN_PROGRESS);
+                data << uint32(WORLDSTATE_EXECUTION_TIME)     << uint32(bloodQuickeningMinutes);
+                data << uint32(WORLDSTATE_SHOW_ATTEMPTS)      << uint32(instance->IsHeroic());
+                data << uint32(WORLDSTATE_ATTEMPTS_REMAINING) << uint32(heroicAttempts);
+                data << uint32(WORLDSTATE_ATTEMPTS_MAX)       << uint32(MaxHeroicAttempts);
+            }
+
+            void OnPlayerEnter(Player* player)
+            {
+                if (!teamInInstance)
+                    teamInInstance = player->GetTeam();
+            }
+
+            void OnCreatureCreate(Creature* creature)
+            {
+                if (!teamInInstance)
                 {
-                    go->RemoveFlag(GO_FLAG_NOT_SELECTABLE);
-                    go->SetGoState(GO_STATE_ACTIVE);
-                }
-                else
-                {
-                    go->SetFlag(GO_FLAG_NOT_SELECTABLE);
-                    go->SetGoState(GO_STATE_READY);
-                }
-            }
-
-            void FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet) override
-            {
-                packet.Worldstates.emplace_back(WORLDSTATE_SHOW_TIMER, BloodQuickeningState == IN_PROGRESS ? 1 : 0);
-                packet.Worldstates.emplace_back(WORLDSTATE_EXECUTION_TIME, BloodQuickeningMinutes);
-                packet.Worldstates.emplace_back(WORLDSTATE_SHOW_ATTEMPTS, instance->IsHeroic() ? 1 : 0);
-                packet.Worldstates.emplace_back(WORLDSTATE_ATTEMPTS_REMAINING, HeroicAttempts);
-                packet.Worldstates.emplace_back(WORLDSTATE_ATTEMPTS_MAX, MaxHeroicAttempts);
-            }
-
-            void OnPlayerEnter(Player* player) override
-            {
-                uint8 spawnGroupId = TeamInInstance == ALLIANCE ? SPAWN_GROUP_ALLIANCE_ROS : SPAWN_GROUP_HORDE_ROS;
-                if (!instance->IsSpawnGroupActive(spawnGroupId))
-                    instance->SpawnGroupSpawn(spawnGroupId);
-
-                if (GetBossState(DATA_LADY_DEATHWHISPER) == DONE && GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) != DONE)
-                    SpawnGunship();
-
-                if (IsFactionBuffActive)
-                    DoCastSpellOnPlayer(player, TeamInInstance == ALLIANCE ? SPELL_STRENGHT_OF_WRYNN : SPELL_HELLSCREAMS_WARSONG);
-            }
-
-            void OnPlayerLeave(Player* player) override
-            {
-                DoRemoveAurasDueToSpellOnPlayer(player, TeamInInstance == ALLIANCE ? SPELL_STRENGHT_OF_WRYNN : SPELL_HELLSCREAMS_WARSONG, true, true);
-            }
-
-            void OnCreatureCreate(Creature* creature) override
-            {
-                if (creature->IsGuardian() && creature->GetOwnerGUID().IsPlayer())
-                {
-                    if (IsFactionBuffActive)
-                        creature->CastSpell(creature, TeamInInstance == ALLIANCE ? SPELL_STRENGHT_OF_WRYNN : SPELL_HELLSCREAMS_WARSONG, true);
+                    Map::PlayerList const &players = instance->GetPlayers();
+                    if (!players.isEmpty())
+                        if (Player* player = players.begin()->getSource())
+                            teamInInstance = player->GetTeam();
                 }
 
                 switch (creature->GetEntry())
                 {
-                    case NPC_NERUBAR_BROODKEEPER:
-                    {
-                        uint8 group = (creature->GetPositionX() > -230.0f) ? 0 : 1;
-                        nerubarBroodkeepersGUIDs[group].emplace_back(creature->GetGUID());
+                    case NPC_KOR_KRON_GENERAL:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_ALLIANCE_COMMANDER, ALLIANCE);
                         break;
-                    }
-                    case NPC_LORD_MARROWGAR:
-                        LordMarrowgarGUID = creature->GetGUID();
+                    case NPC_KOR_KRON_LIEUTENANT:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_SKYBREAKER_LIEUTENANT, ALLIANCE);
                         break;
-                    case NPC_LADY_DEATHWHISPER:
-                        LadyDeahtwhisperGUID = creature->GetGUID();
+                    case NPC_TORTUNOK:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_ALANA_MOONSTRIKE, ALLIANCE);
+                        break;
+                    case NPC_GERARDO_THE_SUAVE:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_TALAN_MOONSTRIKE, ALLIANCE);
+                        break;
+                    case NPC_UVLUS_BANEFIRE:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_MALFUS_GRIMFROST, ALLIANCE);
+                        break;
+                    case NPC_IKFIRUS_THE_VILE:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_YILI, ALLIANCE);
+                        break;
+                    case NPC_VOL_GUK:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_JEDEBIA, ALLIANCE);
+                        break;
+                    case NPC_HARAGG_THE_UNSEEN:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_NIBY_THE_ALMIGHTY, ALLIANCE);
+                        break;
+                    case NPC_GARROSH_HELLSCREAM:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_KING_VARIAN_WRYNN, ALLIANCE);
                         break;
                     case NPC_DEATHBRINGER_SAURFANG:
-                        DeathbringerSaurfangGUID = creature->GetGUID();
-                        break;
-                    case NPC_ALLIANCE_GUNSHIP_CANNON:
-                    case NPC_HORDE_GUNSHIP_CANNON:
-                        creature->SetControlled(true, UNIT_STATE_ROOT);
+                        deathbringerSaurfang = creature->GetGUID();
                         break;
                     case NPC_SE_HIGH_OVERLORD_SAURFANG:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_SE_MURADIN_BRONZEBEARD, ALLIANCE, creature->GetCreatureData());
                     case NPC_SE_MURADIN_BRONZEBEARD:
-                        DeathbringerSaurfangEventGUID = creature->GetGUID();
+                        saurfangEventNPC = creature->GetGUID();
+                        creature->LastUsedScriptID = creature->GetScriptId();
+                        break;
+                    case NPC_SE_KOR_KRON_REAVER:
+                        if (teamInInstance == ALLIANCE)
+                            creature->UpdateEntry(NPC_SE_SKYBREAKER_MARINE, ALLIANCE);
+                        break;
+                    case NPC_FROST_FREEZE_TRAP:
+                        coldflameJets.insert(creature->GetGUID());
                         break;
                     case NPC_FESTERGUT:
-                        FestergutGUID = creature->GetGUID();
+                        festergut = creature->GetGUID();
                         break;
                     case NPC_ROTFACE:
-                        RotfaceGUID = creature->GetGUID();
+                        rotface = creature->GetGUID();
                         break;
                     case NPC_PROFESSOR_PUTRICIDE:
-                        ProfessorPutricideGUID = creature->GetGUID();
-                        break;
-                    case NPC_VOLATILE_OOZE:
-                    case NPC_GAS_CLOUD:
-                        //! These creatures are summoned by something else than Professor Putricide
-                        //! but need to be controlled/despawned by him - so they need to be
-                        //! registered on his summon list
-                        if (Creature* professorPutricide = instance->GetCreature(ProfessorPutricideGUID))
-                            professorPutricide->AI()->JustSummoned(creature);
+                        professorPutricide = creature->GetGUID();
                         break;
                     case NPC_PRINCE_KELESETH:
-                        BloodCouncilGUIDs[0] = creature->GetGUID();
+                        bloodCouncil[0] = creature->GetGUID();
                         break;
                     case NPC_PRINCE_TALDARAM:
-                        BloodCouncilGUIDs[1] = creature->GetGUID();
+                        bloodCouncil[1] = creature->GetGUID();
                         break;
                     case NPC_PRINCE_VALANAR:
-                        BloodCouncilGUIDs[2] = creature->GetGUID();
+                        bloodCouncil[2] = creature->GetGUID();
                         break;
                     case NPC_BLOOD_ORB_CONTROLLER:
-                        BloodCouncilControllerGUID = creature->GetGUID();
-                        break;
-                    case NPC_BLOOD_QUEEN_LANA_THEL_COUNCIL:
-                        BloodQueenLanaThelCouncilGUID = creature->GetGUID();
+                        bloodCouncilController = creature->GetGUID();
                         break;
                     case NPC_BLOOD_QUEEN_LANA_THEL:
-                        BloodQueenLanaThelGUID = creature->GetGUID();
-                        break;
-                    case NPC_INFILTRATOR_MINCHAR_BQ:
-                         // keep him in air
-                         creature->SetEmoteState(EMOTE_ONESHOT_NONE);
-                         creature->SetDisableGravity(true);
-                         break;
-                    case NPC_CROK_SCOURGEBANE:
-                        CrokScourgebaneGUID = creature->GetGUID();
-                        break;
-                    // we can only do this because there are no gaps in their entries
-                    case NPC_CAPTAIN_ARNATH:
-                    case NPC_CAPTAIN_BRANDON:
-                    case NPC_CAPTAIN_GRONDEL:
-                    case NPC_CAPTAIN_RUPERT:
-                        CrokCaptainGUIDs[creature->GetEntry()-NPC_CAPTAIN_ARNATH] = creature->GetGUID();
-                        break;
-                    case NPC_SISTER_SVALNA:
-                        SisterSvalnaGUID = creature->GetGUID();
-                        break;
-                    case NPC_VALITHRIA_DREAMWALKER:
-                        ValithriaDreamwalkerGUID = creature->GetGUID();
-                        break;
-                    case NPC_THE_LICH_KING_VALITHRIA:
-                        ValithriaLichKingGUID = creature->GetGUID();
-                        break;
-                    case NPC_GREEN_DRAGON_COMBAT_TRIGGER:
-                        ValithriaTriggerGUID = creature->GetGUID();
+                        bloodQueenLanaThel = creature->GetGUID();
                         break;
                     case NPC_SINDRAGOSA:
-                        SindragosaGUID = creature->GetGUID();
+                        sindragosa = creature->GetGUID();
                         break;
                     case NPC_SPINESTALKER:
-                        SpinestalkerGUID = creature->GetGUID();
+                        spinestalker = creature->GetGUID();
+                        if (!creature->isDead())
+                            ++frostwyrms;
                         break;
                     case NPC_RIMEFANG:
-                        RimefangGUID = creature->GetGUID();
-                        break;
-                    case NPC_INVISIBLE_STALKER:
-                        // Teleporter visual at center
-                        if (creature->GetExactDist2d(4357.052f, 2769.421f) < 10.0f)
-                            creature->CastSpell(creature, SPELL_ARTHAS_TELEPORTER_CEREMONY, false);
-                        break;
-                    case NPC_THE_LICH_KING:
-                        TheLichKingGUID = creature->GetGUID();
-                        break;
-                    case NPC_HIGHLORD_TIRION_FORDRING_LK:
-                        HighlordTirionFordringGUID = creature->GetGUID();
-                        break;
-                    case NPC_TERENAS_MENETHIL_FROSTMOURNE:
-                    case NPC_TERENAS_MENETHIL_FROSTMOURNE_H:
-                        TerenasMenethilGUID = creature->GetGUID();
-                        break;
-                    case NPC_WICKED_SPIRIT:
-                        // Remove corpse as soon as it dies (and respawn 10 seconds later)
-                        creature->SetCorpseDelay(0);
-                        creature->SetReactState(REACT_PASSIVE);
+                        rimefang = creature->GetGUID();
+                        if (!creature->isDead())
+                            ++frostwyrms;
                         break;
                     default:
                         break;
                 }
             }
 
-            void OnCreatureRemove(Creature* creature) override
-            {
-                if (creature->GetEntry() == NPC_SINDRAGOSA)
-                    SindragosaGUID.Clear();
-            }
-
             // Weekly quest spawn prevention
-            uint32 GetCreatureEntry(ObjectGuid::LowType /*guidLow*/, CreatureData const* data) override
+            uint32 GetCreatureEntry(uint32 /*guidLow*/, CreatureData const* data)
             {
                 uint32 entry = data->id;
                 switch (entry)
@@ -357,59 +253,13 @@ class instance_icecrown_citadel : public InstanceMapScript
                             if (WeeklyQuestData[questIndex].creatureEntry == entry)
                             {
                                 uint8 diffIndex = uint8(instance->GetSpawnMode() & 1);
-                                if (!sQuestPoolMgr->IsQuestActive(WeeklyQuestData[questIndex].questId[diffIndex]))
-                                    return 0;
+                                if (!sPoolMgr->IsSpawnedObject<Quest>(WeeklyQuestData[questIndex].questId[diffIndex]))
+                                    entry = 0;
                                 break;
                             }
                         }
-
-                        if (entry == NPC_KOR_KRON_LIEUTENANT && TeamInInstance == ALLIANCE)
-                            return NPC_SKYBREAKER_LIEUTENANT;
                         break;
                     }
-                    case NPC_HORDE_GUNSHIP_CANNON:
-                    case NPC_ORGRIMS_HAMMER_CREW:
-                    case NPC_SKY_REAVER_KORM_BLACKSCAR:
-                        if (TeamInInstance == ALLIANCE)
-                            return 0;
-                        break;
-                    case NPC_ALLIANCE_GUNSHIP_CANNON:
-                    case NPC_SKYBREAKER_DECKHAND:
-                    case NPC_HIGH_CAPTAIN_JUSTIN_BARTLETT:
-                        if (TeamInInstance == HORDE)
-                            return 0;
-                        break;
-                    case NPC_ZAFOD_BOOMBOX:
-                        if (GameObjectTemplate const* go = sObjectMgr->GetGameObjectTemplate(GO_THE_SKYBREAKER_A))
-                            if ((TeamInInstance == ALLIANCE && int32(data->mapId) == go->moTransport.mapID) ||
-                                (TeamInInstance == HORDE && int32(data->mapId) != go->moTransport.mapID))
-                                return entry;
-                        return 0;
-                    case NPC_IGB_MURADIN_BRONZEBEARD:
-                        if ((TeamInInstance == ALLIANCE && data->spawnPoint.GetPositionX() > 10.0f) ||
-                            (TeamInInstance == HORDE && data->spawnPoint.GetPositionX() < 10.0f))
-                            return entry;
-                        return 0;
-                    case NPC_SE_HIGH_OVERLORD_SAURFANG:
-                        return TeamInInstance == ALLIANCE ? NPC_SE_MURADIN_BRONZEBEARD : NPC_SE_HIGH_OVERLORD_SAURFANG;
-                    case NPC_KOR_KRON_GENERAL:
-                        return TeamInInstance == ALLIANCE ? NPC_ALLIANCE_COMMANDER : NPC_KOR_KRON_GENERAL;
-                    case NPC_TORTUNOK:
-                        return TeamInInstance == ALLIANCE ? NPC_ALANA_MOONSTRIKE : NPC_TORTUNOK;
-                    case NPC_GERARDO_THE_SUAVE:
-                        return TeamInInstance == ALLIANCE ? NPC_TALAN_MOONSTRIKE : NPC_GERARDO_THE_SUAVE;
-                    case NPC_UVLUS_BANEFIRE:
-                        return TeamInInstance == ALLIANCE ? NPC_MALFUS_GRIMFROST : NPC_UVLUS_BANEFIRE;
-                    case NPC_IKFIRUS_THE_VILE:
-                        return TeamInInstance == ALLIANCE ? NPC_YILI : NPC_IKFIRUS_THE_VILE;
-                    case NPC_VOL_GUK:
-                        return TeamInInstance == ALLIANCE ? NPC_JEDEBIA : NPC_VOL_GUK;
-                    case NPC_HARAGG_THE_UNSEEN:
-                        return TeamInInstance == ALLIANCE ? NPC_NIBY_THE_ALMIGHTY : NPC_HARAGG_THE_UNSEEN;
-                    case NPC_GARROSH_HELLSCREAM:
-                        return TeamInInstance == ALLIANCE ? NPC_KING_VARIAN_WRYNN : NPC_GARROSH_HELLSCREAM;
-                    case NPC_SE_KOR_KRON_REAVER:
-                        return TeamInInstance == ALLIANCE ? NPC_SE_SKYBREAKER_MARINE : NPC_SE_KOR_KRON_REAVER;
                     default:
                         break;
                 }
@@ -417,90 +267,13 @@ class instance_icecrown_citadel : public InstanceMapScript
                 return entry;
             }
 
-            uint32 GetGameObjectEntry(ObjectGuid::LowType /*guidLow*/, uint32 entry) override
+            void OnCreatureRemove(Creature* creature)
             {
-                switch (entry)
-                {
-                    case GO_GUNSHIP_ARMORY_H_10N:
-                    case GO_GUNSHIP_ARMORY_H_25N:
-                    case GO_GUNSHIP_ARMORY_H_10H:
-                    case GO_GUNSHIP_ARMORY_H_25H:
-                        if (TeamInInstance == ALLIANCE)
-                            return 0;
-                        break;
-                    case GO_GUNSHIP_ARMORY_A_10N:
-                    case GO_GUNSHIP_ARMORY_A_25N:
-                    case GO_GUNSHIP_ARMORY_A_10H:
-                    case GO_GUNSHIP_ARMORY_A_25H:
-                        if (TeamInInstance == HORDE)
-                            return 0;
-                        break;
-                    default:
-                        break;
-                }
-
-                return entry;
+                if (creature->GetEntry() == NPC_FROST_FREEZE_TRAP)
+                    coldflameJets.erase(creature->GetGUID());
             }
 
-            void OnUnitDeath(Unit* unit) override
-            {
-                Creature* creature = unit->ToCreature();
-                if (!creature)
-                    return;
-
-                switch (creature->GetEntry())
-                {
-                    case NPC_YMIRJAR_BATTLE_MAIDEN:
-                    case NPC_YMIRJAR_DEATHBRINGER:
-                    case NPC_YMIRJAR_FROSTBINDER:
-                    case NPC_YMIRJAR_HUNTRESS:
-                    case NPC_YMIRJAR_WARLORD:
-                        if (Creature* crok = instance->GetCreature(CrokScourgebaneGUID))
-                            crok->AI()->SetGUID(creature->GetGUID(), ACTION_VRYKUL_DEATH);
-                        break;
-                    case NPC_FROSTWING_WHELP:
-                        if (FrostwyrmGUIDs.empty())
-                            return;
-
-                        if (creature->AI()->GetData(1/*DATA_FROSTWYRM_OWNER*/) == DATA_SPINESTALKER)
-                        {
-                            SpinestalkerTrash.erase(creature->GetSpawnId());
-                            if (SpinestalkerTrash.empty())
-                                if (Creature* spinestalk = instance->GetCreature(SpinestalkerGUID))
-                                    spinestalk->AI()->DoAction(ACTION_START_FROSTWYRM);
-                        }
-                        else
-                        {
-                            RimefangTrash.erase(creature->GetSpawnId());
-                            if (RimefangTrash.empty())
-                                if (Creature* spinestalk = instance->GetCreature(RimefangGUID))
-                                    spinestalk->AI()->DoAction(ACTION_START_FROSTWYRM);
-                        }
-                        break;
-                    case NPC_RIMEFANG:
-                    case NPC_SPINESTALKER:
-                    {
-                        if (instance->IsHeroic() && !HeroicAttempts)
-                            return;
-
-                        if (GetBossState(DATA_SINDRAGOSA) == DONE)
-                            return;
-
-                        FrostwyrmGUIDs.erase(creature->GetSpawnId());
-                        if (FrostwyrmGUIDs.empty())
-                        {
-                            instance->LoadGrid(SindragosaSpawnPos.GetPositionX(), SindragosaSpawnPos.GetPositionY());
-                            if (Creature* boss = instance->SummonCreature(NPC_SINDRAGOSA, SindragosaSpawnPos))
-                                boss->AI()->DoAction(ACTION_START_FROSTWYRM);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            }
-
-            void OnGameObjectCreate(GameObject* go) override
+            void OnGameObjectCreate(GameObject* go)
             {
                 switch (go->GetEntry())
                 {
@@ -518,179 +291,86 @@ class instance_icecrown_citadel : public InstanceMapScript
                     case GO_DOODAD_ICECROWN_GRATE_01:
                     case GO_GREEN_DRAGON_BOSS_ENTRANCE:
                     case GO_GREEN_DRAGON_BOSS_EXIT:
-                    case GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_02:
-                    case GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_03:
                     case GO_SINDRAGOSA_ENTRANCE_DOOR:
                     case GO_SINDRAGOSA_SHORTCUT_ENTRANCE_DOOR:
                     case GO_SINDRAGOSA_SHORTCUT_EXIT_DOOR:
                     case GO_ICE_WALL:
                         AddDoor(go, true);
                         break;
-                    // these 2 gates are functional only on 25man modes
-                    case GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_01:
-                    case GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_04:
-                        if (instance->Is25ManRaid())
-                            AddDoor(go, true);
-                        break;
                     case GO_LADY_DEATHWHISPER_ELEVATOR:
-                        LadyDeathwisperElevatorGUID = go->GetGUID();
+                        ladyDeathwisperElevator = go->GetGUID();
                         if (GetBossState(DATA_LADY_DEATHWHISPER) == DONE)
                         {
-                            go->SetLevel(0);
+                            go->SetUInt32Value(GAMEOBJECT_LEVEL, 0);
                             go->SetGoState(GO_STATE_READY);
                         }
                         break;
-                    case GO_THE_SKYBREAKER_H:
-                    case GO_ORGRIMS_HAMMER_A:
-                        EnemyGunshipGUID = go->GetGUID();
-                        break;
-                    case GO_GUNSHIP_ARMORY_H_10N:
-                    case GO_GUNSHIP_ARMORY_H_25N:
-                    case GO_GUNSHIP_ARMORY_H_10H:
-                    case GO_GUNSHIP_ARMORY_H_25H:
-                    case GO_GUNSHIP_ARMORY_A_10N:
-                    case GO_GUNSHIP_ARMORY_A_25N:
-                    case GO_GUNSHIP_ARMORY_A_10H:
-                    case GO_GUNSHIP_ARMORY_A_25H:
-                        GunshipArmoryGUID = go->GetGUID();
-                        break;
                     case GO_SAURFANG_S_DOOR:
-                        DeathbringerSaurfangDoorGUID = go->GetGUID();
+                        saurfangDoor = go->GetGUID();
                         AddDoor(go, true);
                         break;
                     case GO_DEATHBRINGER_S_CACHE_10N:
                     case GO_DEATHBRINGER_S_CACHE_25N:
                     case GO_DEATHBRINGER_S_CACHE_10H:
                     case GO_DEATHBRINGER_S_CACHE_25H:
-                        DeathbringersCacheGUID = go->GetGUID();
+                        deathbringersCache = go->GetGUID();
                         break;
-                    case GO_SCOURGE_TRANSPORTER_LICHKING:
-                        TeleporterLichKingGUID = go->GetGUID();
-                        if (GetBossState(DATA_PROFESSOR_PUTRICIDE) == DONE && GetBossState(DATA_BLOOD_QUEEN_LANA_THEL) == DONE && GetBossState(DATA_SINDRAGOSA) == DONE)
-                            go->SetGoState(GO_STATE_ACTIVE);
-                        break;
-                    case GO_SCOURGE_TRANSPORTER_UPPERSPIRE:
-                        TeleporterUpperSpireGUID = go->GetGUID();
-                        if (GetBossState(DATA_DEATHBRINGER_SAURFANG) != DONE || GetData(DATA_UPPERSPIRE_TELE_ACT) != DONE)
-                            SetTeleporterState(go, false);
-                        else
-                            SetTeleporterState(go, true);
-                        break;
-                    case GO_SCOURGE_TRANSPORTER_LIGHTSHAMMER:
-                        TeleporterLightsHammerGUID = go->GetGUID();
-                        SetTeleporterState(go, GetBossState(DATA_LORD_MARROWGAR) == DONE);
-                        break;
-                    case GO_SCOURGE_TRANSPORTER_RAMPART:
-                        TeleporterRampartsGUID = go->GetGUID();
-                        SetTeleporterState(go, GetBossState(DATA_LADY_DEATHWHISPER) == DONE);
-                        break;
-                    case GO_SCOURGE_TRANSPORTER_DEATHBRINGER:
-                        TeleporterDeathBringerGUID = go->GetGUID();
-                        SetTeleporterState(go, GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == DONE);
-                        break;
-                    case GO_SCOURGE_TRANSPORTER_ORATORY:
-                        TeleporterOratoryGUID = go->GetGUID();
-                        SetTeleporterState(go, GetBossState(DATA_LORD_MARROWGAR) == DONE);
-                        break;
-                    case GO_SCOURGE_TRANSPORTER_SINDRAGOSA:
-                        TeleporterSindragosaGUID = go->GetGUID();
-                        SetTeleporterState(go, GetBossState(DATA_VALITHRIA_DREAMWALKER) == DONE);
+                    case GO_SCOURGE_TRANSPORTER_SAURFANG:
+                        saurfangTeleport = go->GetGUID();
                         break;
                     case GO_PLAGUE_SIGIL:
-                        PlagueSigilGUID = go->GetGUID();
+                        plagueSigil = go->GetGUID();
                         if (GetBossState(DATA_PROFESSOR_PUTRICIDE) == DONE)
-                            HandleGameObject(PlagueSigilGUID, false, go);
+                            HandleGameObject(plagueSigil, false, go);
                         break;
                     case GO_BLOODWING_SIGIL:
-                        BloodwingSigilGUID = go->GetGUID();
+                        bloodwingSigil = go->GetGUID();
                         if (GetBossState(DATA_BLOOD_QUEEN_LANA_THEL) == DONE)
-                            HandleGameObject(BloodwingSigilGUID, false, go);
+                            HandleGameObject(bloodwingSigil, false, go);
                         break;
                     case GO_SIGIL_OF_THE_FROSTWING:
-                        FrostwingSigilGUID = go->GetGUID();
+                        frostwingSigil = go->GetGUID();
                         if (GetBossState(DATA_SINDRAGOSA) == DONE)
-                            HandleGameObject(FrostwingSigilGUID, false, go);
+                            HandleGameObject(frostwingSigil, false, go);
                         break;
                     case GO_SCIENTIST_AIRLOCK_DOOR_COLLISION:
-                        PutricideCollisionGUID = go->GetGUID();
+                        putricideCollision = go->GetGUID();
                         if (GetBossState(DATA_FESTERGUT) == DONE && GetBossState(DATA_ROTFACE) == DONE)
-                            HandleGameObject(PutricideCollisionGUID, true, go);
+                            HandleGameObject(putricideCollision, true, go);
                         break;
                     case GO_SCIENTIST_AIRLOCK_DOOR_ORANGE:
-                        PutricideGateGUIDs[0] = go->GetGUID();
+                        putricideGates[0] = go->GetGUID();
                         if (GetBossState(DATA_FESTERGUT) == DONE && GetBossState(DATA_ROTFACE) == DONE)
-                            go->SetGoState(GO_STATE_DESTROYED);
+                            go->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
                         else if (GetBossState(DATA_FESTERGUT) == DONE)
-                            HandleGameObject(PutricideGateGUIDs[1], false, go);
+                            HandleGameObject(putricideGates[1], false, go);
                         break;
                     case GO_SCIENTIST_AIRLOCK_DOOR_GREEN:
-                        PutricideGateGUIDs[1] = go->GetGUID();
+                        putricideGates[1] = go->GetGUID();
                         if (GetBossState(DATA_ROTFACE) == DONE && GetBossState(DATA_FESTERGUT) == DONE)
-                            go->SetGoState(GO_STATE_DESTROYED);
+                            go->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
                         else if (GetBossState(DATA_ROTFACE) == DONE)
-                            HandleGameObject(PutricideGateGUIDs[1], false, go);
+                            HandleGameObject(putricideGates[1], false, go);
                         break;
                     case GO_DOODAD_ICECROWN_ORANGETUBES02:
-                        PutricidePipeGUIDs[0] = go->GetGUID();
+                        putricidePipes[0] = go->GetGUID();
                         if (GetBossState(DATA_FESTERGUT) == DONE)
-                            HandleGameObject(PutricidePipeGUIDs[0], true, go);
+                            HandleGameObject(putricidePipes[0], true, go);
                         break;
                     case GO_DOODAD_ICECROWN_GREENTUBES02:
-                        PutricidePipeGUIDs[1] = go->GetGUID();
+                        putricidePipes[1] = go->GetGUID();
                         if (GetBossState(DATA_ROTFACE) == DONE)
-                            HandleGameObject(PutricidePipeGUIDs[1], true, go);
+                            HandleGameObject(putricidePipes[1], true, go);
                         break;
                     case GO_DRINK_ME:
-                        PutricideTableGUID = go->GetGUID();
-                        break;
-                    case GO_CACHE_OF_THE_DREAMWALKER_10N:
-                    case GO_CACHE_OF_THE_DREAMWALKER_25N:
-                    case GO_CACHE_OF_THE_DREAMWALKER_10H:
-                    case GO_CACHE_OF_THE_DREAMWALKER_25H:
-                        if (Creature* valithria = instance->GetCreature(ValithriaDreamwalkerGUID))
-                            go->SetLootRecipient(valithria->GetLootRecipient(), valithria->GetLootRecipientGroup());
-                        go->RemoveFlag(GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE | GO_FLAG_NODESPAWN);
-                        break;
-                    case GO_ARTHAS_PLATFORM:
-                        // this enables movement at The Frozen Throne, when printed this value is 0.000000f
-                        // however, when represented as integer client will accept only this value
-                        go->SetUInt32Value(GAMEOBJECT_PARENTROTATION, 5535469);
-                        ArthasPlatformGUID = go->GetGUID();
-                        break;
-                    case GO_ARTHAS_PRECIPICE:
-                        go->SetUInt32Value(GAMEOBJECT_PARENTROTATION, 4178312);
-                        ArthasPrecipiceGUID = go->GetGUID();
-                        break;
-                    case GO_DOODAD_ICECROWN_THRONEFROSTYEDGE01:
-                        FrozenThroneEdgeGUID = go->GetGUID();
-                        break;
-                    case GO_DOODAD_ICECROWN_THRONEFROSTYWIND01:
-                        FrozenThroneWindGUID = go->GetGUID();
-                        break;
-                    case GO_DOODAD_ICECROWN_SNOWEDGEWARNING01:
-                        FrozenThroneWarningGUID = go->GetGUID();
-                        break;
-                    case GO_FROZEN_LAVAMAN:
-                        FrozenBolvarGUID = go->GetGUID();
-                        if (GetBossState(DATA_THE_LICH_KING) == DONE)
-                            go->SetRespawnTime(7 * DAY);
-                        break;
-                    case GO_LAVAMAN_PILLARS_CHAINED:
-                        PillarsChainedGUID = go->GetGUID();
-                        if (GetBossState(DATA_THE_LICH_KING) == DONE)
-                            go->SetRespawnTime(7 * DAY);
-                        break;
-                    case GO_LAVAMAN_PILLARS_UNCHAINED:
-                        PillarsUnchainedGUID = go->GetGUID();
-                        if (GetBossState(DATA_THE_LICH_KING) == DONE)
-                            go->SetRespawnTime(7 * DAY);
+                        putricideTable = go->GetGUID();
                         break;
                     default:
                         break;
                 }
             }
 
-            void OnGameObjectRemove(GameObject* go) override
+            void OnGameObjectRemove(GameObject* go)
             {
                 switch (go->GetEntry())
                 {
@@ -709,51 +389,35 @@ class instance_icecrown_citadel : public InstanceMapScript
                     case GO_DOODAD_ICECROWN_GRATE_01:
                     case GO_GREEN_DRAGON_BOSS_ENTRANCE:
                     case GO_GREEN_DRAGON_BOSS_EXIT:
-                    case GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_01:
-                    case GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_02:
-                    case GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_03:
-                    case GO_DOODAD_ICECROWN_ROOSTPORTCULLIS_04:
                     case GO_SINDRAGOSA_ENTRANCE_DOOR:
                     case GO_SINDRAGOSA_SHORTCUT_ENTRANCE_DOOR:
                     case GO_SINDRAGOSA_SHORTCUT_EXIT_DOOR:
                     case GO_ICE_WALL:
                         AddDoor(go, false);
                         break;
-                    case GO_THE_SKYBREAKER_A:
-                    case GO_ORGRIMS_HAMMER_H:
-                        GunshipGUID.Clear();
-                        break;
                     default:
                         break;
                 }
             }
 
-            uint32 GetData(uint32 type) const override
+            uint32 GetData(uint32 type)
             {
                 switch (type)
                 {
                     case DATA_SINDRAGOSA_FROSTWYRMS:
-                        return FrostwyrmGUIDs.size();
+                        return frostwyrms;
                     case DATA_SPINESTALKER:
-                        return SpinestalkerTrash.size();
+                        return spinestalkerTrash;
                     case DATA_RIMEFANG:
-                        return RimefangTrash.size();
+                        return rimefangTrash;
                     case DATA_COLDFLAME_JETS:
-                        return ColdflameJetsState;
-                    case DATA_UPPERSPIRE_TELE_ACT:
-                        return UpperSpireTeleporterActiveState;
+                        return coldflameJetsState;
                     case DATA_TEAM_IN_INSTANCE:
-                        return TeamInInstance;
+                        return teamInInstance;
                     case DATA_BLOOD_QUICKENING_STATE:
-                        return BloodQuickeningState;
+                        return bloodQuickeningState;
                     case DATA_HEROIC_ATTEMPTS:
-                        return HeroicAttempts;
-                    case DATA_BLOOD_PRINCE_COUNCIL_INTRO:
-                        return BloodPrinceIntro;
-                    case DATA_SINDRAGOSA_INTRO:
-                        return SindragosaIntro;
-                    case DATA_FACTION_BUFF:
-                        return IsFactionBuffActive ? 1 : 0;
+                        return heroicAttempts;
                     default:
                         break;
                 }
@@ -761,177 +425,77 @@ class instance_icecrown_citadel : public InstanceMapScript
                 return 0;
             }
 
-            ObjectGuid GetGuidData(uint32 type) const override
+            uint64 GetData64(uint32 type)
             {
                 switch (type)
                 {
-                    case DATA_LORD_MARROWGAR:
-                        return LordMarrowgarGUID;
-                    case DATA_LADY_DEATHWHISPER:
-                        return LadyDeahtwhisperGUID;
-                    case DATA_ICECROWN_GUNSHIP_BATTLE:
-                        return GunshipGUID;
-                    case DATA_ENEMY_GUNSHIP:
-                        return EnemyGunshipGUID;
                     case DATA_DEATHBRINGER_SAURFANG:
-                        return DeathbringerSaurfangGUID;
+                        return deathbringerSaurfang;
                     case DATA_SAURFANG_EVENT_NPC:
-                        return DeathbringerSaurfangEventGUID;
+                        return saurfangEventNPC;
                     case GO_SAURFANG_S_DOOR:
-                        return DeathbringerSaurfangDoorGUID;
+                        return saurfangDoor;
+                    case GO_SCOURGE_TRANSPORTER_SAURFANG:
+                        return saurfangTeleport;
                     case DATA_FESTERGUT:
-                        return FestergutGUID;
+                        return festergut;
                     case DATA_ROTFACE:
-                        return RotfaceGUID;
+                        return rotface;
                     case DATA_PROFESSOR_PUTRICIDE:
-                        return ProfessorPutricideGUID;
+                        return professorPutricide;
                     case DATA_PUTRICIDE_TABLE:
-                        return PutricideTableGUID;
-                    case DATA_PRINCE_KELESETH:
-                        return BloodCouncilGUIDs[0];
-                    case DATA_PRINCE_TALDARAM:
-                        return BloodCouncilGUIDs[1];
-                    case DATA_PRINCE_VALANAR:
-                        return BloodCouncilGUIDs[2];
+                        return putricideTable;
+                    case DATA_PRINCE_KELESETH_GUID:
+                        return bloodCouncil[0];
+                    case DATA_PRINCE_TALDARAM_GUID:
+                        return bloodCouncil[1];
+                    case DATA_PRINCE_VALANAR_GUID:
+                        return bloodCouncil[2];
                     case DATA_BLOOD_PRINCES_CONTROL:
-                        return BloodCouncilControllerGUID;
-                    case DATA_BLOOD_QUEEN_LANA_THEL_COUNCIL:
-                        return BloodQueenLanaThelCouncilGUID;
+                        return bloodCouncilController;
                     case DATA_BLOOD_QUEEN_LANA_THEL:
-                        return BloodQueenLanaThelGUID;
-                    case DATA_CROK_SCOURGEBANE:
-                        return CrokScourgebaneGUID;
-                    case DATA_CAPTAIN_ARNATH:
-                    case DATA_CAPTAIN_BRANDON:
-                    case DATA_CAPTAIN_GRONDEL:
-                    case DATA_CAPTAIN_RUPERT:
-                        return CrokCaptainGUIDs[type - DATA_CAPTAIN_ARNATH];
-                    case DATA_SISTER_SVALNA:
-                        return SisterSvalnaGUID;
-                    case DATA_VALITHRIA_DREAMWALKER:
-                        return ValithriaDreamwalkerGUID;
-                    case DATA_VALITHRIA_LICH_KING:
-                        return ValithriaLichKingGUID;
-                    case DATA_VALITHRIA_TRIGGER:
-                        return ValithriaTriggerGUID;
+                        return bloodQueenLanaThel;
                     case DATA_SINDRAGOSA:
-                        return SindragosaGUID;
+                        return sindragosa;
                     case DATA_SPINESTALKER:
-                        return SpinestalkerGUID;
+                        return spinestalker;
                     case DATA_RIMEFANG:
-                        return RimefangGUID;
-                    case DATA_THE_LICH_KING:
-                        return TheLichKingGUID;
-                    case DATA_HIGHLORD_TIRION_FORDRING:
-                        return HighlordTirionFordringGUID;
-                    case DATA_ARTHAS_PLATFORM:
-                        return ArthasPlatformGUID;
-                    case DATA_TERENAS_MENETHIL:
-                        return TerenasMenethilGUID;
+                        return rimefang;
                     default:
                         break;
                 }
 
-                return ObjectGuid::Empty;
+                return 0;
             }
 
-            void HandleHeroicAttempts()
-            {
-                if (HeroicAttempts)
-                {
-                    --HeroicAttempts;
-                    DoUpdateWorldState(WORLDSTATE_ATTEMPTS_REMAINING, HeroicAttempts);
-                }
-
-                if (!HeroicAttempts)
-                {
-                    for (ObjectGuid const& bossGuid : { ProfessorPutricideGUID, BloodQueenLanaThelGUID, SindragosaGUID, TheLichKingGUID })
-                    {
-                        if (Creature* boss = instance->GetCreature(bossGuid))
-                            if (boss->IsAlive())
-                                boss->DespawnOrUnsummon();
-                    }
-                }
-            }
-
-            bool SetBossState(uint32 type, EncounterState state) override
+            bool SetBossState(uint32 type, EncounterState state)
             {
                 if (!InstanceScript::SetBossState(type, state))
                     return false;
 
                 switch (type)
                 {
-                    case DATA_LORD_MARROWGAR:
-                    {
-                        if (state == DONE)
-                        {
-                            if (GameObject* teleporter = instance->GetGameObject(TeleporterLightsHammerGUID))
-                                SetTeleporterState(teleporter, true);
-                            if (GameObject* teleporter = instance->GetGameObject(TeleporterOratoryGUID))
-                                SetTeleporterState(teleporter, true);
-                        }
-                        break;
-                    }
                     case DATA_LADY_DEATHWHISPER:
-                    {
+                        SetBossState(DATA_GUNSHIP_EVENT, state);    // TEMP HACK UNTIL GUNSHIP SCRIPTED
                         if (state == DONE)
-                        {
-                            if (GameObject* teleporter = instance->GetGameObject(TeleporterRampartsGUID))
-                                SetTeleporterState(teleporter, true);
-
-                            if (GameObject* elevator = instance->GetGameObject(LadyDeathwisperElevatorGUID))
+                            if (GameObject* elevator = instance->GetGameObject(ladyDeathwisperElevator))
                             {
-                                elevator->SetLevel(0);
+                                elevator->SetUInt32Value(GAMEOBJECT_LEVEL, 0);
                                 elevator->SetGoState(GO_STATE_READY);
                             }
-
-                            SpawnGunship();
-                        }
-                        break;
-                    }
-                    case DATA_ICECROWN_GUNSHIP_BATTLE:
-                        if (state == DONE)
-                        {
-                            if (GameObject* teleporter = instance->GetGameObject(TeleporterDeathBringerGUID))
-                                SetTeleporterState(teleporter, true);
-
-                            if (GameObject* loot = instance->GetGameObject(GunshipArmoryGUID))
-                                loot->RemoveFlag(GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE | GO_FLAG_NODESPAWN);
-                        }
-                        else if (state == FAIL)
-                            Events.ScheduleEvent(EVENT_RESPAWN_GUNSHIP, 30s);
                         break;
                     case DATA_DEATHBRINGER_SAURFANG:
                         switch (state)
                         {
                             case DONE:
-                            {
-                                if (GameObject* loot = instance->GetGameObject(DeathbringersCacheGUID))
-                                {
-                                    if (Creature* deathbringer = instance->GetCreature(DeathbringerSaurfangGUID))
-                                        loot->SetLootRecipient(deathbringer->GetLootRecipient(), deathbringer->GetLootRecipientGroup());
-                                    loot->RemoveFlag(GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE | GO_FLAG_NODESPAWN);
-                                }
-
-                                if (GameObject* teleporter = instance->GetGameObject(TeleporterUpperSpireGUID))
-                                    SetTeleporterState(teleporter, true);
-
-                                if (GameObject* teleporter = instance->GetGameObject(TeleporterDeathBringerGUID))
-                                    SetTeleporterState(teleporter, true);
-                                break;
-                            }
+                                DoRespawnGameObject(deathbringersCache, 7*DAY);
                             case NOT_STARTED:
-                            {
-                                if (GameObject* teleporter = instance->GetGameObject(TeleporterDeathBringerGUID))
-                                    SetTeleporterState(teleporter, true);
+                                if (GameObject* teleporter = instance->GetGameObject(saurfangTeleport))
+                                {
+                                    HandleGameObject(saurfangTeleport, true, teleporter);
+                                    teleporter->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_IN_USE);
+                                }
                                 break;
-                            }
-                            case IN_PROGRESS:
-                            {
-                                if (GameObject* teleporter = instance->GetGameObject(TeleporterDeathBringerGUID))
-                                    SetTeleporterState(teleporter, false);
-                                break;
-                            }
                             default:
                                 break;
                         }
@@ -941,15 +505,15 @@ class instance_icecrown_citadel : public InstanceMapScript
                         {
                             if (GetBossState(DATA_ROTFACE) == DONE)
                             {
-                                HandleGameObject(PutricideCollisionGUID, true);
-                                if (GameObject* go = instance->GetGameObject(PutricideGateGUIDs[0]))
-                                    go->SetGoState(GO_STATE_DESTROYED);
-                                if (GameObject* go = instance->GetGameObject(PutricideGateGUIDs[1]))
-                                    go->SetGoState(GO_STATE_DESTROYED);
+                                HandleGameObject(putricideCollision, true);
+                                if (GameObject* go = instance->GetGameObject(putricideGates[0]))
+                                    go->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
+                                if (GameObject* go = instance->GetGameObject(putricideGates[1]))
+                                    go->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
                             }
                             else
-                                HandleGameObject(PutricideGateGUIDs[0], false);
-                            HandleGameObject(PutricidePipeGUIDs[0], true);
+                                HandleGameObject(putricideGates[0], false);
+                            HandleGameObject(putricidePipes[0], true);
                         }
                         break;
                     case DATA_ROTFACE:
@@ -957,75 +521,63 @@ class instance_icecrown_citadel : public InstanceMapScript
                         {
                             if (GetBossState(DATA_FESTERGUT) == DONE)
                             {
-                                HandleGameObject(PutricideCollisionGUID, true);
-                                if (GameObject* go = instance->GetGameObject(PutricideGateGUIDs[0]))
-                                    go->SetGoState(GO_STATE_DESTROYED);
-                                if (GameObject* go = instance->GetGameObject(PutricideGateGUIDs[1]))
-                                    go->SetGoState(GO_STATE_DESTROYED);
+                                HandleGameObject(putricideCollision, true);
+                                if (GameObject* go = instance->GetGameObject(putricideGates[0]))
+                                    go->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
+                                if (GameObject* go = instance->GetGameObject(putricideGates[1]))
+                                    go->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
                             }
                             else
-                                HandleGameObject(PutricideGateGUIDs[1], false);
-                            HandleGameObject(PutricidePipeGUIDs[1], true);
+                                HandleGameObject(putricideGates[1], false);
+                            HandleGameObject(putricidePipes[1], true);
                         }
                         break;
                     case DATA_PROFESSOR_PUTRICIDE:
-                        HandleGameObject(PlagueSigilGUID, state != DONE);
-                        if (instance->IsHeroic() && state == FAIL)
-                            HandleHeroicAttempts();
-                        else if (state == DONE)
-                            CheckLichKingAvailability();
+                        HandleGameObject(plagueSigil, state != DONE);
+                        if (instance->IsHeroic())
+                        {
+                            if (state == FAIL && heroicAttempts)
+                            {
+                                --heroicAttempts;
+                                DoUpdateWorldState(WORLDSTATE_ATTEMPTS_REMAINING, heroicAttempts);
+                                if (!heroicAttempts)
+                                    if (Creature* putricide = instance->GetCreature(professorPutricide))
+                                        putricide->DespawnOrUnsummon();
+                            }
+                        }
                         break;
                     case DATA_BLOOD_QUEEN_LANA_THEL:
-                        HandleGameObject(BloodwingSigilGUID, state != DONE);
-                        if (instance->IsHeroic() && state == FAIL)
-                            HandleHeroicAttempts();
-                        else if (state == DONE)
-                            CheckLichKingAvailability();
+                        HandleGameObject(bloodwingSigil, state != DONE);
+                        if (instance->IsHeroic())
+                        {
+                            if (state == FAIL && heroicAttempts)
+                            {
+                                --heroicAttempts;
+                                DoUpdateWorldState(WORLDSTATE_ATTEMPTS_REMAINING, heroicAttempts);
+                                if (!heroicAttempts)
+                                    if (Creature* bq = instance->GetCreature(bloodQueenLanaThel))
+                                        bq->DespawnOrUnsummon();
+                            }
+                        }
                         break;
                     case DATA_VALITHRIA_DREAMWALKER:
-                        if (state == DONE)
-                        {
-                            if (sQuestPoolMgr->IsQuestActive(WeeklyQuestData[8].questId[instance->GetSpawnMode() & 1]))
-                                instance->SummonCreature(NPC_VALITHRIA_DREAMWALKER_QUEST, ValithriaSpawnPos);
-                            if (GameObject* teleporter = instance->GetGameObject(TeleporterSindragosaGUID))
-                                SetTeleporterState(teleporter, true);
-                        }
                         break;
                     case DATA_SINDRAGOSA:
-                        HandleGameObject(FrostwingSigilGUID, state != DONE);
-                        if (instance->IsHeroic() && state == FAIL)
-                            HandleHeroicAttempts();
-                        else if (state == DONE)
-                            CheckLichKingAvailability();
-                        break;
-                    case DATA_THE_LICH_KING:
-                    {
-                        // set the platform as active object to dramatically increase visibility range
-                        // note: "active" gameobjects do not block grid unloading
-                        if (GameObject* precipice = instance->GetGameObject(ArthasPrecipiceGUID))
-                            precipice->SetFarVisible(state == IN_PROGRESS);
-
-                        if (GameObject* platform = instance->GetGameObject(ArthasPlatformGUID))
-                            platform->SetFarVisible(state == IN_PROGRESS);
-
-                        if (instance->IsHeroic() && state == FAIL)
-                            HandleHeroicAttempts();
-                        else if (state == DONE)
+                        HandleGameObject(frostwingSigil, state != DONE);
+                        if (instance->IsHeroic())
                         {
-                            if (GameObject* bolvar = instance->GetGameObject(FrozenBolvarGUID))
-                                bolvar->SetRespawnTime(7 * DAY);
-                            if (GameObject* pillars = instance->GetGameObject(PillarsChainedGUID))
-                                pillars->SetRespawnTime(7 * DAY);
-                            if (GameObject* pillars = instance->GetGameObject(PillarsUnchainedGUID))
-                                pillars->SetRespawnTime(7 * DAY);
-
-                            instance->SummonCreature(NPC_LADY_JAINA_PROUDMOORE_QUEST, JainaSpawnPos);
-                            instance->SummonCreature(NPC_MURADIN_BRONZEBEARD_QUEST, MuradinSpawnPos);
-                            instance->SummonCreature(NPC_UTHER_THE_LIGHTBRINGER_QUEST, UtherSpawnPos);
-                            instance->SummonCreature(NPC_LADY_SYLVANAS_WINDRUNNER_QUEST, SylvanasSpawnPos);
+                            if (state == FAIL && heroicAttempts)
+                            {
+                                --heroicAttempts;
+                                DoUpdateWorldState(WORLDSTATE_ATTEMPTS_REMAINING, heroicAttempts);
+                                if (!heroicAttempts)
+                                    if (Creature* sindra = instance->GetCreature(sindragosa))
+                                        sindra->DespawnOrUnsummon();
+                            }
                         }
                         break;
-                    }
+                    case DATA_THE_LICH_KING:
+                        break;
                     default:
                         break;
                  }
@@ -1033,121 +585,99 @@ class instance_icecrown_citadel : public InstanceMapScript
                  return true;
             }
 
-            void SpawnGunship()
-            {
-                if (!GunshipGUID)
-                {
-                    SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, NOT_STARTED);
-                    uint32 gunshipEntry = TeamInInstance == HORDE ? GO_ORGRIMS_HAMMER_H : GO_THE_SKYBREAKER_A;
-                    if (Transport* gunship = sTransportMgr->CreateTransport(gunshipEntry, 0, instance))
-                        GunshipGUID = gunship->GetGUID();
-                }
-            }
-
-            void SetData(uint32 type, uint32 data) override
+            void SetData(uint32 type, uint32 data)
             {
                 switch (type)
                 {
                     case DATA_BONED_ACHIEVEMENT:
-                        IsBonedEligible = data ? true : false;
+                        isBonedEligible = data ? true : false;
                         break;
                     case DATA_OOZE_DANCE_ACHIEVEMENT:
-                        IsOozeDanceEligible = data ? true : false;
+                        isOozeDanceEligible = data ? true : false;
                         break;
                     case DATA_NAUSEA_ACHIEVEMENT:
-                        IsNauseaEligible = data ? true : false;
+                        isNauseaEligible = data ? true : false;
                         break;
                     case DATA_ORB_WHISPERER_ACHIEVEMENT:
-                        IsOrbWhispererEligible = data ? true : false;
+                        isOrbWhispererEligible = data ? true : false;
+                        break;
+                    case DATA_SINDRAGOSA_FROSTWYRMS:
+                        if (instance->IsHeroic() && !heroicAttempts)
+                            return;
+                        if (data > 1)
+                            frostwyrms = data;
+                        else if (data == 1)
+                            ++frostwyrms;
+                        else if (!data && !--frostwyrms && GetBossState(DATA_SINDRAGOSA) != DONE)
+                        {
+                            instance->LoadGrid(SindragosaSpawnPos.GetPositionX(), SindragosaSpawnPos.GetPositionY());
+                            if (Creature* boss = instance->SummonCreature(NPC_SINDRAGOSA, SindragosaSpawnPos))
+                            {
+                                boss->setActive(true);
+                                boss->AI()->DoAction(ACTION_START_FROSTWYRM);
+                            }
+                        }
+                        break;
+                    case DATA_SPINESTALKER:
+                        if (data > 1)
+                            spinestalkerTrash = data;
+                        else if (data == 1)
+                            ++spinestalkerTrash;
+                        else if (!data && !--spinestalkerTrash)
+                            if (Creature* spinestalk = instance->GetCreature(spinestalker))
+                                spinestalk->AI()->DoAction(ACTION_START_FROSTWYRM);
+                        break;
+                    case DATA_RIMEFANG:
+                        if (data > 1)
+                            rimefangTrash = data;
+                        else if (data == 1)
+                            ++rimefangTrash;
+                        else if (!data && !--rimefangTrash)
+                            if (Creature* rime = instance->GetCreature(rimefang))
+                                rime->AI()->DoAction(ACTION_START_FROSTWYRM);
                         break;
                     case DATA_COLDFLAME_JETS:
-                        ColdflameJetsState = data;
-                        if (ColdflameJetsState == DONE)
+                        coldflameJetsState = data;
+                        if (coldflameJetsState == DONE)
+                        {
                             SaveToDB();
+                            for (std::set<uint64>::iterator itr = coldflameJets.begin(); itr != coldflameJets.end(); ++itr)
+                                if (Creature* trap = instance->GetCreature(*itr))
+                                    trap->AI()->DoAction(ACTION_STOP_TRAPS);
+                        }
                         break;
                     case DATA_BLOOD_QUICKENING_STATE:
                     {
-                        // skip if nothing changes
-                        if (BloodQuickeningState == data)
+                        // 3 is the index of Blood Quickening
+                        if (!sPoolMgr->IsSpawnedObject<Quest>(WeeklyQuestData[3].questId[instance->GetSpawnMode() & 1]))
                             break;
-
-                        // 5 is the index of Blood Quickening
-                        if (!sQuestPoolMgr->IsQuestActive(WeeklyQuestData[5].questId[instance->GetSpawnMode() & 1]))
+                        if (bloodQuickeningState == data)
                             break;
 
                         switch (data)
                         {
                             case IN_PROGRESS:
-                                Events.ScheduleEvent(EVENT_UPDATE_EXECUTION_TIME, 1min);
-                                BloodQuickeningMinutes = 30;
+                                bloodQuickeningTimer = 60000;
+                                bloodQuickeningMinutes = 30;
                                 DoUpdateWorldState(WORLDSTATE_SHOW_TIMER, 1);
-                                DoUpdateWorldState(WORLDSTATE_EXECUTION_TIME, BloodQuickeningMinutes);
+                                DoUpdateWorldState(WORLDSTATE_EXECUTION_TIME, bloodQuickeningMinutes);
                                 break;
                             case DONE:
-                                Events.CancelEvent(EVENT_UPDATE_EXECUTION_TIME);
-                                BloodQuickeningMinutes = 0;
+                                bloodQuickeningTimer = 0;
+                                bloodQuickeningMinutes = 0;
                                 DoUpdateWorldState(WORLDSTATE_SHOW_TIMER, 0);
                                 break;
-                            default:
-                                break;
                         }
-
-                        BloodQuickeningState = data;
+                        bloodQuickeningState = data;
                         SaveToDB();
                         break;
                     }
-                    case DATA_UPPERSPIRE_TELE_ACT:
-                        UpperSpireTeleporterActiveState = data;
-                        if (UpperSpireTeleporterActiveState == DONE)
-                        {
-                            if (GameObject* go = instance->GetGameObject(TeleporterUpperSpireGUID))
-                                SetTeleporterState(go, true);
-                            SaveToDB();
-                        }
-                        break;
-                    case DATA_BLOOD_PRINCE_COUNCIL_INTRO:
-                        BloodPrinceIntro = data;
-                        break;
-                    case DATA_SINDRAGOSA_INTRO:
-                        SindragosaIntro = data;
-                        break;
-                    case DATA_FACTION_BUFF:
-                        IsFactionBuffActive = data ? true : false;
-                        if (!IsFactionBuffActive)
-                            DoRemoveAurasDueToSpellOnPlayers(TeamInInstance == ALLIANCE ? SPELL_STRENGHT_OF_WRYNN : SPELL_HELLSCREAMS_WARSONG, true, true);
-                        break;
-                    case DATA_NERUBAR_BROODKEEPER_EVENT:
-                    {
-                        uint8 group = (data == AT_NERUBAR_BROODKEEPER) ? 0 : 1;
-                        for (ObjectGuid guid : nerubarBroodkeepersGUIDs[group])
-                            if (Creature* nerubar = instance->GetCreature(guid))
-                                nerubar->AI()->DoAction(ACTION_NERUBAR_FALL);
-                        break;
-                    }
                     default:
                         break;
                 }
             }
 
-            void SetData64(uint32 type, uint64 data) override
-            {
-                switch (type)
-                {
-                    case DATA_SINDRAGOSA_FROSTWYRMS:
-                        FrostwyrmGUIDs.insert(data);
-                        break;
-                    case DATA_SPINESTALKER:
-                        SpinestalkerTrash.insert(data);
-                        break;
-                    case DATA_RIMEFANG:
-                        RimefangTrash.insert(data);
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            bool CheckAchievementCriteriaMeet(uint32 criteria_id, Player const* /*source*/, Unit const* /*target*/, uint32 /*miscvalue1*/) override
+            bool CheckAchievementCriteriaMeet(uint32 criteria_id, Player const* /*source*/, Unit const* /*target*/, uint32 /*miscvalue1*/)
             {
                 switch (criteria_id)
                 {
@@ -1155,31 +685,31 @@ class instance_icecrown_citadel : public InstanceMapScript
                     case CRITERIA_BONED_25N:
                     case CRITERIA_BONED_10H:
                     case CRITERIA_BONED_25H:
-                        return IsBonedEligible;
+                        return isBonedEligible;
                     case CRITERIA_DANCES_WITH_OOZES_10N:
                     case CRITERIA_DANCES_WITH_OOZES_25N:
                     case CRITERIA_DANCES_WITH_OOZES_10H:
                     case CRITERIA_DANCES_WITH_OOZES_25H:
-                        return IsOozeDanceEligible;
+                        return isOozeDanceEligible;
                     case CRITERIA_NAUSEA_10N:
                     case CRITERIA_NAUSEA_25N:
                     case CRITERIA_NAUSEA_10H:
                     case CRITERIA_NAUSEA_25H:
-                        return IsNauseaEligible;
+                        return isNauseaEligible;
                     case CRITERIA_ORB_WHISPERER_10N:
                     case CRITERIA_ORB_WHISPERER_25N:
                     case CRITERIA_ORB_WHISPERER_10H:
                     case CRITERIA_ORB_WHISPERER_25H:
-                        return IsOrbWhispererEligible;
+                        return isOrbWhispererEligible;
                     // Only one criteria for both modes, need to do it like this
                     case CRITERIA_KILL_LANA_THEL_10M:
                     case CRITERIA_ONCE_BITTEN_TWICE_SHY_10N:
                     case CRITERIA_ONCE_BITTEN_TWICE_SHY_10V:
-                        return instance->ToInstanceMap()->GetMaxPlayers() == 10;
+                        return CAST_INST(InstanceMap, instance)->GetMaxPlayers() == 10;
                     case CRITERIA_KILL_LANA_THEL_25M:
                     case CRITERIA_ONCE_BITTEN_TWICE_SHY_25N:
                     case CRITERIA_ONCE_BITTEN_TWICE_SHY_25V:
-                        return instance->ToInstanceMap()->GetMaxPlayers() == 25;
+                        return CAST_INST(InstanceMap, instance)->GetMaxPlayers() == 25;
                     default:
                         break;
                 }
@@ -1187,9 +717,9 @@ class instance_icecrown_citadel : public InstanceMapScript
                 return false;
             }
 
-            bool CheckRequiredBosses(uint32 bossId, Player const* player = nullptr) const override
+            bool CheckRequiredBosses(uint32 bossId, Player const* player = NULL) const
             {
-                if (_SkipCheckRequiredBosses(player))
+                if (player && player->isGameMaster())
                     return true;
 
                 switch (bossId)
@@ -1235,7 +765,7 @@ class instance_icecrown_citadel : public InstanceMapScript
                     case DATA_THE_LICH_KING:
                         if (GetBossState(DATA_PROFESSOR_PUTRICIDE) != DONE)
                             return false;
-                        [[fallthrough]];
+                        // no break
                     case DATA_PROFESSOR_PUTRICIDE:
                         if (GetBossState(DATA_FESTERGUT) != DONE || GetBossState(DATA_ROTFACE) != DONE)
                             return false;
@@ -1254,7 +784,7 @@ class instance_icecrown_citadel : public InstanceMapScript
                     case DATA_THE_LICH_KING:
                         if (GetBossState(DATA_BLOOD_QUEEN_LANA_THEL) != DONE)
                             return false;
-                        [[fallthrough]];
+                        // no break
                     case DATA_BLOOD_QUEEN_LANA_THEL:
                         if (GetBossState(DATA_BLOOD_PRINCE_COUNCIL) != DONE)
                             return false;
@@ -1273,10 +803,10 @@ class instance_icecrown_citadel : public InstanceMapScript
                     case DATA_THE_LICH_KING:
                         if (GetBossState(DATA_SINDRAGOSA) != DONE)
                             return false;
-                        [[fallthrough]];
+                        // no break
                     case DATA_SINDRAGOSA:
-                        if (GetBossState(DATA_VALITHRIA_DREAMWALKER) != DONE)
-                            return false;
+                        //if (GetBossState(DATA_VALITHRIA_DREAMWALKER) != DONE)
+                        //    return false;
                         break;
                     default:
                         break;
@@ -1299,19 +829,19 @@ class instance_icecrown_citadel : public InstanceMapScript
                     case DATA_FESTERGUT:
                         if (GetBossState(DATA_DEATHBRINGER_SAURFANG) != DONE)
                             return false;
-                        [[fallthrough]];
+                        // no break
                     case DATA_DEATHBRINGER_SAURFANG:
-                        if (GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) != DONE)
+                        if (GetBossState(DATA_GUNSHIP_EVENT) != DONE)
                             return false;
-                        [[fallthrough]];
-                    case DATA_ICECROWN_GUNSHIP_BATTLE:
+                        // no break
+                    case DATA_GUNSHIP_EVENT:
                         if (GetBossState(DATA_LADY_DEATHWHISPER) != DONE)
                             return false;
-                        [[fallthrough]];
+                        // no break
                     case DATA_LADY_DEATHWHISPER:
                         if (GetBossState(DATA_LORD_MARROWGAR) != DONE)
                             return false;
-                        [[fallthrough]];
+                        // no break
                     case DATA_LORD_MARROWGAR:
                     default:
                         break;
@@ -1320,252 +850,125 @@ class instance_icecrown_citadel : public InstanceMapScript
                 return true;
             }
 
-            void CheckLichKingAvailability()
+            std::string GetSaveData()
             {
-                if (GetBossState(DATA_PROFESSOR_PUTRICIDE) == DONE && GetBossState(DATA_BLOOD_QUEEN_LANA_THEL) == DONE && GetBossState(DATA_SINDRAGOSA) == DONE)
+                OUT_SAVE_INST_DATA;
+
+                std::ostringstream saveStream;
+                saveStream << "I C " << GetBossSaveData() << coldflameJetsState
+                    << " " << bloodQuickeningState << " " << bloodQuickeningMinutes;
+
+                OUT_SAVE_INST_DATA_COMPLETE;
+                return saveStream.str();
+            }
+
+            void Load(const char* str)
+            {
+                if (!str)
                 {
-                    if (GameObject* teleporter = instance->GetGameObject(TheLichKingTeleportGUID))
-                    {
-                        teleporter->SetGoState(GO_STATE_ACTIVE);
-
-                        std::list<Creature*> stalkers;
-                        teleporter->GetCreatureListWithEntryInGrid(stalkers, NPC_INVISIBLE_STALKER, 100.0f);
-                        if (stalkers.empty())
-                            return;
-
-                        stalkers.sort(Trinity::ObjectDistanceOrderPred(teleporter));
-                        stalkers.front()->CastSpell(nullptr, SPELL_ARTHAS_TELEPORTER_CEREMONY, false);
-                        stalkers.pop_front();
-                        for (std::list<Creature*>::iterator itr = stalkers.begin(); itr != stalkers.end(); ++itr)
-                            (*itr)->AI()->Reset();
-                    }
-                }
-            }
-
-            void WriteSaveDataMore(std::ostringstream& data) override
-            {
-                data << HeroicAttempts << ' '
-                    << ColdflameJetsState << ' '
-                    << BloodQuickeningState << ' '
-                    << BloodQuickeningMinutes << ' '
-                    << UpperSpireTeleporterActiveState;
-            }
-
-            void ReadSaveDataMore(std::istringstream& data) override
-            {
-                uint32 temp = 0;
-
-                data >> HeroicAttempts;
-
-                data >> temp;
-                ColdflameJetsState = temp == DONE ? DONE : NOT_STARTED;
-
-                data >> temp;
-                BloodQuickeningState = temp == DONE ? DONE : NOT_STARTED;
-
-                data >> BloodQuickeningMinutes;
-
-                data >> temp;
-                UpperSpireTeleporterActiveState = temp == DONE ? DONE : NOT_STARTED;
-            }
-
-            void Update(uint32 diff) override
-            {
-                if (BloodQuickeningState != IN_PROGRESS && GetBossState(DATA_THE_LICH_KING) != IN_PROGRESS && GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) != FAIL)
+                    OUT_LOAD_INST_DATA_FAIL;
                     return;
+                }
 
-                Events.Update(diff);
+                OUT_LOAD_INST_DATA(str);
 
-                while (uint32 eventId = Events.ExecuteEvent())
+                char dataHead1, dataHead2;
+
+                std::istringstream loadStream(str);
+                loadStream >> dataHead1 >> dataHead2;
+
+                if (dataHead1 == 'I' && dataHead2 == 'C')
                 {
-                    switch (eventId)
+                    for (uint32 i = 0; i < EncounterCount; ++i)
                     {
-                        case EVENT_UPDATE_EXECUTION_TIME:
-                        {
-                            --BloodQuickeningMinutes;
-                            if (BloodQuickeningMinutes)
-                            {
-                                Events.ScheduleEvent(EVENT_UPDATE_EXECUTION_TIME, 1min);
-                                DoUpdateWorldState(WORLDSTATE_SHOW_TIMER, 1);
-                                DoUpdateWorldState(WORLDSTATE_EXECUTION_TIME, BloodQuickeningMinutes);
-                            }
-                            else
-                            {
-                                BloodQuickeningState = DONE;
-                                DoUpdateWorldState(WORLDSTATE_SHOW_TIMER, 0);
-                                if (Creature* bq = instance->GetCreature(BloodQueenLanaThelGUID))
-                                    bq->AI()->DoAction(ACTION_KILL_MINCHAR);
-                            }
-                            SaveToDB();
-                            break;
-                        }
-                        case EVENT_QUAKE_SHATTER:
-                        {
-                            if (GameObject* platform = instance->GetGameObject(ArthasPlatformGUID))
-                                platform->SetDestructibleState(GO_DESTRUCTIBLE_DAMAGED);
-                            if (GameObject* edge = instance->GetGameObject(FrozenThroneEdgeGUID))
-                                edge->SetGoState(GO_STATE_ACTIVE);
-                            if (GameObject* wind = instance->GetGameObject(FrozenThroneWindGUID))
-                                wind->SetGoState(GO_STATE_READY);
-                            if (GameObject* warning = instance->GetGameObject(FrozenThroneWarningGUID))
-                                warning->SetGoState(GO_STATE_READY);
-                            if (Creature* theLichKing = instance->GetCreature(TheLichKingGUID))
-                                theLichKing->AI()->DoAction(ACTION_RESTORE_LIGHT);
-                            break;
-                        }
-                        case EVENT_REBUILD_PLATFORM:
-                            if (GameObject* platform = instance->GetGameObject(ArthasPlatformGUID))
-                                platform->SetDestructibleState(GO_DESTRUCTIBLE_REBUILDING);
-                            if (GameObject* edge = instance->GetGameObject(FrozenThroneEdgeGUID))
-                                edge->SetGoState(GO_STATE_READY);
-                            if (GameObject* wind = instance->GetGameObject(FrozenThroneWindGUID))
-                                wind->SetGoState(GO_STATE_ACTIVE);
-                            break;
-                        case EVENT_RESPAWN_GUNSHIP:
-                            SpawnGunship();
-                            break;
-                        default:
-                            break;
+                        uint32 tmpState;
+                        loadStream >> tmpState;
+                        if (tmpState == IN_PROGRESS || tmpState > SPECIAL)
+                            tmpState = NOT_STARTED;
+                        SetBossState(i, EncounterState(tmpState));
                     }
+
+                    uint32 temp = 0;
+                    loadStream >> temp;
+                    coldflameJetsState = temp ? DONE : NOT_STARTED;
+                    temp = 0;
+                    loadStream >> temp;
+                    bloodQuickeningState = temp ? DONE : NOT_STARTED;   // DONE means finished (not success/fail)
+                    loadStream >> bloodQuickeningMinutes;
                 }
+                else
+                    OUT_LOAD_INST_DATA_FAIL;
+
+                OUT_LOAD_INST_DATA_COMPLETE;
             }
 
-            void ProcessEvent(WorldObject* source, uint32 eventId) override
+            void Update(uint32 diff)
             {
-                switch (eventId)
+                if (bloodQuickeningState == IN_PROGRESS)
                 {
-                    case EVENT_ENEMY_GUNSHIP_DESPAWN:
-                        if (GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == DONE)
-                            source->AddObjectToRemoveList();
-                        break;
-                    case EVENT_ENEMY_GUNSHIP_COMBAT:
-                        if (Creature* captain = source->FindNearestCreature(TeamInInstance == HORDE ? NPC_IGB_HIGH_OVERLORD_SAURFANG : NPC_IGB_MURADIN_BRONZEBEARD, 100.0f))
-                            captain->AI()->DoAction(ACTION_ENEMY_GUNSHIP_TALK);
-                        [[fallthrough]];
-                    case EVENT_PLAYERS_GUNSHIP_SPAWN:
-                    case EVENT_PLAYERS_GUNSHIP_COMBAT:
-                        if (GameObject* go = source->ToGameObject())
-                            if (Transport* transport = go->ToTransport())
-                                transport->EnableMovement(false);
-                        break;
-                    case EVENT_PLAYERS_GUNSHIP_SAURFANG:
-                        if (Creature* captain = source->FindNearestCreature(TeamInInstance == HORDE ? NPC_IGB_HIGH_OVERLORD_SAURFANG : NPC_IGB_MURADIN_BRONZEBEARD, 100.0f))
-                            captain->AI()->DoAction(ACTION_EXIT_SHIP);
-                        if (GameObject* go = source->ToGameObject())
-                            if (Transport* transport = go->ToTransport())
-                                transport->EnableMovement(false);
-                        break;
-                    case EVENT_QUAKE:
-                        if (GameObject* warning = instance->GetGameObject(FrozenThroneWarningGUID))
-                            warning->SetGoState(GO_STATE_ACTIVE);
-                        Events.ScheduleEvent(EVENT_QUAKE_SHATTER, 5s);
-                        break;
-                    case EVENT_SECOND_REMORSELESS_WINTER:
-                        if (GameObject* platform = instance->GetGameObject(ArthasPlatformGUID))
+                    if (bloodQuickeningTimer <= diff)
+                    {
+                        --bloodQuickeningMinutes;
+                        bloodQuickeningTimer = 60000;
+                        if (bloodQuickeningMinutes)
                         {
-                            platform->SetDestructibleState(GO_DESTRUCTIBLE_DESTROYED);
-                            Events.ScheduleEvent(EVENT_REBUILD_PLATFORM, 1500ms);
+                            DoUpdateWorldState(WORLDSTATE_SHOW_TIMER, 1);
+                            DoUpdateWorldState(WORLDSTATE_EXECUTION_TIME, bloodQuickeningMinutes);
                         }
-                        break;
-                    case EVENT_TELEPORT_TO_FROSTMOURNE: // Harvest Soul (normal mode)
-                        if (Creature* terenas = instance->SummonCreature(NPC_TERENAS_MENETHIL_FROSTMOURNE, TerenasSpawn, nullptr, 63000))
+                        else
                         {
-                            terenas->AI()->DoAction(ACTION_FROSTMOURNE_INTRO);
-                            std::list<Creature*> triggers;
-                            terenas->GetCreatureListWithEntryInGrid(triggers, NPC_WORLD_TRIGGER_INFINITE_AOI, 100.0f);
-                            if (!triggers.empty())
-                            {
-                                triggers.sort(Trinity::ObjectDistanceOrderPred(terenas, false));
-                                Unit* visual = triggers.front();
-                                visual->CastSpell(visual, SPELL_FROSTMOURNE_TELEPORT_VISUAL, true);
-                            }
-
-                            if (Creature* warden = instance->SummonCreature(NPC_SPIRIT_WARDEN, SpiritWardenSpawn, nullptr, 63000))
-                            {
-                                terenas->AI()->AttackStart(warden);
-                                warden->GetThreatManager().AddThreat(terenas, 300000.0f, nullptr, true, true);
-                            }
+                            bloodQuickeningState = DONE;
+                            DoUpdateWorldState(WORLDSTATE_SHOW_TIMER, 0);
+                            if (Creature* bq = instance->GetCreature(bloodQueenLanaThel))
+                                bq->AI()->DoAction(ACTION_KILL_MINCHAR);
                         }
-                        break;
-                    default:
-                        break;
+                        SaveToDB();
+                    }
+                    else
+                        bloodQuickeningTimer -= diff;
                 }
             }
 
-        protected:
-            EventMap Events;
-            ObjectGuid LordMarrowgarGUID;
-            ObjectGuid LadyDeahtwhisperGUID;
-            ObjectGuid LadyDeathwisperElevatorGUID;
-            ObjectGuid GunshipGUID;
-            ObjectGuid EnemyGunshipGUID;
-            ObjectGuid GunshipArmoryGUID;
-            ObjectGuid DeathbringerSaurfangGUID;
-            ObjectGuid DeathbringerSaurfangDoorGUID;
-            ObjectGuid DeathbringerSaurfangEventGUID;   // Muradin Bronzebeard or High Overlord Saurfang
-            ObjectGuid DeathbringersCacheGUID;
-            ObjectGuid TeleporterLichKingGUID;
-            ObjectGuid TeleporterUpperSpireGUID;
-            ObjectGuid TeleporterLightsHammerGUID;
-            ObjectGuid TeleporterRampartsGUID;
-            ObjectGuid TeleporterDeathBringerGUID;
-            ObjectGuid TeleporterOratoryGUID;
-            ObjectGuid TeleporterSindragosaGUID;
-            ObjectGuid PlagueSigilGUID;
-            ObjectGuid BloodwingSigilGUID;
-            ObjectGuid FrostwingSigilGUID;
-            ObjectGuid PutricidePipeGUIDs[2];
-            ObjectGuid PutricideGateGUIDs[2];
-            ObjectGuid PutricideCollisionGUID;
-            ObjectGuid FestergutGUID;
-            ObjectGuid RotfaceGUID;
-            ObjectGuid ProfessorPutricideGUID;
-            ObjectGuid PutricideTableGUID;
-            ObjectGuid BloodCouncilGUIDs[3];
-            ObjectGuid BloodCouncilControllerGUID;
-            ObjectGuid BloodQueenLanaThelCouncilGUID;
-            ObjectGuid BloodQueenLanaThelGUID;
-            ObjectGuid CrokScourgebaneGUID;
-            ObjectGuid CrokCaptainGUIDs[4];
-            ObjectGuid SisterSvalnaGUID;
-            ObjectGuid ValithriaDreamwalkerGUID;
-            ObjectGuid ValithriaLichKingGUID;
-            ObjectGuid ValithriaTriggerGUID;
-            ObjectGuid SindragosaGUID;
-            ObjectGuid SpinestalkerGUID;
-            ObjectGuid RimefangGUID;
-            ObjectGuid TheLichKingTeleportGUID;
-            ObjectGuid TheLichKingGUID;
-            ObjectGuid HighlordTirionFordringGUID;
-            ObjectGuid TerenasMenethilGUID;
-            ObjectGuid ArthasPlatformGUID;
-            ObjectGuid ArthasPrecipiceGUID;
-            ObjectGuid FrozenThroneEdgeGUID;
-            ObjectGuid FrozenThroneWindGUID;
-            ObjectGuid FrozenThroneWarningGUID;
-            ObjectGuid FrozenBolvarGUID;
-            ObjectGuid PillarsChainedGUID;
-            ObjectGuid PillarsUnchainedGUID;
-            Team TeamInInstance;
-            uint32 ColdflameJetsState;
-            uint32 UpperSpireTeleporterActiveState;
-            std::unordered_set<ObjectGuid::LowType> FrostwyrmGUIDs;
-            std::unordered_set<ObjectGuid::LowType> SpinestalkerTrash;
-            std::unordered_set<ObjectGuid::LowType> RimefangTrash;
-            uint32 BloodQuickeningState;
-            uint32 HeroicAttempts;
-            uint16 BloodQuickeningMinutes;
-            uint8 BloodPrinceIntro;
-            uint8 SindragosaIntro;
-            bool IsBonedEligible;
-            bool IsOozeDanceEligible;
-            bool IsNauseaEligible;
-            bool IsOrbWhispererEligible;
-            bool IsFactionBuffActive;
-            std::array<GuidVector, 2> nerubarBroodkeepersGUIDs;
+        private:
+            std::set<uint64> coldflameJets;
+            uint64 ladyDeathwisperElevator;
+            uint64 deathbringerSaurfang;
+            uint64 saurfangDoor;
+            uint64 saurfangEventNPC;  // Muradin Bronzebeard or High Overlord Saurfang
+            uint64 deathbringersCache;
+            uint64 saurfangTeleport;
+            uint64 plagueSigil;
+            uint64 bloodwingSigil;
+            uint64 frostwingSigil;
+            uint64 putricidePipes[2];
+            uint64 putricideGates[2];
+            uint64 putricideCollision;
+            uint64 festergut;
+            uint64 rotface;
+            uint64 professorPutricide;
+            uint64 putricideTable;
+            uint64 bloodCouncil[3];
+            uint64 bloodCouncilController;
+            uint64 bloodQueenLanaThel;
+            uint64 sindragosa;
+            uint64 spinestalker;
+            uint64 rimefang;
+            uint32 teamInInstance;
+            uint32 bloodQuickeningTimer;
+            uint32 coldflameJetsState;
+            uint32 frostwyrms;
+            uint32 spinestalkerTrash;
+            uint32 rimefangTrash;
+            uint32 bloodQuickeningState;
+            uint16 heroicAttempts;
+            uint16 bloodQuickeningMinutes;
+            bool isBonedEligible;
+            bool isOozeDanceEligible;
+            bool isNauseaEligible;
+            bool isOrbWhispererEligible;
         };
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
+        InstanceScript* GetInstanceScript(InstanceMap* map) const
         {
             return new instance_icecrown_citadel_InstanceMapScript(map);
         }

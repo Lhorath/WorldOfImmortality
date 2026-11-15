@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -23,43 +23,41 @@ Category: commandscripts
 EndScriptData */
 
 #include "ScriptMgr.h"
+#include "ObjectMgr.h"
 #include "Chat.h"
-#include "Language.h"
-#include "Player.h"
-#include "RBAC.h"
-#include "WorldSession.h"
-
-using namespace Trinity::ChatCommands;
 
 class honor_commandscript : public CommandScript
 {
 public:
     honor_commandscript() : CommandScript("honor_commandscript") { }
 
-    ChatCommandTable GetCommands() const override
+    ChatCommand* GetCommands() const
     {
-        static ChatCommandTable honorAddCommandTable =
+        static ChatCommand honorAddCommandTable[] =
         {
-            { "kill", HandleHonorAddKillCommand, rbac::RBAC_PERM_COMMAND_HONOR_ADD_KILL, Console::No },
-            { "",     HandleHonorAddCommand,     rbac::RBAC_PERM_COMMAND_HONOR_ADD,      Console::No },
+            { "kill",           SEC_GAMEMASTER,     false, &HandleHonorAddKillCommand,         "", NULL },
+            { "",               SEC_GAMEMASTER,     false, &HandleHonorAddCommand,             "", NULL },
+            { NULL,             0,                  false, NULL,                               "", NULL }
         };
-
-        static ChatCommandTable honorCommandTable =
+        static ChatCommand honorCommandTable[] =
         {
-            { "add",    honorAddCommandTable },
-            { "update", HandleHonorUpdateCommand, rbac::RBAC_PERM_COMMAND_HONOR_UPDATE, Console::No },
+            { "add",            SEC_GAMEMASTER,     false, NULL,               "", honorAddCommandTable },
+            { "update",         SEC_GAMEMASTER,     false, &HandleHonorUpdateCommand,          "", NULL },
+            { NULL,             0,                  false, NULL,                               "", NULL }
         };
-
-        static ChatCommandTable commandTable =
+        static ChatCommand commandTable[] =
         {
-            { "honor", honorCommandTable },
+            { "honor",          SEC_GAMEMASTER,     false, NULL,                  "", honorCommandTable },
+            { NULL,             0,                  false, NULL,                               "", NULL }
         };
         return commandTable;
     }
-
-    static bool HandleHonorAddCommand(ChatHandler* handler, uint32 amount)
+    static bool HandleHonorAddCommand(ChatHandler* handler, const char* args)
     {
-        Player* target = handler->getSelectedPlayer();
+        if (!*args)
+            return false;
+
+        Player *target = handler->getSelectedPlayer();
         if (!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -68,16 +66,16 @@ public:
         }
 
         // check online security
-        if (handler->HasLowerSecurity(target, ObjectGuid::Empty))
+        if (handler->HasLowerSecurity(target, 0))
             return false;
 
-        target->RewardHonor(nullptr, 1, amount);
+        uint32 amount = (uint32)atoi(args);
+        target->RewardHonor(NULL, 1, amount);
         return true;
     }
-
-    static bool HandleHonorAddKillCommand(ChatHandler* handler)
+    static bool HandleHonorAddKillCommand(ChatHandler* handler, const char* /*args*/)
     {
-        Unit* target = handler->getSelectedUnit();
+        Unit *target = handler->getSelectedUnit();
         if (!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -86,17 +84,15 @@ public:
         }
 
         // check online security
-        if (Player* player = target->ToPlayer())
-            if (handler->HasLowerSecurity(player, ObjectGuid::Empty))
-                return false;
+        if (target->GetTypeId() == TYPEID_PLAYER && handler->HasLowerSecurity((Player*)target, 0))
+            return false;
 
         handler->GetSession()->GetPlayer()->RewardHonor(target, 1);
         return true;
     }
-
-    static bool HandleHonorUpdateCommand(ChatHandler* handler)
+    static bool HandleHonorUpdateCommand(ChatHandler* handler, const char* /*args*/)
     {
-        Player* target = handler->getSelectedPlayer();
+        Player *target = handler->getSelectedPlayer();
         if (!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -105,7 +101,7 @@ public:
         }
 
         // check online security
-        if (handler->HasLowerSecurity(target, ObjectGuid::Empty))
+        if (handler->HasLowerSecurity(target, 0))
             return false;
 
         target->UpdateHonorFields();

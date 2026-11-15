@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,67 +19,34 @@
 #ifndef DEF_RUINS_OF_AHNQIRAJ_H
 #define DEF_RUINS_OF_AHNQIRAJ_H
 
-#include "CreatureAIImpl.h"
-
-#define AQ20ScriptName "instance_ruins_of_ahnqiraj"
-#define DataHeader "AQR"
-
-uint32 constexpr EncounterCount = 6;
-
-enum AQRDataTypes
+enum Data
 {
-    DATA_KURINNAXX              = 0,
-    DATA_RAJAXX                 = 1,
-    DATA_MOAM                   = 2,
-    DATA_BURU                   = 3,
-    DATA_AYAMISS                = 4,
-    DATA_OSSIRIAN               = 5,
-
-    DATA_ANDOROV_EVENT_STATE,
-    DATA_ANDOROV,
-    DATA_PARALYZED
+    DATA_KURINNAXX_EVENT,
+    DATA_RAJAXX_EVENT,
+    DATA_MOAM_EVENT,
+    DATA_BURU_EVENT,
+    DATA_AYAMISS_EVENT,
+    DATA_OSSIRIAN_EVENT
 };
 
-enum AQRCreatures
+enum Data64
 {
-    NPC_KURINAXX                = 15348,
-    NPC_RAJAXX                  = 15341,
-    NPC_MOAM                    = 15340,
-    NPC_BURU                    = 15370,
-    NPC_AYAMISS                 = 15369,
-    NPC_OSSIRIAN                = 15339,
-
-    NPC_ANDOROV                 = 15471
+    DATA_KURINNAXX,
+    DATA_RAJAXX,
+    DATA_MOAM,
+    DATA_BURU,
+    DATA_AYAMISS,
+    DATA_OSSIRIAN
 };
 
-enum AQRGameObjectIds
+enum Bosses
 {
-    GO_OSSIRIAN_CRYSTAL         = 180619
+    CREATURE_KURINAXX              = 15348,
+    CREATURE_RAJAXX                = 15341,
+    CREATURE_MOAM                  = 15340,
+    CREATURE_BURU                  = 15370,
+    CREATURE_AYAMISS               = 15369,
+    CREATURE_OSSIRIAN              = 15339
 };
-
-enum AQRSpawnGroups
-{
-    SPAWN_GROUP_ANDOROV         = 333
-};
-
-enum AQRActionIds
-{
-    ACTION_WAVE_STARTS_3        = 0,
-    ACTION_WAVE_STARTS_4        = 1,
-    ACTION_WAVE_STARTS_5        = 2,
-    ACTION_WAVE_STARTS_6        = 3,
-    ACTION_WAVE_STARTS_7        = 4,
-    ACTION_RAJAXX_ENTER         = 5,
-    ACTION_KURINNAXX_DEFEATED   = 6,
-    ACTION_RAJAXX_DEFEATED      = 7
-};
-
-template <class AI, class T>
-inline AI* GetAQ20AI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, AQ20ScriptName);
-}
-
-#define RegisterAQ20CreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetAQ20AI)
 
 #endif

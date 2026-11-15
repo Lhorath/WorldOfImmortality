@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,39 +16,20 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef GRUULS_LAIR_H_
-#define GRUULS_LAIR_H_
+#ifndef DEF_GRUULS_LAIR_H
+#define DEF_GRUULS_LAIR_H
 
-#include "CreatureAIImpl.h"
+#define DATA_BLINDEYETHESEER           1
+#define DATA_GRUULEVENT                2
+#define DATA_KIGGLERTHECRAZED          3
+#define DATA_KROSHFIREHAND             4
+#define DATA_MAULGAREVENT              5
+#define DATA_MAULGAREVENT_TANK         6
+#define DATA_OLMTHESUMMONER            7
+#define DATA_MAULGARDOOR               8
+#define DATA_GRUULDOOR                 9
+#define DATA_MAULGAR                  10
 
-#define GLScriptName "instance_gruuls_lair"
-#define DataHeader   "GL"
+#define ERROR_INST_DATA "TSCR Error: Instance Data not set properly for Gruul's Lair instance (map 565). Encounters will be buggy."
+#endif
 
-constexpr uint32 EncounterCount = 2;
-
-enum GLEncounters
-{
-    DATA_MAULGAR                = 0,
-    DATA_GRUUL                  = 1
-};
-
-enum GLCreatureIds
-{
-    NPC_MAULGAR                 = 18831
-};
-
-enum GLGameObjectIds
-{
-    GO_MAULGAR_DOOR             = 183817,
-    GO_GRUUL_DOOR               = 184662
-};
-
-template <class AI, class T>
-inline AI* GetGruulsLairAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, GLScriptName);
-}
-
-#define RegisterGruulsLairCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetGruulsLairAI)
-
-#endif // GRUULS_LAIR_H_

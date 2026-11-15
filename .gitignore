@@ -1,5 +1,4 @@
-
-build*/
+build/
 .directory
 .mailmap
 *.orig
@@ -7,38 +6,5 @@ build*/
 *~
 .hg/
 *.kdev*
-.DS_Store
-CMakeLists.txt.user
 *.bak
 *.patch
-*.diff
-*.REMOTE.*
-*.BACKUP.*
-*.BASE.*
-*.LOCAL.*
-nbproject/*
-.idea/*
-.browse.VC*
-.vscode
-cmake-build-*/
-.vs
-*.user
-
-# Compiled binaries and intermediate files
-*.exe
-*.dll
-*.pdb
-*.lib
-*.obj
-*.o
-*.a
-*.so
-*.dylib
-*.ilk
-*.exp
-*.pch
-*.idb
-*.ipch
-
-# Local database migration credentials
-sql/MIGRATION/.env

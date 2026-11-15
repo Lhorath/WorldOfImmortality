@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,62 +17,129 @@
  */
 
 #include "GuardAI.h"
-#include "Creature.h"
 #include "Errors.h"
-#include "Log.h"
-#include "MotionMaster.h"
 #include "Player.h"
+#include "ObjectAccessor.h"
+#include "World.h"
+#include "CreatureAIImpl.h"
 
-GuardAI::GuardAI(Creature* creature) : ScriptedAI(creature)
+int GuardAI::Permissible(const Creature* creature)
 {
-}
-
-int32 GuardAI::Permissible(Creature const* creature)
-{
-    if (creature->IsGuard())
-        return PERMIT_BASE_PROACTIVE;
+    if (creature->isGuard())
+        return PERMIT_BASE_SPECIAL;
 
     return PERMIT_BASE_NO;
 }
 
-void GuardAI::UpdateAI(uint32 /*diff*/)
+GuardAI::GuardAI(Creature* creature) : ScriptedAI(creature), i_victimGuid(0), i_state(STATE_NORMAL), i_tracker(TIME_INTERVAL_LOOK)
 {
-    if (!UpdateVictim())
-        return;
-
-    DoMeleeAttackIfReady();
 }
 
 bool GuardAI::CanSeeAlways(WorldObject const* obj)
 {
-    if (Unit const* unit = obj->ToUnit())
-        if (unit->IsControlledByPlayer() && me->IsEngagedBy(unit))
-            return true;
+    if (!obj->isType(TYPEMASK_UNIT))
+        return false;
+
+    std::list<HostileReference *> t_list = me->getThreatManager().getThreatList();
+    for (std::list<HostileReference *>::const_iterator itr = t_list.begin(); itr!= t_list.end(); ++itr)
+    {
+        if (Unit* unit = Unit::GetUnit(*me, (*itr)->getUnitGuid()))
+            if (unit == obj)
+                return true;
+    }
+
     return false;
 }
 
-void GuardAI::EnterEvadeMode(EvadeReason /*why*/)
+void GuardAI::MoveInLineOfSight(Unit* unit)
 {
-    if (!me->IsAlive())
+    // Ignore Z for flying creatures
+    if (!me->canFly() && me->GetDistanceZ(unit) > CREATURE_Z_ATTACK_RANGE)
+        return;
+
+    if (!me->getVictim() && me->canAttack(unit) &&
+        (unit->IsHostileToPlayers() || me->IsHostileTo(unit) /*|| u->getVictim() && me->IsFriendlyTo(u->getVictim())*/) &&
+        unit->isInAccessiblePlaceFor(me))
     {
+        float attackRadius = me->GetAttackDistance(unit);
+        if (me->IsWithinDistInMap(unit,attackRadius))
+        {
+            //Need add code to let guard support player
+            AttackStart(unit);
+            //u->RemoveAurasByType(SPELL_AURA_MOD_STEALTH);
+        }
+    }
+}
+
+void GuardAI::EnterEvadeMode()
+{
+    if (!me->isAlive())
+    {
+        sLog->outStaticDebug("Creature stopped attacking because he is dead [guid=%u]", me->GetGUIDLow());
         me->GetMotionMaster()->MoveIdle();
+
+        i_state = STATE_NORMAL;
+
+        i_victimGuid = 0;
         me->CombatStop(true);
-        EngagementOver();
+        me->DeleteThreatList();
         return;
     }
 
-    TC_LOG_TRACE("scripts.ai", "GuardAI::EnterEvadeMode: {} enters evade mode.", me->GetGUID().ToString());
+    Unit* victim = ObjectAccessor::GetUnit(*me, i_victimGuid);
+
+    if (!victim)
+    {
+        sLog->outStaticDebug("Creature stopped attacking because victim does not exist [guid=%u]", me->GetGUIDLow());
+    }
+    else if (!victim ->isAlive())
+    {
+        sLog->outStaticDebug("Creature stopped attacking because victim is dead [guid=%u]", me->GetGUIDLow());
+    }
+    else if (victim ->HasStealthAura())
+    {
+        sLog->outStaticDebug("Creature stopped attacking because victim is using stealth [guid=%u]", me->GetGUIDLow());
+    }
+    else if (victim ->isInFlight())
+    {
+        sLog->outStaticDebug("Creature stopped attacking because victim is flying away [guid=%u]", me->GetGUIDLow());
+    }
+    else
+    {
+        sLog->outStaticDebug("Creature stopped attacking because victim outran him [guid=%u]", me->GetGUIDLow());
+    }
 
     me->RemoveAllAuras();
+    me->DeleteThreatList();
+    i_victimGuid = 0;
     me->CombatStop(true);
-    EngagementOver();
+    i_state = STATE_NORMAL;
 
-    me->GetMotionMaster()->MoveTargetedHome();
+    // Remove TargetedMovementGenerator from MotionMaster stack list, and add HomeMovementGenerator instead
+    if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() == TARGETED_MOTION_TYPE)
+        me->GetMotionMaster()->MoveTargetedHome();
+}
+
+void GuardAI::UpdateAI(const uint32 /*diff*/)
+{
+    // update i_victimGuid if me->getVictim() !=0 and changed
+    if (!UpdateVictim())
+        return;
+
+    i_victimGuid = me->getVictim()->GetGUID();
+
+    if (me->isAttackReady())
+    {
+        if (me->IsWithinMeleeRange(me->getVictim()))
+        {
+            me->AttackerStateUpdate(me->getVictim());
+            me->resetAttackTimer();
+        }
+    }
 }
 
 void GuardAI::JustDied(Unit* killer)
 {
-    if (killer)
-        if (Player* player = killer->GetCharmerOrOwnerPlayerOrPlayerItself())
-            me->SendZoneUnderAttackMessage(player);
+    if (Player* pkiller = killer->GetCharmerOrOwnerPlayerOrPlayerItself())
+        me->SendZoneUnderAttackMessage(pkiller);
 }

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,97 +16,118 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Magistrate_Barthilas
+SD%Complete: 70
+SDComment:
+SDCategory: Stratholme
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "stratholme.h"
 
-enum BarthilasSpells
+#define SPELL_DRAININGBLOW    16793
+#define SPELL_CROWDPUMMEL    10887
+#define SPELL_MIGHTYBLOW    14099
+#define SPELL_FURIOUS_ANGER     16791
+
+#define MODEL_NORMAL            10433
+#define MODEL_HUMAN             3637
+
+class boss_magistrate_barthilas : public CreatureScript
 {
-    SPELL_FURIOUS_ANGER     = 16791,
-    SPELL_DRAINING_BLOW     = 16793,
-    SPELL_CROWD_PUMMEL      = 10887,
-    SPELL_MIGHTY_BLOW       = 14099,
+public:
+    boss_magistrate_barthilas() : CreatureScript("boss_magistrate_barthilas") { }
 
-    SPELL_TRANSFORMATION    = 16794
-};
-
-enum BarthilasEvents
-{
-    EVENT_FURIOUS_ANGER     = 1,
-    EVENT_DRAINING_BLOW,
-    EVENT_CROWD_PUMMEL,
-    EVENT_MIGHTY_BLOW
-};
-
-// 10435 - Magistrate Barthilas
-struct boss_magistrate_barthilas : public BossAI
-{
-    boss_magistrate_barthilas(Creature* creature) : BossAI(creature, BOSS_MAGISTRATE_BARTHILAS) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_FURIOUS_ANGER, 0s, 4s);
-        events.ScheduleEvent(EVENT_DRAINING_BLOW, 0s, 5s);
-        events.ScheduleEvent(EVENT_CROWD_PUMMEL, 15s, 20s);
-        events.ScheduleEvent(EVENT_MIGHTY_BLOW, 15s, 25s);
+        return new boss_magistrate_barthilasAI (pCreature);
     }
 
-    void JustDied(Unit* killer) override
+    struct boss_magistrate_barthilasAI : public ScriptedAI
     {
-        BossAI::JustDied(killer);
+        boss_magistrate_barthilasAI(Creature *c) : ScriptedAI(c) {}
 
-        DoCastSelf(SPELL_TRANSFORMATION, true);
-    }
+        uint32 DrainingBlow_Timer;
+        uint32 CrowdPummel_Timer;
+        uint32 MightyBlow_Timer;
+        uint32 FuriousAnger_Timer;
+        uint32 AngerCount;
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_FURIOUS_ANGER:
-                    DoCastSelf(SPELL_FURIOUS_ANGER);
-                    events.Repeat(4s);
-                    break;
-                case EVENT_DRAINING_BLOW:
-                    DoCastVictim(SPELL_DRAINING_BLOW);
-                    events.Repeat(2s, 14s);
-                    break;
-                case EVENT_CROWD_PUMMEL:
-                    DoCastSelf(SPELL_CROWD_PUMMEL);
-                    events.Repeat(25s, 30s);
-                    break;
-                case EVENT_MIGHTY_BLOW:
-                    DoCastVictim(SPELL_MIGHTY_BLOW);
-                    events.Repeat(10s, 15s);
-                    break;
-                default:
-                    break;
-            }
+            DrainingBlow_Timer = 20000;
+            CrowdPummel_Timer = 15000;
+            MightyBlow_Timer = 10000;
+            FuriousAnger_Timer = 5000;
+            AngerCount = 0;
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            if (me->isAlive())
+                me->SetDisplayId(MODEL_NORMAL);
+            else
+                me->SetDisplayId(MODEL_HUMAN);
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void MoveInLineOfSight(Unit *who)
+        {
+            //nothing to see here yet
+
+            ScriptedAI::MoveInLineOfSight(who);
+        }
+
+        void JustDied(Unit* /*Killer*/)
+        {
+            me->SetDisplayId(MODEL_HUMAN);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            if (FuriousAnger_Timer <= diff)
+            {
+                FuriousAnger_Timer = 4000;
+                if (AngerCount > 25)
+                    return;
+
+                ++AngerCount;
+                DoCast(me, SPELL_FURIOUS_ANGER, false);
+            } else FuriousAnger_Timer -= diff;
+
+            //DrainingBlow
+            if (DrainingBlow_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_DRAININGBLOW);
+                DrainingBlow_Timer = 15000;
+            } else DrainingBlow_Timer -= diff;
+
+            //CrowdPummel
+            if (CrowdPummel_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_CROWDPUMMEL);
+                CrowdPummel_Timer = 15000;
+            } else CrowdPummel_Timer -= diff;
+
+            //MightyBlow
+            if (MightyBlow_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_MIGHTYBLOW);
+                MightyBlow_Timer = 20000;
+            } else MightyBlow_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_magistrate_barthilas()
 {
-    RegisterStratholmeCreatureAI(boss_magistrate_barthilas);
+    new boss_magistrate_barthilas();
 }

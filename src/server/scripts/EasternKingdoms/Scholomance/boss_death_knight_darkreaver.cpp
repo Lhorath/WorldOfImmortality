@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,112 +16,47 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Death_knight_darkreaver
+SD%Complete: 100
+SDComment:
+SDCategory: Scholomance
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "scholomance.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 
-enum DarkreaverTexts
+class boss_death_knight_darkreaver : public CreatureScript
 {
-    SAY_SPAWN                     = 0
-};
+public:
+    boss_death_knight_darkreaver() : CreatureScript("boss_death_knight_darkreaver") { }
 
-enum DarkreaverSpells
-{
-    SPELL_SHADOW_BOLT             = 17393,
-    SPELL_CLEAVE                  = 15284,
-    SPELL_BLOOD_LEECH             = 22644,
-    SPELL_DOMINATE_MIND           = 7645,
-
-    SPELL_SUMMON_FALLEN_CHARGER   = 23261
-};
-
-enum DarkreaverEvents
-{
-    EVENT_SHADOW_BOLT             = 1,
-    EVENT_CLEAVE,
-    EVENT_BLOOD_LEECH,
-    EVENT_DOMINATE_MIND
-};
-
-// 14516 - Death Knight Darkreaver
-struct boss_death_knight_darkreaver : public ScriptedAI
-{
-    boss_death_knight_darkreaver(Creature* creature) : ScriptedAI(creature) { }
-
-    void JustAppeared() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        Talk(SAY_SPAWN);
+        return new boss_death_knight_darkreaverAI (pCreature);
     }
 
-    void Reset() override
+    struct boss_death_knight_darkreaverAI : public ScriptedAI
     {
-        _events.Reset();
-    }
+        boss_death_knight_darkreaverAI(Creature *c) : ScriptedAI(c) {}
 
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        _events.ScheduleEvent(EVENT_SHADOW_BOLT, 0s);
-        _events.ScheduleEvent(EVENT_CLEAVE, 5s, 10s);
-        _events.ScheduleEvent(EVENT_BLOOD_LEECH, 10s, 15s);
-        _events.ScheduleEvent(EVENT_DOMINATE_MIND, 10s, 15s);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        DoCastSelf(SPELL_SUMMON_FALLEN_CHARGER, true);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        _events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = _events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_SHADOW_BOLT:
-                    DoCastVictim(SPELL_SHADOW_BOLT);
-                    _events.Repeat(5s, 10s);
-                    break;
-                case EVENT_CLEAVE:
-                    DoCastVictim(SPELL_CLEAVE);
-                    _events.Repeat(5s, 10s);
-                    break;
-                case EVENT_BLOOD_LEECH:
-                    DoCastSelf(SPELL_BLOOD_LEECH);
-                    _events.Repeat(15s, 25s);
-                    break;
-                case EVENT_DOMINATE_MIND:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1))
-                        DoCast(target, SPELL_DOMINATE_MIND);
-                    _events.Repeat(15s, 20s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void DamageTaken(Unit * /*done_by*/, uint32 &damage)
+        {
+            if (me->GetHealth() <= damage)
+                DoCast(me, 23261, true);   //Summon Darkreaver's Fallen Charger
+        }
 
-private:
-    EventMap _events;
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+    };
+
 };
 
 void AddSC_boss_death_knight_darkreaver()
 {
-    RegisterScholomanceCreatureAI(boss_death_knight_darkreaver);
+    new boss_death_knight_darkreaver();
 }

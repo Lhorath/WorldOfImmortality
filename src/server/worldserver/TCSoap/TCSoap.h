@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,19 +18,65 @@
 #ifndef _TCSOAP_H
 #define _TCSOAP_H
 
-#include "Define.h"
-#include <mutex>
-#include <future>
-#include <string>
+#include "Common.h"
+#include "World.h"
+#include "AccountMgr.h"
+#include "Log.h"
 
-void process_message(struct soap* soap_message);
-void TCSoapThread(const std::string& host, uint16 port);
+#include "soapH.h"
+#include "soapStub.h"
+#include "stdsoap2.h"
+
+#include <ace/Semaphore.h>
+#include <ace/Task.h>
+
+class TCSoapRunnable: public ACE_Based::Runnable
+{
+    public:
+        TCSoapRunnable() { }
+        void run();
+        void setListenArguments(std::string host, uint16 port)
+        {
+            m_host = host;
+            m_port = port;
+        }
+    private:
+        std::string m_host;
+        uint16 m_port;
+};
+
+class SOAPWorkingThread : public ACE_Task<ACE_MT_SYNCH>
+{
+    public:
+        SOAPWorkingThread() { }
+
+        virtual int svc(void)
+        {
+            while(1)
+            {
+                ACE_Message_Block *mb = 0;
+                if (this->getq(mb) == -1)
+                {
+                    ACE_DEBUG((LM_INFO,
+                        ACE_TEXT("(%t) Shutting down\n")));
+                    break;
+                }
+
+                // Process the message.
+                process_message(mb);
+            }
+
+            return 0;
+        }
+    private:
+        void process_message(ACE_Message_Block *mb);
+};
 
 class SOAPCommand
 {
     public:
         SOAPCommand():
-            m_success(false)
+            pendingCommands(0, USYNC_THREAD, "pendingCommands")
         {
         }
 
@@ -38,15 +84,16 @@ class SOAPCommand
         {
         }
 
-        void appendToPrintBuffer(std::string_view msg)
+        void appendToPrintBuffer(const char* msg)
         {
             m_printBuffer += msg;
         }
 
+        ACE_Semaphore pendingCommands;
+
         void setCommandSuccess(bool val)
         {
             m_success = val;
-            finishedPromise.set_value();
         }
 
         bool hasCommandSucceeded() const
@@ -54,7 +101,7 @@ class SOAPCommand
             return m_success;
         }
 
-        static void print(void* callbackArg, std::string_view msg)
+        static void print(void* callbackArg, const char* msg)
         {
             ((SOAPCommand*)callbackArg)->appendToPrintBuffer(msg);
         }
@@ -63,7 +110,6 @@ class SOAPCommand
 
         bool m_success;
         std::string m_printBuffer;
-        std::promise<void> finishedPromise;
 };
 
 #endif

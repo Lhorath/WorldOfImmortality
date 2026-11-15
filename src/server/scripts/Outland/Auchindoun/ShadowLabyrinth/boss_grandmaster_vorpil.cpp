@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,236 +16,307 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "Containers.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ObjectAccessor.h"
-#include "ScriptedCreature.h"
+/* ScriptData
+SDName: Boss_Grandmaster_Vorpil
+SD%Complete: 100
+SDComment:
+SDCategory: Auchindoun, Shadow Labyrinth
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "shadow_labyrinth.h"
 
-enum VorpilTexts
+#define SAY_INTRO                       -1555028
+#define SAY_AGGRO1                      -1555029
+#define SAY_AGGRO2                      -1555030
+#define SAY_AGGRO3                      -1555031
+#define SAY_HELP                        -1555032
+#define SAY_SLAY1                       -1555033
+#define SAY_SLAY2                       -1555034
+#define SAY_DEATH                       -1555035
+
+#define SPELL_RAIN_OF_FIRE          33617
+#define H_SPELL_RAIN_OF_FIRE        39363
+
+#define SPELL_DRAW_SHADOWS          33563
+#define SPELL_SHADOWBOLT_VOLLEY     33841
+#define SPELL_BANISH                38791
+
+#define MOB_VOID_TRAVELER           19226
+#define SPELL_SACRIFICE             33587
+#define SPELL_SHADOW_NOVA           33846
+#define SPELL_EMPOWERING_SHADOWS    33783
+#define H_SPELL_EMPOWERING_SHADOWS  39364
+
+#define MOB_VOID_PORTAL             19224
+#define SPELL_VOID_PORTAL_VISUAL    33569
+
+float VorpilPosition[3] = {-252.8820f,-264.3030f,17.1f};
+
+float VoidPortalCoords[5][3] =
 {
-    SAY_HELP                      = 0,
-    SAY_AGGRO                     = 1,
-    SAY_SLAY                      = 2,
-    SAY_DEATH                     = 3,
-    SAY_DRAW                      = 4,
-    SAY_WIPE                      = 5
+    {-283.5894f, -239.5718f, 12.7f},
+    {-306.5853f, -258.4539f, 12.7f},
+    {-295.8789f, -269.0899f, 12.7f},
+    {-209.3401f, -262.7564f, 17.1f},
+    {-261.4533f, -297.3298f, 17.1f}
 };
 
-enum VorpilSpells
+class mob_voidtraveler : public CreatureScript
 {
-    SPELL_SHADOWBOLT_VOLLEY       = 33841,
-    SPELL_BANISH                  = 38791,
-    SPELL_DRAW_SHADOWS            = 33563,
-    SPELL_RAIN_OF_FIRE            = 33617,
+public:
+    mob_voidtraveler() : CreatureScript("mob_voidtraveler") { }
 
-    SPELL_SUMMON_VOID_PORTAL_A    = 33566,
-    SPELL_SUMMON_VOID_PORTAL_B    = 33614,
-    SPELL_SUMMON_VOID_PORTAL_C    = 33615,
-    SPELL_SUMMON_VOID_PORTAL_D    = 33567,
-    SPELL_SUMMON_VOID_PORTAL_E    = 33616,
-    SPELL_SUMMON_VOID_SUMMONER    = 33927,
-
-    SPELL_DESPAWN_VOID_PORTALS    = 33568,
-    SPELL_GREAT_SACRIFICE         = 33618,
-
-    // Voidwalker Summoner
-    SPELL_SUMMON_VOIDWALKER_A     = 33582,
-    SPELL_SUMMON_VOIDWALKER_B     = 33583,
-    SPELL_SUMMON_VOIDWALKER_C     = 33584,
-    SPELL_SUMMON_VOIDWALKER_D     = 33585,
-    SPELL_SUMMON_VOIDWALKER_E     = 33586,
-
-    // Void Traveler
-    SPELL_SACRIFICE               = 33587,
-    SPELL_SHADOW_NOVA             = 33846,
-    SPELL_EMPOWERING_SHADOWS      = 33783,
-    SPELL_INSTAKILL_SELF          = 29878
-};
-
-enum VorpilEvents
-{
-    EVENT_HELP                    = 1,
-    EVENT_SHADOWBOLT_VOLLEY,
-    EVENT_BANISH,
-    EVENT_DRAW_SHADOWS,
-    EVENT_RAIN_OF_FIRE
-};
-
-std::array<uint32, 5> const VoidwalkerSummonSpells =
-{
-    SPELL_SUMMON_VOIDWALKER_A, SPELL_SUMMON_VOIDWALKER_B, SPELL_SUMMON_VOIDWALKER_C, SPELL_SUMMON_VOIDWALKER_D, SPELL_SUMMON_VOIDWALKER_E
-};
-
-// 18732 - Grandmaster Vorpil
-struct boss_grandmaster_vorpil : public BossAI
-{
-    boss_grandmaster_vorpil(Creature* creature) : BossAI(creature, DATA_GRANDMASTER_VORPIL) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::JustEngagedWith(who);
-        events.ScheduleEvent(EVENT_HELP, 6s);
-        events.ScheduleEvent(EVENT_SHADOWBOLT_VOLLEY, 10s, 15s);
-        if (IsHeroic())
-            events.ScheduleEvent(EVENT_BANISH, 10s, 20s);
-        events.ScheduleEvent(EVENT_DRAW_SHADOWS, 35s, 45s);
-
-        Talk(SAY_AGGRO);
-        DoCastSelf(SPELL_SUMMON_VOID_PORTAL_A);
-        DoCastSelf(SPELL_SUMMON_VOID_PORTAL_B);
-        DoCastSelf(SPELL_SUMMON_VOID_PORTAL_C);
-        DoCastSelf(SPELL_SUMMON_VOID_PORTAL_D);
-        DoCastSelf(SPELL_SUMMON_VOID_PORTAL_E);
-        DoCastSelf(SPELL_SUMMON_VOID_SUMMONER);
+        return new mob_voidtravelerAI (pCreature);
     }
 
-    void KilledUnit(Unit* who) override
+    struct mob_voidtravelerAI : public ScriptedAI
     {
-        if (who->GetTypeId() == TYPEID_PLAYER)
-            Talk(SAY_SLAY);
-    }
-
-    // Despawn is handled by spells, don't store anything
-    void JustSummoned(Creature* /*summon*/) override { }
-
-    void EnterEvadeMode(EvadeReason why) override
-    {
-        Talk(SAY_WIPE);
-        DoCastSelf(SPELL_DESPAWN_VOID_PORTALS, true);
-        DoCastSelf(SPELL_GREAT_SACRIFICE, true);
-        ScriptedAI::EnterEvadeMode(why);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-        DoCastSelf(SPELL_DESPAWN_VOID_PORTALS, true);
-        DoCastSelf(SPELL_GREAT_SACRIFICE, true);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        mob_voidtravelerAI(Creature *c) : ScriptedAI(c)
         {
-            switch (eventId)
-            {
-                case EVENT_HELP:
-                    Talk(SAY_HELP);
-                    break;
-                case EVENT_SHADOWBOLT_VOLLEY:
-                    DoCastSelf(SPELL_SHADOWBOLT_VOLLEY);
-                    events.Repeat(10s, 25s);
-                    break;
-                case EVENT_BANISH:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 30.0f, false))
-                        DoCast(target, SPELL_BANISH);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_DRAW_SHADOWS:
-                    if (roll_chance_i(50))
-                        Talk(SAY_DRAW);
-                    DoCastSelf(SPELL_DRAW_SHADOWS);
-                    events.Repeat(35s, 45s);
-                    events.ScheduleEvent(EVENT_RAIN_OF_FIRE, 1s);
-                    break;
-                case EVENT_RAIN_OF_FIRE:
-                    DoCastSelf(SPELL_RAIN_OF_FIRE);
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
         }
 
-        DoMeleeAttackIfReady();
-    }
-};
+        uint64 VorpilGUID;
+        uint32 move;
+        bool sacrificed;
 
-// 19427 - Voidwalker Summoner
-struct npc_voidwalker_summoner : public ScriptedAI
-{
-    npc_voidwalker_summoner(Creature* creature) : ScriptedAI(creature) { }
-
-    void JustAppeared() override
-    {
-        _scheduler.Schedule(10s, [this](TaskContext task)
+        void Reset()
         {
-            DoCastSelf(Trinity::Containers::SelectRandomContainerElement(VoidwalkerSummonSpells));
-            task.Repeat(10s, 15s);
-        });
-    }
+            VorpilGUID = 0;
+            move = 0;
+            sacrificed = false;
+        }
 
-    void UpdateAI(uint32 diff) override
-    {
-        _scheduler.Update(diff);
-    }
+        void EnterCombat(Unit * /*who*/){}
 
-private:
-    TaskScheduler _scheduler;
-};
-
-// 19226 - Void Traveler
-struct npc_void_traveler : public ScriptedAI
-{
-    npc_void_traveler(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void InitializeAI() override
-    {
-        me->SetReactState(REACT_PASSIVE);
-    }
-
-    // This part needs more work
-    void JustAppeared() override
-    {
-        if (Creature* vorpil = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_GRANDMASTER_VORPIL)))
-            me->GetMotionMaster()->MoveFollow(vorpil, 0, 0);
-
-        _scheduler.Schedule(500ms, [this](TaskContext task)
+        void UpdateAI(const uint32 diff)
         {
-            if (Creature* vorpil = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_GRANDMASTER_VORPIL)))
+            if (!VorpilGUID)
             {
-                if (me->IsWithinDist(vorpil, 3))
-                {
-                    DoCastSelf(SPELL_SACRIFICE);
-
-                    task.Schedule(1s, [this](TaskContext /*task*/)
-                    {
-                        DoCastSelf(SPELL_EMPOWERING_SHADOWS);
-                        DoCastSelf(SPELL_SHADOW_NOVA);
-                        DoCastSelf(SPELL_INSTAKILL_SELF);
-                    });
-                }
-                else
-                    task.Repeat();
+                me->Kill(me);
+                return;
             }
-        });
-    }
+            if (move <= diff)
+            {
+                Creature *Vorpil = Unit::GetCreature(*me, VorpilGUID);
+                if (!Vorpil)
+                {
+                    VorpilGUID = 0;
+                    return;
+                }
 
-    void UpdateAI(uint32 diff) override
+                if (sacrificed)
+                {
+                    me->AddAura(DUNGEON_MODE(SPELL_EMPOWERING_SHADOWS, H_SPELL_EMPOWERING_SHADOWS), Vorpil);
+                    Vorpil->ModifyHealth(int32(Vorpil->CountPctFromMaxHealth(4)));
+                    DoCast(me, SPELL_SHADOW_NOVA, true);
+                    me->Kill(me);
+                    return;
+                }
+                me->GetMotionMaster()->MoveFollow(Vorpil,0,0);
+                if (me->IsWithinDist(Vorpil, 3))
+                {
+                    DoCast(me, SPELL_SACRIFICE, false);
+                    sacrificed = true;
+                    move = 500;
+                    return;
+                }
+                if (!Vorpil->isInCombat() || Vorpil->isDead())
+                {
+                    me->Kill(me);
+                    return;
+                }
+                move = 1000;
+            } else move -= diff;
+        }
+    };
+
+};
+
+class boss_grandmaster_vorpil : public CreatureScript
+{
+public:
+    boss_grandmaster_vorpil() : CreatureScript("boss_grandmaster_vorpil") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _scheduler.Update(diff);
+        return new boss_grandmaster_vorpilAI (pCreature);
     }
 
-private:
-    TaskScheduler _scheduler;
-    InstanceScript* _instance;
+    struct boss_grandmaster_vorpilAI : public ScriptedAI
+    {
+        boss_grandmaster_vorpilAI(Creature *c) : ScriptedAI(c)
+        {
+            pInstance = c->GetInstanceScript();
+            Intro = false;
+        }
+
+        InstanceScript *pInstance;
+        bool Intro, HelpYell;
+        bool sumportals;
+
+        uint32 ShadowBoltVolley_Timer;
+        uint32 DrawShadows_Timer;
+        uint32 summonTraveler_Timer;
+        uint32 banish_Timer;
+        uint64 PortalsGuid[5];
+
+        void Reset()
+        {
+            ShadowBoltVolley_Timer = 7000 + rand()%7000;
+            DrawShadows_Timer = 45000;
+            summonTraveler_Timer = 90000;
+            banish_Timer = 17000;
+            HelpYell = false;
+            destroyPortals();
+
+            if (pInstance)
+                pInstance->SetData(DATA_GRANDMASTERVORPILEVENT, NOT_STARTED);
+        }
+
+        void summonPortals()
+        {
+            if (!sumportals)
+            {
+                for (uint8 i = 0; i < 5; ++i)
+                {
+                    Creature *Portal = NULL;
+                    Portal = me->SummonCreature(MOB_VOID_PORTAL,VoidPortalCoords[i][0],VoidPortalCoords[i][1],VoidPortalCoords[i][2],0,TEMPSUMMON_CORPSE_DESPAWN,3000000);
+                    if (Portal)
+                    {
+                        PortalsGuid[i] = Portal->GetGUID();
+                        Portal->CastSpell(Portal,SPELL_VOID_PORTAL_VISUAL,false);
+                    }
+                }
+                sumportals = true;
+                summonTraveler_Timer = 5000;
+            }
+        }
+
+        void destroyPortals()
+        {
+            if (sumportals)
+            {
+                for (uint8 i = 0; i < 5; ++i)
+                {
+                    Unit *Portal = Unit::GetUnit((*me), PortalsGuid[i]);
+                    if (Portal && Portal->isAlive())
+                        Portal->DealDamage(Portal, Portal->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+                    PortalsGuid[i] = 0;
+                }
+                sumportals = false;
+            }
+        }
+
+        void spawnVoidTraveler()
+        {
+            int pos = urand(0,4);
+            me->SummonCreature(MOB_VOID_TRAVELER,VoidPortalCoords[pos][0],VoidPortalCoords[pos][1],VoidPortalCoords[pos][2],0,TEMPSUMMON_CORPSE_TIMED_DESPAWN,5000);
+            if (!HelpYell)
+            {
+                DoScriptText(SAY_HELP, me);
+                HelpYell = true;
+            }
+        }
+
+        void JustSummoned(Creature *summoned)
+        {
+            if (summoned && summoned->GetEntry() == MOB_VOID_TRAVELER)
+                CAST_AI(mob_voidtraveler::mob_voidtravelerAI, summoned->AI())->VorpilGUID = me->GetGUID();
+        }
+
+        void KilledUnit(Unit * /*victim*/)
+        {
+            DoScriptText(RAND(SAY_SLAY1,SAY_SLAY2), me);
+        }
+
+        void JustDied(Unit * /*victim*/)
+        {
+            DoScriptText(SAY_DEATH, me);
+            destroyPortals();
+
+            if (pInstance)
+                pInstance->SetData(DATA_GRANDMASTERVORPILEVENT, DONE);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            DoScriptText(RAND(SAY_AGGRO1,SAY_AGGRO2,SAY_AGGRO3), me);
+            summonPortals();
+
+            if (pInstance)
+                pInstance->SetData(DATA_GRANDMASTERVORPILEVENT, IN_PROGRESS);
+        }
+
+        void MoveInLineOfSight(Unit *who)
+        {
+            ScriptedAI::MoveInLineOfSight(who);
+
+            if (!Intro && me->IsWithinLOSInMap(who)&& me->IsWithinDistInMap(who, 100) && me->IsHostileTo(who))
+            {
+                DoScriptText(SAY_INTRO, me);
+                Intro = true;
+            }
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (ShadowBoltVolley_Timer <= diff)
+            {
+                DoCast(me, SPELL_SHADOWBOLT_VOLLEY);
+                ShadowBoltVolley_Timer = 15000 + rand()%15000;
+            } else ShadowBoltVolley_Timer -= diff;
+
+            if (IsHeroic() && banish_Timer <= diff)
+            {
+                Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0,30,false);
+                if (pTarget)
+                {
+                    DoCast(pTarget, SPELL_BANISH);
+                    banish_Timer = 16000;
+                }
+            } else banish_Timer -= diff;
+
+            if (DrawShadows_Timer <= diff)
+            {
+                Map* pMap = me->GetMap();
+                Map::PlayerList const &PlayerList = pMap->GetPlayers();
+                for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                    if (Player* i_pl = i->getSource())
+                        if (i_pl->isAlive() && !i_pl->HasAura(SPELL_BANISH))
+                            i_pl->TeleportTo(me->GetMapId(), VorpilPosition[0],VorpilPosition[1],VorpilPosition[2], 0, TELE_TO_NOT_LEAVE_COMBAT);
+
+                me->GetMap()->CreatureRelocation(me, VorpilPosition[0],VorpilPosition[1],VorpilPosition[2],0.0f);
+                DoCast(me, SPELL_DRAW_SHADOWS, true);
+
+                DoCast(me, SPELL_RAIN_OF_FIRE);
+
+                ShadowBoltVolley_Timer = 6000;
+                DrawShadows_Timer = 30000;
+            } else DrawShadows_Timer -= diff;
+
+            if (summonTraveler_Timer <= diff)
+            {
+                spawnVoidTraveler();
+                summonTraveler_Timer = 10000;
+                //enrage at 20%
+                if (HealthBelowPct(20))
+                    summonTraveler_Timer = 5000;
+            } else summonTraveler_Timer -=diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_grandmaster_vorpil()
 {
-    RegisterShadowLabyrinthCreatureAI(boss_grandmaster_vorpil);
-    RegisterShadowLabyrinthCreatureAI(npc_voidwalker_summoner);
-    RegisterShadowLabyrinthCreatureAI(npc_void_traveler);
+    new boss_grandmaster_vorpil();
+    new mob_voidtraveler();
 }

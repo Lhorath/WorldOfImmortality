@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,88 +16,106 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_the_ravenian
+SD%Complete: 100
+SDComment:
+SDCategory: Scholomance
+EndScriptData */
 
-#include "ScriptMgr.h"
+#include "ScriptPCH.h"
 #include "scholomance.h"
-#include "ScriptedCreature.h"
 
-enum RavenianSpells
+#define SPELL_TRAMPLE           15550
+#define SPELL_CLEAVE            20691
+#define SPELL_SUNDERINCLEAVE    25174
+#define SPELL_KNOCKAWAY         10101
+
+class boss_the_ravenian : public CreatureScript
 {
-    SPELL_TRAMPLE                   = 15550,
-    SPELL_CLEAVE                    = 40504,
-    SPELL_SUNDERING_CLEAVE          = 17963,
-    SPELL_KNOCK_AWAY                = 18670
-};
+public:
+    boss_the_ravenian() : CreatureScript("boss_the_ravenian") { }
 
-enum RavenianEvents
-{
-    EVENT_TRAMPLE                   = 1,
-    EVENT_CLEAVE,
-    EVENT_SUNDERING_CLEAVE,
-    EVENT_KNOCK_AWAY
-};
-
-// 10507 - The Ravenian
-struct boss_the_ravenian : public BossAI
-{
-    boss_the_ravenian(Creature* creature) : BossAI(creature, DATA_THE_RAVENIAN) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_TRAMPLE, 8s, 15s);
-        events.ScheduleEvent(EVENT_CLEAVE, 10s, 15s);
-        events.ScheduleEvent(EVENT_SUNDERING_CLEAVE, 20s, 30s);
-        events.ScheduleEvent(EVENT_KNOCK_AWAY, 5s, 10s);
+        return new boss_theravenianAI (pCreature);
     }
 
-    void UpdateAI(uint32 diff) override
+    struct boss_theravenianAI : public ScriptedAI
     {
-        if (!UpdateVictim())
-            return;
+        boss_theravenianAI(Creature *c) : ScriptedAI(c) {}
 
-        events.Update(diff);
+        uint32 Trample_Timer;
+        uint32 Cleave_Timer;
+        uint32 SunderingCleave_Timer;
+        uint32 KnockAway_Timer;
+        bool HasYelled;
 
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_TRAMPLE:
-                    DoCastSelf(SPELL_TRAMPLE);
-                    events.Repeat(8s, 15s);
-                    break;
-                case EVENT_CLEAVE:
-                    DoCastVictim(SPELL_CLEAVE);
-                    events.Repeat(10s, 15s);
-                    break;
-                case EVENT_SUNDERING_CLEAVE:
-                    DoCastVictim(SPELL_SUNDERING_CLEAVE);
-                    events.Repeat(20s, 30s);
-                    break;
-                case EVENT_KNOCK_AWAY:
-                    DoCastVictim(SPELL_KNOCK_AWAY);
-                    events.Repeat(8s, 15s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            Trample_Timer = 24000;
+            Cleave_Timer = 15000;
+            SunderingCleave_Timer = 40000;
+            KnockAway_Timer = 32000;
+            HasYelled = false;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void JustDied(Unit * /*killer*/)
+        {
+            InstanceScript *pInstance = me->GetInstanceScript();
+            if (pInstance)
+            {
+                pInstance->SetData(DATA_THERAVENIAN_DEATH, 0);
+
+                if (pInstance->GetData(TYPE_GANDLING) == IN_PROGRESS)
+                    me->SummonCreature(1853, 180.73f, -9.43856f, 75.507f, 1.61399f, TEMPSUMMON_DEAD_DESPAWN, 0);
+            }
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //Trample_Timer
+            if (Trample_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_TRAMPLE);
+                Trample_Timer = 10000;
+            } else Trample_Timer -= diff;
+
+            //Cleave_Timer
+            if (Cleave_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_CLEAVE);
+                Cleave_Timer = 7000;
+            } else Cleave_Timer -= diff;
+
+            //SunderingCleave_Timer
+            if (SunderingCleave_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_SUNDERINCLEAVE);
+                SunderingCleave_Timer = 20000;
+            } else SunderingCleave_Timer -= diff;
+
+            //KnockAway_Timer
+            if (KnockAway_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_KNOCKAWAY);
+                KnockAway_Timer = 12000;
+            } else KnockAway_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_theravenian()
 {
-    RegisterScholomanceCreatureAI(boss_the_ravenian);
+    new boss_the_ravenian();
 }

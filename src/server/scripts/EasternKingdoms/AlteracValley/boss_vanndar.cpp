@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,17 +15,21 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 
 enum Yells
 {
-    YELL_AGGRO                                    = 0,
-    YELL_EVADE                                    = 1,
-  //YELL_RESPAWN1                                 = -1810010, // Missing in database
-  //YELL_RESPAWN2                                 = -1810011, // Missing in database
-    YELL_RANDOM                                   = 2,
-    YELL_SPELL                                    = 3,
+    YELL_AGGRO                                    = -1810008,
+    YELL_EVADE                                    = -1810009,
+    YELL_RESPAWN1                                 = -1810010,
+    YELL_RESPAWN2                                 = -1810011,
+    YELL_RANDOM1                                  = -1810012,
+    YELL_RANDOM2                                  = -1810013,
+    YELL_RANDOM3                                  = -1810014,
+    YELL_RANDOM4                                  = -1810015,
+    YELL_RANDOM5                                  = -1810016,
+    YELL_RANDOM6                                  = -1810017,
+    YELL_RANDOM7                                  = -1810018
 };
 
 enum Spells
@@ -35,67 +39,92 @@ enum Spells
     SPELL_STORMBOLT                               = 20685 // not sure
 };
 
-struct boss_vanndar : public ScriptedAI
+class boss_vanndar : public CreatureScript
 {
-    boss_vanndar(Creature* creature) : ScriptedAI(creature) { }
+public:
+    boss_vanndar() : CreatureScript("boss_vanndar") { }
 
-    void Reset() override
+    struct boss_vanndarAI : public ScriptedAI
     {
-        _scheduler.CancelAll();
-    }
+        boss_vanndarAI(Creature *c) : ScriptedAI(c) {}
 
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        _scheduler
-            .Schedule(3s, [this](TaskContext task)
+        uint32 uiAvatarTimer;
+        uint32 uiThunderclapTimer;
+        uint32 uiStormboltTimer;
+        uint32 uiResetTimer;
+        uint32 uiYellTimer;
+
+        void Reset()
+        {
+            uiAvatarTimer = 3*IN_MILLISECONDS;
+            uiThunderclapTimer = 4*IN_MILLISECONDS;
+            uiStormboltTimer = 6*IN_MILLISECONDS;
+            uiResetTimer = 5*IN_MILLISECONDS;
+            uiYellTimer = urand(20*IN_MILLISECONDS,30*IN_MILLISECONDS);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            DoScriptText(YELL_AGGRO, me);
+        }
+
+        void JustRespawned()
+        {
+            Reset();
+            DoScriptText(RAND(YELL_RESPAWN1,YELL_RESPAWN2), me);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (uiAvatarTimer <= diff)
             {
-                DoCastVictim(SPELL_AVATAR);
-                task.Repeat(15s, 20s);
-            })
-            .Schedule(4s, [this](TaskContext task)
+                DoCast(me->getVictim(), SPELL_AVATAR);
+                uiAvatarTimer =  urand(15*IN_MILLISECONDS,20*IN_MILLISECONDS);
+            } else uiAvatarTimer -= diff;
+
+            if (uiThunderclapTimer <= diff)
             {
-                DoCastVictim(SPELL_THUNDERCLAP);
-                task.Repeat(5s, 15s);
-            })
-            .Schedule(6s, [this](TaskContext task)
+                DoCast(me->getVictim(), SPELL_THUNDERCLAP);
+                uiThunderclapTimer = urand(5*IN_MILLISECONDS,15*IN_MILLISECONDS);
+            } else uiThunderclapTimer -= diff;
+
+            if (uiStormboltTimer <= diff)
             {
-                DoCastVictim(SPELL_STORMBOLT);
-                task.Repeat(10s, 25s);
-            })
-            .Schedule(20s, 30s, [this](TaskContext task)
+                DoCast(me->getVictim(), SPELL_STORMBOLT);
+                uiStormboltTimer = urand(10*IN_MILLISECONDS,25*IN_MILLISECONDS);
+            } else uiStormboltTimer -= diff;
+
+            if (uiYellTimer <= diff)
             {
-                Talk(YELL_RANDOM);
-                task.Repeat(20s, 30s);
-            })
-            .Schedule(5s, [this](TaskContext task)
+                DoScriptText(RAND(YELL_RANDOM1,YELL_RANDOM2,YELL_RANDOM3,YELL_RANDOM4,YELL_RANDOM5,YELL_RANDOM6,YELL_RANDOM7), me);
+                uiYellTimer = urand(20*IN_MILLISECONDS,30*IN_MILLISECONDS); //20 to 30 seconds
+            } else uiYellTimer -= diff;
+
+            // check if creature is not outside of building
+            if (uiResetTimer <= diff)
             {
                 if (me->GetDistance2d(me->GetHomePosition().GetPositionX(), me->GetHomePosition().GetPositionY()) > 50)
                 {
                     EnterEvadeMode();
-                    Talk(YELL_EVADE);
+                    DoScriptText(YELL_EVADE, me);
                 }
-                task.Repeat();
-            });
+                uiResetTimer = 5*IN_MILLISECONDS;
+            } else uiResetTimer -= diff;
 
-        Talk(YELL_AGGRO);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        _scheduler.Update(diff, [this]
-        {
             DoMeleeAttackIfReady();
-        });
-    }
+        }
+    };
 
-private:
-    TaskScheduler _scheduler;
+    CreatureAI *GetAI(Creature *creature) const
+    {
+        return new boss_vanndarAI(creature);
+    }
 };
 
 void AddSC_boss_vanndar()
 {
-    RegisterCreatureAI(boss_vanndar);
+    new boss_vanndar;
 }

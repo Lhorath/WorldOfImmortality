@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,39 +19,56 @@
 #ifndef TRINITY_GRIDSTATES_H
 #define TRINITY_GRIDSTATES_H
 
-#include "GridDefines.h"
-#include "NGrid.h"
+#include "Map.h"
+#include "Object.h"
 
-class Map;
-
-class TC_GAME_API GridState
+class GridState
 {
     public:
-        virtual ~GridState() { };
-        virtual void Update(Map &, NGridType&, GridInfo &, uint32 t_diff) const = 0;
+#ifdef TRINITY_DEBUG
+#define MAGIC_TESTVAL 0xFBE823BA
+        GridState() { i_Magic = MAGIC_TESTVAL; }
+        bool checkMagic()
+        {
+            if (i_Magic != MAGIC_TESTVAL)
+            {
+                sLog->outError("!!! GridState: Magic value gone !!!");
+                return false;
+            }
+            return true;
+        }
+        void setMagic() { i_Magic = MAGIC_TESTVAL; }
+        unsigned int i_Magic;
+#endif
+        virtual void Update(Map &, NGridType&, GridInfo &, const uint32 &x, const uint32 &y, const uint32 &t_diff) const = 0;
 };
 
-class TC_GAME_API InvalidState : public GridState
+class InvalidState : public GridState
 {
     public:
-        void Update(Map &, NGridType &, GridInfo &, uint32 t_diff) const override;
+
+        void Update(Map &, NGridType &, GridInfo &, const uint32 &x, const uint32 &y, const uint32 &t_diff) const;
 };
 
-class TC_GAME_API ActiveState : public GridState
+class ActiveState : public GridState
 {
     public:
-        void Update(Map &, NGridType &, GridInfo &, uint32 t_diff) const override;
+
+        void Update(Map &, NGridType &, GridInfo &, const uint32 &x, const uint32 &y, const uint32 &t_diff) const;
 };
 
-class TC_GAME_API IdleState : public GridState
+class IdleState : public GridState
 {
     public:
-        void Update(Map &, NGridType &, GridInfo &, uint32 t_diff) const override;
+
+        void Update(Map &, NGridType &, GridInfo &, const uint32 &x, const uint32 &y, const uint32 &t_diff) const;
 };
 
-class TC_GAME_API RemovalState : public GridState
+class RemovalState : public GridState
 {
     public:
-        void Update(Map &, NGridType &, GridInfo &, uint32 t_diff) const override;
+
+        void Update(Map &, NGridType &, GridInfo &, const uint32 &x, const uint32 &y, const uint32 &t_diff) const;
 };
 #endif
+

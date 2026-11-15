@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -26,7 +27,6 @@
 #include "SharedDefines.h"
 #include "Timer.h"
 
-class Map;
 class Player;
 
 #define WEATHER_SEASONS 4
@@ -43,11 +43,9 @@ struct WeatherData
     uint32 ScriptId;
 };
 
-enum WeatherState : uint32
+enum WeatherState
 {
     WEATHER_STATE_FINE              = 0,
-    WEATHER_STATE_FOG               = 1,
-    WEATHER_STATE_DRIZZLE           = 2,
     WEATHER_STATE_LIGHT_RAIN        = 3,
     WEATHER_STATE_MEDIUM_RAIN       = 4,
     WEATHER_STATE_HEAVY_RAIN        = 5,
@@ -58,25 +56,24 @@ enum WeatherState : uint32
     WEATHER_STATE_MEDIUM_SANDSTORM  = 41,
     WEATHER_STATE_HEAVY_SANDSTORM   = 42,
     WEATHER_STATE_THUNDERS          = 86,
-    WEATHER_STATE_BLACKRAIN         = 90,
-    WEATHER_STATE_BLACKSNOW         = 106
+    WEATHER_STATE_BLACKRAIN         = 90
 };
 
 /// Weather for one zone
-class TC_GAME_API Weather
+class Weather
 {
     public:
 
-        Weather(Map* map, uint32 zoneId, WeatherData const* weatherChances);
+        Weather(uint32 zone, WeatherData const* weatherChances);
         ~Weather() { };
 
         bool Update(uint32 diff);
         bool ReGenerate();
         bool UpdateWeather();
 
-        void SendWeatherUpdateToPlayer(Player* player);
-        static void SendFineWeatherUpdateToPlayer(Player* player);
-        void SetWeather(WeatherType type, float intensity);
+        void SendWeatherUpdateToPlayer(Player *player);
+        static void SendFineWeatherUpdateToPlayer(Player *player);
+        void SetWeather(WeatherType type, float grade);
 
         /// For which zone is this weather?
         uint32 GetZone() const { return m_zone; };
@@ -85,11 +82,11 @@ class TC_GAME_API Weather
     private:
 
         WeatherState GetWeatherState() const;
-        Map* m_map;
         uint32 m_zone;
         WeatherType m_type;
-        float m_intensity;
+        float m_grade;
         IntervalTimer m_timer;
         WeatherData const* m_weatherChances;
 };
 #endif
+

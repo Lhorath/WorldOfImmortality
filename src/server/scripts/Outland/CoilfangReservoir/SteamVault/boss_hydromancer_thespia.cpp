@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,133 +16,178 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Hydromancer_Thespia
+SD%Complete: 80
+SDComment: Needs additional adjustments (when instance script is adjusted)
+SDCategory: Coilfang Resevoir, The Steamvault
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
+/* ContentData
+boss_hydromancer_thespia
+mob_coilfang_waterelemental
+EndContentData */
+
+#include "ScriptPCH.h"
 #include "steam_vault.h"
 
-enum ThespiaTexts
+#define SAY_SUMMON                  -1545000
+#define SAY_AGGRO_1                 -1545001
+#define SAY_AGGRO_2                 -1545002
+#define SAY_AGGRO_3                 -1545003
+#define SAY_SLAY_1                  -1545004
+#define SAY_SLAY_2                  -1545005
+#define SAY_DEAD                    -1545006
+
+#define SPELL_LIGHTNING_CLOUD       25033
+#define SPELL_LUNG_BURST            31481
+#define SPELL_ENVELOPING_WINDS      31718
+
+#define SPELL_WATER_BOLT_VOLLEY     34449
+#define H_SPELL_WATER_BOLT_VOLLEY   37924
+
+class boss_hydromancer_thespia : public CreatureScript
 {
-    SAY_CLOUD                   = 0,
-    SAY_AGGRO                   = 1,
-    SAY_SLAY                    = 2,
-    SAY_DEATH                   = 3
-};
+public:
+    boss_hydromancer_thespia() : CreatureScript("boss_hydromancer_thespia") { }
 
-enum ThespiaSpells
-{
-    SPELL_LIGHTNING_CLOUD       = 25033,
-    SPELL_LUNG_BURST            = 31481,
-    SPELL_ENVELOPING_WINDS      = 31718,
-
-    SPELL_WATER_BOLT_VOLLEY     = 34449
-};
-
-enum ThespiaEvents
-{
-    EVENT_LIGHTNING_CLOUD       = 1,
-    EVENT_LUNG_BURST,
-    EVENT_ENVELOPING_WINDS
-};
-
-// 17797 - Hydromancer Thespia
-struct boss_hydromancer_thespia : public BossAI
-{
-    boss_hydromancer_thespia(Creature* creature) : BossAI(creature, DATA_HYDROMANCER_THESPIA) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::JustEngagedWith(who);
-
-        Talk(SAY_AGGRO);
-
-        events.ScheduleEvent(EVENT_LIGHTNING_CLOUD, 5s, 15s);
-        events.ScheduleEvent(EVENT_LUNG_BURST, 10s, 20s);
-        events.ScheduleEvent(EVENT_ENVELOPING_WINDS, 10s, 20s);
+        return new boss_thespiaAI (pCreature);
     }
 
-    void OnSpellCast(SpellInfo const* spellInfo) override
+    struct boss_thespiaAI : public ScriptedAI
     {
-        if (spellInfo->Id == SPELL_LIGHTNING_CLOUD)
-            if (roll_chance_i(50))
-                Talk(SAY_CLOUD);
-    }
-
-    void KilledUnit(Unit* /*who*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-    }
-
-    void ExecuteEvent(uint32 eventId) override
-    {
-        switch (eventId)
+        boss_thespiaAI(Creature *c) : ScriptedAI(c)
         {
-            case EVENT_LIGHTNING_CLOUD:
-                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 30.0f))
-                    DoCast(target, SPELL_LIGHTNING_CLOUD);
-                events.Repeat(20s, 35s);
-                break;
-            case EVENT_LUNG_BURST:
-                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.0f))
-                    DoCast(target, SPELL_LUNG_BURST);
-                events.Repeat(20s, 30s);
-                break;
-            case EVENT_ENVELOPING_WINDS:
-                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 35.0f))
-                    DoCast(target, SPELL_ENVELOPING_WINDS);
-                events.Repeat(25s, 40s);
-                break;
-            default:
-                break;
+            pInstance = c->GetInstanceScript();
         }
-    }
+
+        InstanceScript *pInstance;
+
+        uint32 LightningCloud_Timer;
+        uint32 LungBurst_Timer;
+        uint32 EnvelopingWinds_Timer;
+
+        void Reset()
+        {
+            LightningCloud_Timer = 15000;
+            LungBurst_Timer = 7000;
+            EnvelopingWinds_Timer = 9000;
+
+            if (pInstance)
+                pInstance->SetData(TYPE_HYDROMANCER_THESPIA, NOT_STARTED);
+        }
+
+        void JustDied(Unit* /*Killer*/)
+        {
+            DoScriptText(SAY_DEAD, me);
+
+            if (pInstance)
+                pInstance->SetData(TYPE_HYDROMANCER_THESPIA, DONE);
+        }
+
+        void KilledUnit(Unit* /*victim*/)
+        {
+            DoScriptText(RAND(SAY_SLAY_1,SAY_SLAY_2), me);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            DoScriptText(RAND(SAY_AGGRO_1,SAY_AGGRO_2,SAY_AGGRO_3), me);
+
+            if (pInstance)
+                pInstance->SetData(TYPE_HYDROMANCER_THESPIA, IN_PROGRESS);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            //LightningCloud_Timer
+            if (LightningCloud_Timer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                    DoCast(pTarget, SPELL_LIGHTNING_CLOUD);
+
+                //cast twice in Heroic mode
+                if (IsHeroic())
+                    if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                        DoCast(pTarget, SPELL_LIGHTNING_CLOUD);
+
+                LightningCloud_Timer = 15000+rand()%10000;
+            } else LightningCloud_Timer -=diff;
+
+            //LungBurst_Timer
+            if (LungBurst_Timer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                    DoCast(pTarget, SPELL_LUNG_BURST);
+                LungBurst_Timer = 7000+rand()%5000;
+            } else LungBurst_Timer -=diff;
+
+            //EnvelopingWinds_Timer
+            if (EnvelopingWinds_Timer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                    DoCast(pTarget, SPELL_ENVELOPING_WINDS);
+
+                //cast twice in Heroic mode
+                if (IsHeroic())
+                    if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                        DoCast(pTarget, SPELL_ENVELOPING_WINDS);
+                EnvelopingWinds_Timer = 10000+rand()%5000;
+            } else EnvelopingWinds_Timer -=diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
-// 17917 - Coilfang Water Elemental
-struct npc_coilfang_waterelemental : public ScriptedAI
+class mob_coilfang_waterelemental : public CreatureScript
 {
-    using ScriptedAI::ScriptedAI;
+public:
+    mob_coilfang_waterelemental() : CreatureScript("mob_coilfang_waterelemental") { }
 
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _scheduler.CancelAll();
+        return new mob_coilfang_waterelementalAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    struct mob_coilfang_waterelementalAI : public ScriptedAI
     {
-        _scheduler.Schedule(4s, 12s, [this](TaskContext task)
+        mob_coilfang_waterelementalAI(Creature *c) : ScriptedAI(c) {}
+
+        uint32 WaterBoltVolley_Timer;
+
+        void Reset()
         {
-            DoCastSelf(SPELL_WATER_BOLT_VOLLEY);
-            task.Repeat(8s, 15s);
-        });
-    }
+            WaterBoltVolley_Timer = 3000+rand()%3000;
+        }
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
+        void EnterCombat(Unit * /*who*/) { }
 
-        _scheduler.Update(diff);
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
 
-        DoMeleeAttackIfReady();
-    }
+            if (WaterBoltVolley_Timer <= diff)
+            {
+                DoCast(me, SPELL_WATER_BOLT_VOLLEY);
+                WaterBoltVolley_Timer = 7000+rand()%5000;
+            } else WaterBoltVolley_Timer -= diff;
 
-private:
-    TaskScheduler _scheduler;
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_hydromancer_thespia()
 {
-    RegisterSteamVaultCreatureAI(boss_hydromancer_thespia);
-    RegisterSteamVaultCreatureAI(npc_coilfang_waterelemental);
+    new boss_hydromancer_thespia();
+    new mob_coilfang_waterelemental();
 }

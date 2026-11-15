@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,39 +16,13 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SETHEKK_HALLS_H_
-#define SETHEKK_HALLS_H_
+#ifndef DEF_SETHEKK_HALLS_H
+#define DEF_SETHEKK_HALLS_H
 
-#include "CreatureAIImpl.h"
-
-#define SHScriptName "instance_sethekk_halls"
-#define DataHeader "SH"
-
-uint32 constexpr EncounterCount         = 3;
-
-enum SHDataTypes
+enum eTypes
 {
-    // Encounter States/Boss GUIDs
-    DATA_DARKWEAVER_SYTH                = 0,
-    DATA_TALON_KING_IKISS               = 1,
-    DATA_ANZU                           = 2,
-
-    // Additional Data
-    DATA_TALON_KING_COFFER              = 3
+    DATA_IKISSDOOREVENT = 1,
+    TYPE_ANZU_ENCOUNTER = 2,
 };
+#endif
 
-enum SHGameObjectIds
-{
-    GO_IKISS_DOOR                       = 183398,
-    GO_TALON_KING_COFFER                = 187372
-};
-
-template <class AI, class T>
-inline AI* GetSethekkHallsAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, SHScriptName);
-}
-
-#define RegisterSethekkHallsCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetSethekkHallsAI)
-
-#endif // SETHEKK_HALLS_H_

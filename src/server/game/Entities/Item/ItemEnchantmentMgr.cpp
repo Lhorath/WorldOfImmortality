@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,18 +16,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdlib.h>
+#include <functional>
 #include "ItemEnchantmentMgr.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
 #include "ObjectMgr.h"
-#include "Util.h"
-#include "DBCStores.h"
-#include "Random.h"
-#include "Timer.h"
-
 #include <list>
 #include <vector>
-#include <stdlib.h>
+#include "Util.h"
 
 struct EnchStoreItem
 {
@@ -34,14 +32,14 @@ struct EnchStoreItem
     float   chance;
 
     EnchStoreItem()
-        : ench(0), chance(0) { }
+        : ench(0), chance(0) {}
 
     EnchStoreItem(uint32 _ench, float _chance)
-        : ench(_ench), chance(_chance) { }
+        : ench(_ench), chance(_chance) {}
 };
 
 typedef std::vector<EnchStoreItem> EnchStoreList;
-typedef std::unordered_map<uint32, EnchStoreList> EnchantmentStore;
+typedef UNORDERED_MAP<uint32, EnchStoreList> EnchantmentStore;
 
 static EnchantmentStore RandomItemEnch;
 
@@ -51,7 +49,6 @@ void LoadRandomEnchantmentsTable()
 
     RandomItemEnch.clear();                                 // for reload case
 
-    //                                                 0      1      2
     QueryResult result = WorldDatabase.Query("SELECT entry, ench, chance FROM item_enchantment_template");
 
     if (result)
@@ -60,7 +57,7 @@ void LoadRandomEnchantmentsTable()
 
         do
         {
-            Field* fields = result->Fetch();
+            Field *fields = result->Fetch();
 
             uint32 entry = fields[0].GetUInt32();
             uint32 ench = fields[1].GetUInt32();
@@ -72,10 +69,14 @@ void LoadRandomEnchantmentsTable()
             ++count;
         } while (result->NextRow());
 
-        TC_LOG_INFO("server.loading", ">> Loaded {} Item Enchantment definitions in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+        sLog->outString(">> Loaded %u Item Enchantment definitions in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+        sLog->outString();
     }
     else
-        TC_LOG_INFO("server.loading", ">> Loaded 0 Item Enchantment definitions. DB table `item_enchantment_template` is empty.");
+    {
+        sLog->outErrorDb(">> Loaded 0 Item Enchantment definitions. DB table `item_enchantment_template` is empty.");
+        sLog->outString();
+    }
 }
 
 uint32 GetItemEnchantMod(int32 entry)
@@ -89,7 +90,7 @@ uint32 GetItemEnchantMod(int32 entry)
     EnchantmentStore::const_iterator tab = RandomItemEnch.find(entry);
     if (tab == RandomItemEnch.end())
     {
-        TC_LOG_ERROR("sql.sql", "Item RandomProperty / RandomSuffix id #{} used in `item_template` but it does not have records in `item_enchantment_template` table.", entry);
+        sLog->outErrorDb("Item RandomProperty / RandomSuffix id #%u used in `item_template` but it does not have records in `item_enchantment_template` table.",entry);
         return 0;
     }
 
@@ -100,103 +101,62 @@ uint32 GetItemEnchantMod(int32 entry)
     {
         fCount += ench_iter->chance;
 
-        if (fCount > dRoll)
-            return ench_iter->ench;
+        if (fCount > dRoll) return ench_iter->ench;
     }
 
     //we could get here only if sum of all enchantment chances is lower than 100%
-    dRoll = (irand(0, (int)floor(fCount * 100) + 1)) / 100;
+    dRoll =  (irand(0, (int)floor(fCount * 100) + 1)) / 100;
     fCount = 0;
 
     for (EnchStoreList::const_iterator ench_iter = tab->second.begin(); ench_iter != tab->second.end(); ++ench_iter)
     {
         fCount += ench_iter->chance;
 
-        if (fCount > dRoll)
-            return ench_iter->ench;
+        if (fCount > dRoll) return ench_iter->ench;
     }
 
     return 0;
 }
 
-int32 GenerateItemRandomPropertyId(uint32 item_id)
-{
-    ItemTemplate const* itemProto = sObjectMgr->GetItemTemplate(item_id);
-
-    if (!itemProto)
-        return 0;
-
-    // item must have one from this field values not null if it can have random enchantments
-    if ((!itemProto->GetRandomProperty()) && (!itemProto->GetRandomSuffix()))
-        return 0;
-
-    // item can have not null only one from field values
-    if ((itemProto->GetRandomProperty()) && (itemProto->GetRandomSuffix()))
-    {
-        TC_LOG_ERROR("sql.sql", "Item template {} have RandomProperty == {} and RandomSuffix == {}, but must have one from field =0", itemProto->GetId(), itemProto->GetRandomProperty(), itemProto->GetRandomSuffix());
-        return 0;
-    }
-
-    // RandomProperty case
-    if (itemProto->GetRandomProperty())
-    {
-        uint32 randomPropId = GetItemEnchantMod(itemProto->GetRandomProperty());
-        ItemRandomPropertiesEntry const* random_id = sItemRandomPropertiesStore.LookupEntry(randomPropId);
-        if (!random_id)
-        {
-            TC_LOG_ERROR("sql.sql", "Enchantment id #{} used but it doesn't have records in 'ItemRandomProperties.dbc'", randomPropId);
-            return 0;
-        }
-
-        return random_id->ID;
-    }
-    // RandomSuffix case
-    else
-    {
-        uint32 randomPropId = GetItemEnchantMod(itemProto->GetRandomSuffix());
-        ItemRandomSuffixEntry const* random_id = sItemRandomSuffixStore.LookupEntry(randomPropId);
-        if (!random_id)
-        {
-            TC_LOG_ERROR("sql.sql", "Enchantment id #{} used but it doesn't have records in sItemRandomSuffixStore.", randomPropId);
-            return 0;
-        }
-
-        return -int32(random_id->ID);
-    }
-}
-
 uint32 GenerateEnchSuffixFactor(uint32 item_id)
 {
-    ItemTemplate const* itemProto = sObjectMgr->GetItemTemplate(item_id);
+    ItemPrototype const *itemProto = ObjectMgr::GetItemPrototype(item_id);
 
     if (!itemProto)
         return 0;
-    if (!itemProto->GetRandomSuffix())
+    if (!itemProto->RandomSuffix)
         return 0;
 
-    return GetRandomPropertyPoints(itemProto->GetBaseItemLevel(), itemProto->GetQuality(), itemProto->GetInventoryType());
-}
+    RandomPropertiesPointsEntry const *randomProperty = sRandomPropertiesPointsStore.LookupEntry(itemProto->ItemLevel);
+    if (!randomProperty)
+        return 0;
 
-uint32 GetRandomPropertyPoints(uint32 itemLevel, uint32 quality, uint32 inventoryType)
-{
-    uint32 propIndex;
-
-    switch (inventoryType)
+    uint32 suffixFactor;
+    switch(itemProto->InventoryType)
     {
+        // Items of that type don`t have points
+        case INVTYPE_NON_EQUIP:
+        case INVTYPE_BAG:
+        case INVTYPE_TABARD:
+        case INVTYPE_AMMO:
+        case INVTYPE_QUIVER:
+        case INVTYPE_RELIC:
+            return 0;
+            // Select point coefficient
         case INVTYPE_HEAD:
         case INVTYPE_BODY:
         case INVTYPE_CHEST:
         case INVTYPE_LEGS:
         case INVTYPE_2HWEAPON:
         case INVTYPE_ROBE:
-            propIndex = 0;
+            suffixFactor = 0;
             break;
         case INVTYPE_SHOULDERS:
         case INVTYPE_WAIST:
         case INVTYPE_FEET:
         case INVTYPE_HANDS:
         case INVTYPE_TRINKET:
-            propIndex = 1;
+            suffixFactor = 1;
             break;
         case INVTYPE_NECK:
         case INVTYPE_WRISTS:
@@ -204,37 +164,36 @@ uint32 GetRandomPropertyPoints(uint32 itemLevel, uint32 quality, uint32 inventor
         case INVTYPE_SHIELD:
         case INVTYPE_CLOAK:
         case INVTYPE_HOLDABLE:
-            propIndex = 2;
+            suffixFactor = 2;
             break;
         case INVTYPE_WEAPON:
         case INVTYPE_WEAPONMAINHAND:
         case INVTYPE_WEAPONOFFHAND:
-            propIndex = 3;
+            suffixFactor = 3;
             break;
         case INVTYPE_RANGED:
         case INVTYPE_THROWN:
         case INVTYPE_RANGEDRIGHT:
-            propIndex = 4;
+            suffixFactor = 4;
             break;
         default:
             return 0;
     }
-
-    RandPropPointsEntry const* randPropPointsEntry = sRandPropPointsStore.LookupEntry(itemLevel);
-    if (!randPropPointsEntry)
-        return 0;
-
-    switch (quality)
+    // Select rare/epic modifier
+    switch (itemProto->Quality)
     {
         case ITEM_QUALITY_UNCOMMON:
-            return randPropPointsEntry->Good[propIndex];
+            return randomProperty->UncommonPropertiesPoints[suffixFactor];
         case ITEM_QUALITY_RARE:
-            return randPropPointsEntry->Superior[propIndex];
+            return randomProperty->RarePropertiesPoints[suffixFactor];
         case ITEM_QUALITY_EPIC:
-            return randPropPointsEntry->Epic[propIndex];
+            return randomProperty->EpicPropertiesPoints[suffixFactor];
+        case ITEM_QUALITY_LEGENDARY:
+        case ITEM_QUALITY_ARTIFACT:
+            return 0;                                       // not have random properties
         default:
             break;
     }
-
     return 0;
 }
+

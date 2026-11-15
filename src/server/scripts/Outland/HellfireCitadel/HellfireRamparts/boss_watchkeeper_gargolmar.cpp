@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,173 +16,161 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Watchkeeper_Gargolmar
+SD%Complete: 80
+SDComment: Missing adds to heal him. Surge should be used on pTarget furthest away, not random.
+SDCategory: Hellfire Citadel, Hellfire Ramparts
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "hellfire_ramparts.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
+#include "ScriptPCH.h"
 
-enum GargolmarTexts
+enum eSays
 {
-    SAY_TAUNT              = 0,
-    SAY_HEAL               = 1,
-    SAY_SURGE              = 2,
-    SAY_AGGRO              = 3,
-    SAY_SLAY               = 4
+    SAY_TAUNT              = -1543000,
+    SAY_HEAL               = -1543001,
+    SAY_SURGE              = -1543002,
+    SAY_AGGRO_1            = -1543003,
+    SAY_AGGRO_2            = -1543004,
+    SAY_AGGRO_3            = -1543005,
+    SAY_KILL_1             = -1543006,
+    SAY_KILL_2             = -1543007,
+    SAY_DIE                = -1543008,
 };
 
-enum GargolmarSpells
+enum eSpells
 {
     SPELL_MORTAL_WOUND     = 30641,
+    H_SPELL_MORTAL_WOUND   = 36814,
     SPELL_SURGE            = 34645,
-    SPELL_REQUEST_HEAL     = 30642,
-    SPELL_RETALIATION      = 22857
+    SPELL_RETALIATION      = 22857,
 };
 
-enum GargolmarEvents
+class boss_watchkeeper_gargolmar : public CreatureScript
 {
-    EVENT_TAUNT            = 1,
-    EVENT_MORTAL_WOUND,
-    EVENT_SURGE,
-    EVENT_REQUEST_HEAL,
-    EVENT_RETALIATION
-};
+    public:
 
-enum GargolmarMisc
-{
-    SOUND_DEATH            = 10336
-};
-
-// 17306 - Watchkeeper Gargolmar
-struct boss_watchkeeper_gargolmar : public BossAI
-{
-    boss_watchkeeper_gargolmar(Creature* creature) : BossAI(creature, DATA_WATCHKEEPER_GARGOLMAR), _hasRequestedHeal(false), _hasRetaliation(false) { }
-
-    void JustAppeared() override
-    {
-        // This is just timed, not on LoS or areatrigger (the source is videos)
-        events.ScheduleEvent(EVENT_TAUNT, 10min, 15min);
-    }
-
-    void Reset() override
-    {
-        _Reset();
-        _hasRequestedHeal = false;
-        _hasRetaliation = false;
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-
-        Talk(SAY_AGGRO);
-
-        events.ScheduleEvent(EVENT_MORTAL_WOUND, 5s, 10s);
-        events.ScheduleEvent(EVENT_SURGE, 3s, 5s);
-    }
-
-    void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (!_hasRequestedHeal && me->HealthBelowPctDamaged(40, damage))
+        boss_watchkeeper_gargolmar()
+            : CreatureScript("boss_watchkeeper_gargolmar")
         {
-            _hasRequestedHeal = true;
-            events.ScheduleEvent(EVENT_REQUEST_HEAL, 0s);
         }
 
-        if (!_hasRetaliation && me->HealthBelowPctDamaged(20, damage))
+        struct boss_watchkeeper_gargolmarAI : public ScriptedAI
         {
-            _hasRetaliation = true;
-            events.ScheduleEvent(EVENT_RETALIATION, 0s);
-        }
-    }
-
-    void OnSpellCast(SpellInfo const* spellInfo) override
-    {
-        switch (spellInfo->Id)
-        {
-            case SPELL_SURGE:
-                if (roll_chance_i(50))
-                    Talk(SAY_SURGE);
-                break;
-            case SPELL_REQUEST_HEAL:
-                Talk(SAY_HEAL);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void KilledUnit(Unit* /*victim*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        DoPlaySoundToSet(me, SOUND_DEATH);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-        {
-            events.Update(diff);
-
-            while (uint32 eventId = events.ExecuteEvent())
+            boss_watchkeeper_gargolmarAI(Creature* pCreature) : ScriptedAI(pCreature)
             {
-                if (eventId == EVENT_TAUNT)
-                    Talk(SAY_TAUNT);
             }
 
-            return;
-        }
+            uint32 Surge_Timer;
+            uint32 MortalWound_Timer;
+            uint32 Retaliation_Timer;
 
-        events.Update(diff);
+            bool HasTaunted;
+            bool YelledForHeal;
 
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
-        {
-            switch (eventId)
+            void Reset()
             {
-                case EVENT_MORTAL_WOUND:
-                    DoCastVictim(SPELL_MORTAL_WOUND);
-                    events.Repeat(5s, 15s);
-                    break;
-                case EVENT_SURGE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::MaxDistance, 0))
-                        DoCast(target, SPELL_SURGE);
-                    events.Repeat(15s, 40s);
-                    break;
-                case EVENT_REQUEST_HEAL:
-                    DoCastSelf(SPELL_REQUEST_HEAL);
-                    break;
-                case EVENT_RETALIATION:
-                    DoCastSelf(SPELL_RETALIATION);
-                    events.Repeat(30s);
-                    break;
-                default:
-                    break;
+                Surge_Timer = 5000;
+                MortalWound_Timer = 4000;
+                Retaliation_Timer = 0;
+
+                HasTaunted = false;
+                YelledForHeal = false;
             }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            void EnterCombat(Unit * /*who*/)
+            {
+                DoScriptText(RAND(SAY_AGGRO_1,SAY_AGGRO_2,SAY_AGGRO_3), me);
+            }
+
+            void MoveInLineOfSight(Unit* who)
+            {
+                if (!me->getVictim() && who->isTargetableForAttack() && (me->IsHostileTo(who)) && who->isInAccessiblePlaceFor(me))
+                {
+                    if (!me->canFly() && me->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
+                        return;
+
+                    float attackRadius = me->GetAttackDistance(who);
+                    if (me->IsWithinDistInMap(who, attackRadius) && me->IsWithinLOSInMap(who))
+                    {
+                        //who->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
+                        AttackStart(who);
+                    }
+                    else if (!HasTaunted && me->IsWithinDistInMap(who, 60.0f))
+                    {
+                        DoScriptText(SAY_TAUNT, me);
+                        HasTaunted = true;
+                    }
+                }
+            }
+
+            void KilledUnit(Unit* /*victim*/)
+            {
+                DoScriptText(RAND(SAY_KILL_1,SAY_KILL_2), me);
+            }
+
+            void JustDied(Unit* /*Killer*/)
+            {
+                DoScriptText(SAY_DIE, me);
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                if (!UpdateVictim())
+                    return;
+
+                if (MortalWound_Timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_MORTAL_WOUND);
+                    MortalWound_Timer = 5000+rand()%8000;
+                }
+                else
+                    MortalWound_Timer -= diff;
+
+                if (Surge_Timer <= diff)
+                {
+                    DoScriptText(SAY_SURGE, me);
+
+                    if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                        DoCast(pTarget, SPELL_SURGE);
+
+                    Surge_Timer = 5000+rand()%8000;
+                }
+                else
+                    Surge_Timer -= diff;
+
+                if (HealthBelowPct(20))
+                {
+                    if (Retaliation_Timer <= diff)
+                    {
+                        DoCast(me, SPELL_RETALIATION);
+                        Retaliation_Timer = 30000;
+                    }
+                    else
+                        Retaliation_Timer -= diff;
+                }
+
+                if (!YelledForHeal)
+                {
+                    if (HealthBelowPct(40))
+                    {
+                        DoScriptText(SAY_HEAL, me);
+                        YelledForHeal = true;
+                    }
+                }
+
+                DoMeleeAttackIfReady();
+            }
+        };
+
+        CreatureAI* GetAI(Creature* Creature) const
+        {
+            return new boss_watchkeeper_gargolmarAI (Creature);
         }
-
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    bool _hasRequestedHeal;
-    bool _hasRetaliation;
 };
 
 void AddSC_boss_watchkeeper_gargolmar()
 {
-    RegisterHellfireRampartsCreatureAI(boss_watchkeeper_gargolmar);
+    new boss_watchkeeper_gargolmar();
 }
+

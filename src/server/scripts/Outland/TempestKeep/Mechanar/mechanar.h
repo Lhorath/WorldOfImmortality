@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,35 +19,6 @@
 #ifndef DEF_MECHANAR_H
 #define DEF_MECHANAR_H
 
-#include "CreatureAIImpl.h"
-
-#define MechanarScriptName "instance_mechanar"
-#define DataHeader "MR"
-
-uint32 constexpr EncounterCount         = 5;
-
-enum MRDataTypes
-{
-    DATA_GATEWATCHER_GYROKILL           = 0,
-    DATA_GATEWATCHER_IRON_HAND          = 1,
-    DATA_MECHANOLORD_CAPACITUS          = 2,
-    DATA_NETHERMANCER_SEPRETHREA        = 3,
-    DATA_PATHALEON_THE_CALCULATOR       = 4
-};
-
-enum MRGameobjectIds
-{
-    GO_DOOR_MOARG_1                     = 184632,
-    GO_DOOR_MOARG_2                     = 184322,
-    GO_DOOR_NETHERMANCER                = 184449
-};
-
-template <class AI, class T>
-inline AI* GetMechanarAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, MechanarScriptName);
-}
-
-#define RegisterMechanarCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetMechanarAI)
-
+#define DATA_NETHERMANCER_EVENT 1
 #endif
+

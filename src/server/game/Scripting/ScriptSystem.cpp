@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,106 +16,208 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ScriptPCH.h"
 #include "ScriptSystem.h"
-#include "Creature.h"
-#include "DatabaseEnv.h"
-#include "Log.h"
 #include "ObjectMgr.h"
-#include "ScriptMgr.h"
-#include "SplineChain.h"
+#include "DatabaseEnv.h"
 
-SystemMgr::SystemMgr() = default;
-SystemMgr::~SystemMgr() = default;
-
-SystemMgr* SystemMgr::instance()
+void SystemMgr::LoadVersion()
 {
-    static SystemMgr instance;
-    return &instance;
-}
+    //Get Version information
+    QueryResult Result = WorldDatabase.Query("SELECT script_version FROM version LIMIT 1");
 
-void SystemMgr::LoadScriptSplineChains()
-{
-    uint32 oldMSTime = getMSTime();
-
-    m_mSplineChainsMap.clear();
-
-    //                                                   0      1        2         3                 4            5
-    QueryResult resultMeta = WorldDatabase.Query("SELECT entry, chainId, splineId, expectedDuration, msUntilNext, velocity FROM script_spline_chain_meta ORDER BY entry asc, chainId asc, splineId asc");
-    //                                                 0      1        2         3     4  5  6
-    QueryResult resultWP = WorldDatabase.Query("SELECT entry, chainId, splineId, wpId, x, y, z FROM script_spline_chain_waypoints ORDER BY entry asc, chainId asc, splineId asc, wpId asc");
-    if (!resultMeta || !resultWP)
+    if (Result)
     {
-        TC_LOG_INFO("server.loading", ">> Loaded spline chain data for 0 chains, consisting of 0 splines with 0 waypoints. DB tables `script_spline_chain_meta` and `script_spline_chain_waypoints` are empty.");
+        Field* pFields = Result->Fetch();
+
+        sLog->outString("TSCR: Database version is: %s", pFields[0].GetCString());
+        sLog->outString();
     }
     else
     {
-        uint32 chainCount = 0, splineCount = 0, wpCount = 0;
-        do
-        {
-            Field* fieldsMeta = resultMeta->Fetch();
-            uint32 entry = fieldsMeta[0].GetUInt32();
-            uint16 chainId = fieldsMeta[1].GetUInt16();
-            uint8 splineId = fieldsMeta[2].GetUInt8();
-            std::vector<SplineChainLink>& chain = m_mSplineChainsMap[{entry, chainId}];
-
-            if (splineId != chain.size())
-            {
-                TC_LOG_WARN("server.loading", "Creature #{}: Chain {} has orphaned spline {}, skipped.", entry, chainId, splineId);
-                continue;
-            }
-
-            uint32 expectedDuration = fieldsMeta[3].GetUInt32();
-            uint32 msUntilNext = fieldsMeta[4].GetUInt32();
-            float velocity = fieldsMeta[5].GetFloat();
-            chain.emplace_back(expectedDuration, msUntilNext, velocity);
-
-            if (splineId == 0)
-                ++chainCount;
-            ++splineCount;
-        } while (resultMeta->NextRow());
-
-        do
-        {
-            Field* fieldsWP = resultWP->Fetch();
-            uint32 entry = fieldsWP[0].GetUInt32();
-            uint16 chainId = fieldsWP[1].GetUInt16();
-            uint8 splineId = fieldsWP[2].GetUInt8(), wpId = fieldsWP[3].GetUInt8();
-            float posX = fieldsWP[4].GetFloat(), posY = fieldsWP[5].GetFloat(), posZ = fieldsWP[6].GetFloat();
-            auto it = m_mSplineChainsMap.find({entry,chainId});
-            if (it == m_mSplineChainsMap.end())
-            {
-                TC_LOG_WARN("server.loading", "Creature #{} has waypoint data for spline chain {}. No such chain exists - entry skipped.", entry, chainId);
-                continue;
-            }
-            std::vector<SplineChainLink>& chain = it->second;
-            if (splineId >= chain.size())
-            {
-                TC_LOG_WARN("server.loading", "Creature #{} has waypoint data for spline ({},{}). The specified chain does not have a spline with this index - entry skipped.", entry, chainId, splineId);
-                continue;
-            }
-            SplineChainLink& spline = chain[splineId];
-            if (wpId != spline.Points.size())
-            {
-                TC_LOG_WARN("server.loading", "Creature #{} has orphaned waypoint data in spline ({},{}) at index {}. Skipped.", entry, chainId, splineId, wpId);
-                continue;
-            }
-            spline.Points.emplace_back(posX, posY, posZ);
-            ++wpCount;
-        } while (resultWP->NextRow());
-
-        TC_LOG_INFO("server.loading", ">> Loaded spline chain data for {} chains, consisting of {} splines with {} waypoints in {} ms", chainCount, splineCount, wpCount, GetMSTimeDiffToNow(oldMSTime));
+        sLog->outError("TSCR: Missing `version`.`script_version` information.");
+        sLog->outString();
     }
 }
 
-std::vector<SplineChainLink> const* SystemMgr::GetSplineChain(uint32 entry, uint16 chainId) const
+void SystemMgr::LoadScriptTexts()
 {
-    auto it = m_mSplineChainsMap.find({ entry, chainId });
-    if (it == m_mSplineChainsMap.end())
-        return nullptr;
-    return &it->second;
+    sLog->outString("TSCR: Loading Script Texts...");
+    LoadTrinityStrings("script_texts",TEXT_SOURCE_RANGE,1+(TEXT_SOURCE_RANGE*2));
+
+    sLog->outString("TSCR: Loading Script Texts additional data...");
+    uint32 oldMSTime = getMSTime();
+
+    QueryResult result = WorldDatabase.Query("SELECT entry, sound, type, language, emote FROM script_texts");
+
+    if (!result)
+    {
+        sLog->outString(">> Loaded 0 additional Script Texts data. DB table `script_texts` is empty.");
+        sLog->outString();
+        return;
+    }
+
+    uint32 uiCount = 0;
+
+    do
+    {
+        Field* pFields = result->Fetch();
+        StringTextData pTemp;
+
+        int32 iId           = pFields[0].GetInt32();
+        pTemp.uiSoundId     = pFields[1].GetUInt32();
+        pTemp.uiType        = pFields[2].GetUInt32();
+        pTemp.uiLanguage    = pFields[3].GetUInt32();
+        pTemp.uiEmote       = pFields[4].GetUInt32();
+
+        if (iId >= 0)
+        {
+            sLog->outErrorDb("TSCR: Entry %i in table `script_texts` is not a negative value.", iId);
+            continue;
+        }
+
+        if (iId > TEXT_SOURCE_RANGE || iId <= TEXT_SOURCE_RANGE*2)
+        {
+            sLog->outErrorDb("TSCR: Entry %i in table `script_texts` is out of accepted entry range for table.", iId);
+            continue;
+        }
+
+        if (pTemp.uiSoundId)
+        {
+            if (!GetSoundEntriesStore()->LookupEntry(pTemp.uiSoundId))
+                sLog->outErrorDb("TSCR: Entry %i in table `script_texts` has soundId %u but sound does not exist.", iId, pTemp.uiSoundId);
+        }
+
+        if (!GetLanguageDescByID(pTemp.uiLanguage))
+            sLog->outErrorDb("TSCR: Entry %i in table `script_texts` using Language %u but Language does not exist.", iId, pTemp.uiLanguage);
+
+        if (pTemp.uiType > CHAT_TYPE_ZONE_YELL)
+            sLog->outErrorDb("TSCR: Entry %i in table `script_texts` has Type %u but this Chat Type does not exist.", iId, pTemp.uiType);
+
+        m_mTextDataMap[iId] = pTemp;
+        ++uiCount;
+    } while (result->NextRow());
+
+    sLog->outString(">> Loaded %u additional Script Texts data in %u ms", uiCount, GetMSTimeDiffToNow(oldMSTime));
+    sLog->outString();
 }
 
-std::vector<SplineChainLink> const* SystemMgr::GetSplineChain(Creature const* who, uint16 id) const
+void SystemMgr::LoadScriptTextsCustom()
 {
-    return GetSplineChain(who->GetEntry(), id);
+    sLog->outString("TSCR: Loading Custom Texts...");
+    LoadTrinityStrings("custom_texts",TEXT_SOURCE_RANGE*2,1+(TEXT_SOURCE_RANGE*3));
+
+    sLog->outString("TSCR: Loading Custom Texts additional data...");
+
+    QueryResult result = WorldDatabase.Query("SELECT entry, sound, type, language, emote FROM custom_texts");
+
+    if (!result)
+    {
+        sLog->outString(">> Loaded 0 additional Custom Texts data. DB table `custom_texts` is empty.");
+        sLog->outString();
+        return;
+    }
+
+    uint32 uiCount = 0;
+
+    do
+    {
+        Field* pFields = result->Fetch();
+        StringTextData pTemp;
+
+        int32 iId              = pFields[0].GetInt32();
+        pTemp.uiSoundId        = pFields[1].GetUInt32();
+        pTemp.uiType           = pFields[2].GetUInt32();
+        pTemp.uiLanguage       = pFields[3].GetUInt32();
+        pTemp.uiEmote          = pFields[4].GetUInt32();
+
+        if (iId >= 0)
+        {
+            sLog->outErrorDb("TSCR: Entry %i in table `custom_texts` is not a negative value.", iId);
+            continue;
+        }
+
+        if (iId > TEXT_SOURCE_RANGE*2 || iId <= TEXT_SOURCE_RANGE*3)
+        {
+            sLog->outErrorDb("TSCR: Entry %i in table `custom_texts` is out of accepted entry range for table.", iId);
+            continue;
+        }
+
+        if (pTemp.uiSoundId)
+        {
+            if (!GetSoundEntriesStore()->LookupEntry(pTemp.uiSoundId))
+                sLog->outErrorDb("TSCR: Entry %i in table `custom_texts` has soundId %u but sound does not exist.", iId, pTemp.uiSoundId);
+        }
+
+        if (!GetLanguageDescByID(pTemp.uiLanguage))
+            sLog->outErrorDb("TSCR: Entry %i in table `custom_texts` using Language %u but Language does not exist.", iId, pTemp.uiLanguage);
+
+        if (pTemp.uiType > CHAT_TYPE_ZONE_YELL)
+            sLog->outErrorDb("TSCR: Entry %i in table `custom_texts` has Type %u but this Chat Type does not exist.", iId, pTemp.uiType);
+
+        m_mTextDataMap[iId] = pTemp;
+        ++uiCount;
+    } while (result->NextRow());
+
+    sLog->outString(">> Loaded %u additional Custom Texts data.", uiCount);
+    sLog->outString();
+}
+
+void SystemMgr::LoadScriptWaypoints()
+{
+    uint32 oldMSTime = getMSTime();
+
+    // Drop Existing Waypoint list
+    m_mPointMoveMap.clear();
+
+    uint64 uiCreatureCount = 0;
+
+    // Load Waypoints
+    QueryResult result = WorldDatabase.Query("SELECT COUNT(entry) FROM script_waypoint GROUP BY entry");
+    if (result)
+        uiCreatureCount = result->GetRowCount();
+
+    sLog->outString("TSCR: Loading Script Waypoints for " UI64FMTD " creature(s)...", uiCreatureCount);
+
+    result = WorldDatabase.Query("SELECT entry, pointid, location_x, location_y, location_z, waittime FROM script_waypoint ORDER BY pointid");
+
+    if (!result)
+    {
+        sLog->outString(">> Loaded 0 Script Waypoints. DB table `script_waypoint` is empty.");
+        sLog->outString();
+        return;
+    }
+
+    uint32 count = 0;
+
+    do
+    {
+        Field* pFields = result->Fetch();
+        ScriptPointMove pTemp;
+
+        pTemp.uiCreatureEntry   = pFields[0].GetUInt32();
+        uint32 uiEntry          = pTemp.uiCreatureEntry;
+        pTemp.uiPointId         = pFields[1].GetUInt32();
+        pTemp.fX                = pFields[2].GetFloat();
+        pTemp.fY                = pFields[3].GetFloat();
+        pTemp.fZ                = pFields[4].GetFloat();
+        pTemp.uiWaitTime        = pFields[5].GetUInt32();
+
+        CreatureInfo const* pCInfo = GetCreatureTemplateStore(pTemp.uiCreatureEntry);
+
+        if (!pCInfo)
+        {
+            sLog->outErrorDb("TSCR: DB table script_waypoint has waypoint for non-existant creature entry %u", pTemp.uiCreatureEntry);
+            continue;
+        }
+
+        if (!pCInfo->ScriptID)
+            sLog->outErrorDb("TSCR: DB table script_waypoint has waypoint for creature entry %u, but creature does not have ScriptName defined and then useless.", pTemp.uiCreatureEntry);
+
+        m_mPointMoveMap[uiEntry].push_back(pTemp);
+        ++count;
+    } while (result->NextRow());
+
+    sLog->outString(">> Loaded %u Script Waypoint nodes in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+    sLog->outString();
 }

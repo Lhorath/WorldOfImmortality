@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,9 +19,6 @@
 #ifndef _AUTHCODES_H
 #define _AUTHCODES_H
 
-#include "Define.h"
-#include <array>
-
 enum AuthResult
 {
     WOW_SUCCESS                                  = 0x00,
@@ -32,23 +30,18 @@ enum AuthResult
     WOW_FAIL_DB_BUSY                             = 0x08,
     WOW_FAIL_VERSION_INVALID                     = 0x09,
     WOW_FAIL_VERSION_UPDATE                      = 0x0A,
-    WOW_FAIL_INVALID_SERVER                      = 0x0B,
     WOW_FAIL_SUSPENDED                           = 0x0C,
-    WOW_FAIL_FAIL_NOACCESS                       = 0x0D,
     WOW_SUCCESS_SURVEY                           = 0x0E,
     WOW_FAIL_PARENTCONTROL                       = 0x0F,
     WOW_FAIL_LOCKED_ENFORCED                     = 0x10,
     WOW_FAIL_TRIAL_ENDED                         = 0x11,
     WOW_FAIL_USE_BATTLENET                       = 0x12,
-    WOW_FAIL_ANTI_INDULGENCE                     = 0x13,
-    WOW_FAIL_EXPIRED                             = 0x14,
-    WOW_FAIL_NO_GAME_ACCOUNT                     = 0x15,
-    WOW_FAIL_CHARGEBACK                          = 0x16,
-    WOW_FAIL_INTERNET_GAME_ROOM_WITHOUT_BNET     = 0x17,
+    WOW_FAIL_TOO_FAST                            = 0x16,
+    WOW_FAIL_CHARGEBACK                          = 0x17,
     WOW_FAIL_GAME_ACCOUNT_LOCKED                 = 0x18,
-    WOW_FAIL_UNLOCKABLE_LOCK                     = 0x19,
-    WOW_FAIL_CONVERSION_REQUIRED                 = 0x20,
-    WOW_FAIL_DISCONNECTED                        = 0xFF
+    WOW_FAIL_INTERNET_GAME_ROOM_WITHOUT_BNET     = 0x19,
+    WOW_FAIL_UNLOCKABLE_LOCK                     = 0x20,
+    WOW_FAIL_DISCONNECTED                        = 0xFF,
 };
 
 enum LoginResult
@@ -69,42 +62,11 @@ enum LoginResult
     LOGIN_FAILED4                                = 0x0D,
     LOGIN_CONNECTED                              = 0x0E,
     LOGIN_PARENTALCONTROL                        = 0x0F,
-    LOGIN_LOCKED_ENFORCED                        = 0x10
+    LOGIN_LOCKED_ENFORCED                        = 0x10,
 };
 
-enum GameAccountFlags
-{
-    GAMEACCOUNT_FLAG_GM                   = 0x00000001,
-    GAMEACCOUNT_FLAG_NOKICK               = 0x00000002,
-    GAMEACCOUNT_FLAG_COLLECTOR            = 0x00000004,
-    GAMEACCOUNT_FLAG_WOW_TRIAL            = 0x00000008,
-    GAMEACCOUNT_FLAG_CANCELLED            = 0x00000010,
-    GAMEACCOUNT_FLAG_IGR                  = 0x00000020,
-    GAMEACCOUNT_FLAG_WHOLESALER           = 0x00000040,
-    GAMEACCOUNT_FLAG_PRIVILEGED           = 0x00000080,
-    GAMEACCOUNT_FLAG_EU_FORBID_ELV        = 0x00000100,
-    GAMEACCOUNT_FLAG_EU_FORBID_BILLING    = 0x00000200,
-    GAMEACCOUNT_FLAG_WOW_RESTRICTED       = 0x00000400,
-    GAMEACCOUNT_FLAG_REFERRAL             = 0x00000800,
-    GAMEACCOUNT_FLAG_BLIZZARD             = 0x00001000,
-    GAMEACCOUNT_FLAG_RECURRING_BILLING    = 0x00002000,
-    GAMEACCOUNT_FLAG_NOELECTUP            = 0x00004000,
-    GAMEACCOUNT_FLAG_KR_CERTIFICATE       = 0x00008000,
-    GAMEACCOUNT_FLAG_EXPANSION_COLLECTOR  = 0x00010000,
-    GAMEACCOUNT_FLAG_DISABLE_VOICE        = 0x00020000,
-    GAMEACCOUNT_FLAG_DISABLE_VOICE_SPEAK  = 0x00040000,
-    GAMEACCOUNT_FLAG_REFERRAL_RESURRECT   = 0x00080000,
-    GAMEACCOUNT_FLAG_EU_FORBID_CC         = 0x00100000,
-    GAMEACCOUNT_FLAG_OPENBETA_DELL        = 0x00200000,
-    GAMEACCOUNT_FLAG_PROPASS              = 0x00400000,
-    GAMEACCOUNT_FLAG_PROPASS_LOCK         = 0x00800000,
-    GAMEACCOUNT_FLAG_PENDING_UPGRADE      = 0x01000000,
-    GAMEACCOUNT_FLAG_RETAIL_FROM_TRIAL    = 0x02000000,
-    GAMEACCOUNT_FLAG_EXPANSION2_COLLECTOR = 0x04000000,
-    GAMEACCOUNT_FLAG_OVERMIND_LINKED      = 0x08000000,
-    GAMEACCOUNT_FLAG_DEMOS                = 0x10000000,
-    GAMEACCOUNT_FLAG_DEATH_KNIGHT_OK      = 0x20000000,
-};
+#define POST_BC_ACCEPTED_CLIENT_BUILD            {12340, 11723, 11403, 11159, 10571, 10505, 10146, 9947, 8606, 0}
+#define PRE_BC_ACCEPTED_CLIENT_BUILD             {5875, 6005, 0}
 
 enum ExpansionFlags
 {
@@ -113,13 +75,11 @@ enum ExpansionFlags
     NO_VALID_EXP_FLAG                           = 0x0
 };
 
-struct RealmBuildInfo;
-
 namespace AuthHelper
 {
-    bool IsAcceptedClientBuild(uint32 build);
-    bool IsPostBCAcceptedClientBuild(uint32 build);
-    bool IsPreBCAcceptedClientBuild(uint32 build);
-}
+    bool IsAcceptedClientBuild(int build);
+    bool IsPostBCAcceptedClientBuild(int build);
+    bool IsPreBCAcceptedClientBuild(int build);
+};
 
 #endif

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,410 +16,342 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_Exarch_Maladaar
+SD%Complete: 95
+SDComment: Most of event implemented, some adjustments to timers remain and possibly make some better code for switching his dark side in to better "images" of player.
+SDCategory: Auchindoun, Auchenai Crypts
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "auchenai_crypts.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
-#include "TemporarySummon.h"
+/* ContentData
+mob_stolen_soul
+boss_exarch_maladaar
+mob_avatar_of_martyred
+EndContentData */
 
-enum MaladaarTexts
+#include "ScriptPCH.h"
+
+#define SPELL_MOONFIRE          37328
+#define SPELL_FIREBALL          37329
+#define SPELL_MIND_FLAY         37330
+#define SPELL_HEMORRHAGE        37331
+#define SPELL_FROSTSHOCK        37332
+#define SPELL_CURSE_OF_AGONY    37334
+#define SPELL_MORTAL_STRIKE     37335
+#define SPELL_FREEZING_TRAP     37368
+#define SPELL_HAMMER_OF_JUSTICE 37369
+
+class mob_stolen_soul : public CreatureScript
 {
-    SAY_ROAR                    = 0,
-    SAY_SOUL_CLEAVE             = 1,
-    SAY_SUMMON                  = 2,
-    SAY_AGGRO                   = 3,
-    SAY_SLAY                    = 4,
-    SAY_DEATH                   = 5
-};
+public:
+    mob_stolen_soul() : CreatureScript("mob_stolen_soul") { }
 
-enum MaladaarSpells
-{
-    // Maladaar
-    SPELL_SOUL_SCREAM           = 32421,
-    SPELL_RIBBON_OF_SOULS       = 32422,
-    SPELL_STOLEN_SOUL           = 32346,
-    SPELL_SUMMON_AVATAR         = 32424,
-
-    // Stolen Soul
-    SPELL_STOLEN_SOUL_VISUAL    = 32395,
-    SPELL_STOLEN_SOUL_DISPEL    = 33326,
-
-    SPELL_MOONFIRE              = 37328,
-    SPELL_FIREBALL              = 37329,
-    SPELL_MIND_FLAY             = 37330,
-    SPELL_HEMORRHAGE            = 37331,
-    SPELL_FROST_SHOCK           = 37332,
-    SPELL_CURSE_OF_AGONY        = 37334,
-    SPELL_MORTAL_STRIKE         = 37335,
-    SPELL_FREEZING_TRAP         = 37368,
-    SPELL_HAMMER_OF_JUSTICE     = 37369,
-    SPELL_PLAGUE_STRIKE         = 58839,
-
-    // Scripts
-    SPELL_SUMMON_STOLEN_SOUL    = 32360
-};
-
-enum MaladaarEvents
-{
-    EVENT_SOUL_SCREAM           = 1,
-    EVENT_RIBBON_OF_SOULS,
-    EVENT_STOLEN_SOUL,
-    EVENT_SUMMON_AVATAR
-};
-
-enum MaladaarMisc
-{
-    NPC_DORE                    = 19412,
-
-    MODEL_UNDEAD_MALE           = 1027,    // guessed
-    MODEL_UNDEAD_FEMALE         = 1029,    // guessed
-    MODEL_NIGHTELF_MALE         = 2572,    // guessed
-    MODEL_NIGHTELF_FEMALE       = 2575,    // guessed
-    MODEL_ORC_MALE              = 2576,    // guessed
-    MODEL_ORC_FEMALE            = 2577,    // guessed
-    MODEL_TAUREN_MALE           = 2578,    // sniff
-    MODEL_TAUREN_FEMALE         = 2579,    // guessed
-    MODEL_GNOME_MALE            = 2581,    // guessed
-    MODEL_GNOME_FEMALE          = 2590,    // guessed
-    MODEL_HUMAN_MALE            = 2582,    // sniff
-    MODEL_HUMAN_FEMALE          = 2583,    // sniff
-    MODEL_DWARF_MALE            = 2584,    // sniff
-    MODEL_DWARF_FEMALE          = 2585,    // guessed
-    MODEL_TROLL_MALE            = 2588,    // guessed
-    MODEL_TROLL_FEMALE          = 2589,    // guessed
-    MODEL_BLOODELF_MALE         = 17267,   // completely guessed
-    MODEL_BLOODELF_FEMALE       = 17268,   // completely guessed
-    MODEL_DRAENEI_MALE          = 16721,   // completely guessed
-    MODEL_DRAENEI_FEMALE        = 17004    // completely guessed
-};
-
-static Position const DoreSpawnPos = { -4.40722f, -387.277f, 40.6294f, 6.26573f };
-
-// 18373 - Exarch Maladaar
-struct boss_exarch_maladaar : public BossAI
-{
-    boss_exarch_maladaar(Creature* creature) : BossAI(creature, DATA_EXARCH_MALADAAR), _avatarSummoned(false) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _Reset();
-        _avatarSummoned = false;
+        return new mob_stolen_soulAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct mob_stolen_soulAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
+        mob_stolen_soulAI(Creature *c) : ScriptedAI(c) {}
 
-        Talk(SAY_AGGRO);
+        uint8 myClass;
+        uint32 Class_Timer;
 
-        events.ScheduleEvent(EVENT_SOUL_SCREAM, 10s, 25s);
-        events.ScheduleEvent(EVENT_RIBBON_OF_SOULS, 0s, 5s);
-        events.ScheduleEvent(EVENT_STOLEN_SOUL, 10s, 25s);
-    }
-
-    void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (!_avatarSummoned && me->HealthBelowPctDamaged(25, damage))
+        void Reset()
         {
-            _avatarSummoned = true;
-            events.ScheduleEvent(EVENT_SUMMON_AVATAR, 0s);
+            Class_Timer = 1000;
         }
-    }
 
-    void OnSpellStart(SpellInfo const* spellInfo) override
-    {
-        if (spellInfo->Id == SPELL_SUMMON_AVATAR)
-            Talk(SAY_SUMMON);
-    }
+        void EnterCombat(Unit * /*who*/)
+        { }
 
-    void OnSpellCast(SpellInfo const* spellInfo) override
-    {
-        switch (spellInfo->Id)
+        void SetMyClass(uint8 myclass)
         {
-            case SPELL_STOLEN_SOUL:
-                if (roll_chance_i(25))
-                    Talk(SAY_SOUL_CLEAVE);
-                break;
-            case SPELL_SOUL_SCREAM:
-                if (roll_chance_i(25))
-                    Talk(SAY_ROAR);
-                break;
-            default:
-                break;
+            myClass = myclass;
         }
-    }
 
-    // Do not despawn avatar
-    void JustSummoned(Creature* /*summon*/) override { }
-
-    void KilledUnit(Unit* /*victim*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-        me->SummonCreature(NPC_DORE, DoreSpawnPos, TEMPSUMMON_MANUAL_DESPAWN);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void UpdateAI(const uint32 diff)
         {
-            switch (eventId)
-            {
-                case EVENT_SOUL_SCREAM:
-                    DoCastSelf(SPELL_SOUL_SCREAM);
-                    events.Repeat(15s, 20s);
-                    break;
-                case EVENT_RIBBON_OF_SOULS:
-                    DoCastVictim(SPELL_RIBBON_OF_SOULS);
-                    events.Repeat(3600ms);
-                    break;
-                case EVENT_STOLEN_SOUL:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.0f, true, true, -SPELL_STOLEN_SOUL))
-                        DoCast(target, SPELL_STOLEN_SOUL);
-                    events.Repeat(20s, 25s);
-                    break;
-                case EVENT_SUMMON_AVATAR:
-                    DoCastSelf(SPELL_SUMMON_AVATAR);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
+            if (!UpdateVictim())
                 return;
+
+            if (Class_Timer <= diff)
+            {
+                switch (myClass)
+                {
+                    case CLASS_WARRIOR:
+                        DoCast(me->getVictim(), SPELL_MORTAL_STRIKE);
+                        Class_Timer = 6000;
+                        break;
+                    case CLASS_PALADIN:
+                        DoCast(me->getVictim(), SPELL_HAMMER_OF_JUSTICE);
+                        Class_Timer = 6000;
+                        break;
+                    case CLASS_HUNTER:
+                        DoCast(me->getVictim(), SPELL_FREEZING_TRAP);
+                        Class_Timer = 20000;
+                        break;
+                    case CLASS_ROGUE:
+                        DoCast(me->getVictim(), SPELL_HEMORRHAGE);
+                        Class_Timer = 10000;
+                        break;
+                    case CLASS_PRIEST:
+                        DoCast(me->getVictim(), SPELL_MIND_FLAY);
+                        Class_Timer = 5000;
+                        break;
+                    case CLASS_SHAMAN:
+                        DoCast(me->getVictim(), SPELL_FROSTSHOCK);
+                        Class_Timer = 8000;
+                        break;
+                    case CLASS_MAGE:
+                        DoCast(me->getVictim(), SPELL_FIREBALL);
+                        Class_Timer = 5000;
+                        break;
+                    case CLASS_WARLOCK:
+                        DoCast(me->getVictim(), SPELL_CURSE_OF_AGONY);
+                        Class_Timer = 20000;
+                        break;
+                    case CLASS_DRUID:
+                        DoCast(me->getVictim(), SPELL_MOONFIRE);
+                        Class_Timer = 10000;
+                        break;
+                }
+            } else Class_Timer -= diff;
+
+            DoMeleeAttackIfReady();
         }
+    };
 
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    bool _avatarSummoned;
 };
 
-// 18441 - Stolen Soul
-struct npc_stolen_soul : public ScriptedAI
+#define SAY_INTRO                   -1558000
+#define SAY_SUMMON                  -1558001
+
+#define SAY_AGGRO_1                 -1558002
+#define SAY_AGGRO_2                 -1558003
+#define SAY_AGGRO_3                 -1558004
+
+#define SAY_ROAR                    -1558005
+#define SAY_SOUL_CLEAVE             -1558006
+
+#define SAY_SLAY_1                  -1558007
+#define SAY_SLAY_2                  -1558008
+
+#define SAY_DEATH                   -1558009
+
+#define SPELL_RIBBON_OF_SOULS       32422
+#define SPELL_SOUL_SCREAM           32421
+
+#define SPELL_STOLEN_SOUL           32346
+#define SPELL_STOLEN_SOUL_VISUAL    32395
+
+#define SPELL_SUMMON_AVATAR         32424
+
+#define ENTRY_STOLEN_SOUL           18441
+
+class boss_exarch_maladaar : public CreatureScript
 {
-    npc_stolen_soul(Creature* creature) : ScriptedAI(creature), _summonerClass(CLASS_NONE) { }
+public:
+    boss_exarch_maladaar() : CreatureScript("boss_exarch_maladaar") { }
 
-    void InitializeAI() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        ScriptedAI::InitializeAI();
+        return new boss_exarch_maladaarAI (pCreature);
+    }
 
-        me->SetCorpseDelay(3, true);
-
-        if (TempSummon* summon = me->ToTempSummon())
+    struct boss_exarch_maladaarAI : public ScriptedAI
+    {
+        boss_exarch_maladaarAI(Creature *c) : ScriptedAI(c)
         {
-            Unit* summoner = summon->GetSummonerUnit();
-            if (summoner && summoner->IsPlayer())
+            HasTaunted = false;
+        }
+
+        uint32 soulmodel;
+        uint64 soulholder;
+        uint8 soulclass;
+
+        uint32 Fear_timer;
+        uint32 Ribbon_of_Souls_timer;
+        uint32 StolenSoul_Timer;
+
+        bool HasTaunted;
+        bool Avatar_summoned;
+
+        void Reset()
+        {
+            soulmodel = 0;
+            soulholder = 0;
+            soulclass = 0;
+
+            Fear_timer = 15000 + rand()% 5000;
+            Ribbon_of_Souls_timer = 5000;
+            StolenSoul_Timer = 25000 + rand()% 10000;
+
+            Avatar_summoned = false;
+        }
+
+        void MoveInLineOfSight(Unit *who)
+        {
+            if (!HasTaunted && me->IsWithinDistInMap(who, 150.0))
             {
-                // Apparently this is the first time they tried to "clone" player
-                uint32 model = 0;
-                uint8 gender = summoner->GetNativeGender();
+                DoScriptText(SAY_INTRO, me);
+                HasTaunted = true;
+            }
 
-                _summonerClass = summoner->GetClass();
+            ScriptedAI::MoveInLineOfSight(who);
+        }
 
-                switch (summoner->GetRace())
+        void EnterCombat(Unit * /*who*/)
+        {
+            DoScriptText(RAND(SAY_AGGRO_1,SAY_AGGRO_2,SAY_AGGRO_3), me);
+        }
+
+        void JustSummoned(Creature *summoned)
+        {
+            if (summoned->GetEntry() == ENTRY_STOLEN_SOUL)
+            {
+                //SPELL_STOLEN_SOUL_VISUAL has shapeshift effect, but not implemented feature in Trinity for this spell.
+                summoned->CastSpell(summoned,SPELL_STOLEN_SOUL_VISUAL,false);
+                summoned->SetDisplayId(soulmodel);
+                summoned->setFaction(me->getFaction());
+
+                if (Unit *pTarget = Unit::GetUnit(*me,soulholder))
                 {
-                    case RACE_UNDEAD_PLAYER: model = gender ? MODEL_UNDEAD_FEMALE : MODEL_UNDEAD_MALE; break;
-                    case RACE_NIGHTELF:      model = gender ? MODEL_NIGHTELF_FEMALE : MODEL_NIGHTELF_MALE; break;
-                    case RACE_ORC:           model = gender ? MODEL_ORC_FEMALE : MODEL_ORC_MALE; break;
-                    case RACE_TAUREN:        model = gender ? MODEL_TAUREN_FEMALE : MODEL_TAUREN_MALE; break;
-                    case RACE_GNOME:         model = gender ? MODEL_GNOME_FEMALE : MODEL_GNOME_MALE; break;
-                    case RACE_HUMAN:         model = gender ? MODEL_HUMAN_FEMALE : MODEL_HUMAN_MALE; break;
-                    case RACE_DWARF:         model = gender ? MODEL_DWARF_FEMALE : MODEL_DWARF_MALE; break;
-                    case RACE_TROLL:         model = gender ? MODEL_TROLL_FEMALE : MODEL_TROLL_MALE; break;
-                    case RACE_BLOODELF:      model = gender ? MODEL_BLOODELF_FEMALE : MODEL_BLOODELF_MALE; break;
-                    case RACE_DRAENEI:       model = gender ? MODEL_DRAENEI_FEMALE : MODEL_DRAENEI_MALE; break;
-                    default: break;
-                }
 
-                if (model)
-                    me->SetDisplayId(model);
+                CAST_AI(mob_stolen_soul::mob_stolen_soulAI, summoned->AI())->SetMyClass(soulclass);
+                 summoned->AI()->AttackStart(pTarget);
+                }
             }
         }
-    }
 
-    void JustAppeared() override
-    {
-        DoCastSelf(SPELL_STOLEN_SOUL_VISUAL);
-        DoZoneInCombat();
-    }
-
-    void Reset() override
-    {
-        _scheduler.CancelAll();
-    }
-
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        switch (_summonerClass)
+        void KilledUnit(Unit* /*victim*/)
         {
-            case CLASS_WARRIOR:            //
-                _scheduler.Schedule(5s, 10s, [this](TaskContext task)
-                {
-                    DoCastVictim(SPELL_MORTAL_STRIKE);
-                    task.Repeat(5s, 10s);
-                });
-                break;
-            case CLASS_PALADIN:            // video & sniff
-                _scheduler.Schedule(2s, 7s, [this](TaskContext task)
-                {
-                    DoCastVictim(SPELL_HAMMER_OF_JUSTICE);
-                    task.Repeat(8s, 15s);
-                });
-                break;
-            case CLASS_HUNTER:             // video
-                _scheduler.Schedule(5s, [this](TaskContext task)
-                {
-                    DoCastSelf(SPELL_FREEZING_TRAP);
-                    task.Repeat(20s);
-                });
-                break;
-            case CLASS_ROGUE:              //
-                _scheduler.Schedule(5s, [this](TaskContext task)
-                {
-                    DoCastVictim(SPELL_HEMORRHAGE);
-                    task.Repeat(10s);
-                });
-                break;
-            case CLASS_PRIEST:             //
-                _scheduler.Schedule(2s, [this](TaskContext task)
-                {
-                    DoCastVictim(SPELL_MIND_FLAY);
-                    task.Repeat(3s, 5s);
-                });
-                break;
-            case CLASS_SHAMAN:             // video
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 20.0f, true, true, -SPELL_FROST_SHOCK))
-                        DoCast(target, SPELL_FROST_SHOCK);
-                    task.Repeat(3s, 8s);
-                });
-                break;
-            case CLASS_MAGE:               // video
-                _scheduler.Schedule(0s, [this](TaskContext task)
-                {
-                    DoCastVictim(SPELL_FIREBALL);
-                    task.Repeat(3s);
-                });
-                break;
-            case CLASS_WARLOCK:            // video
-                _scheduler.Schedule(10s, [this](TaskContext task)
-                {
-                    if (Unit* victim = me->GetVictim())
-                        if (!victim->HasAura(SPELL_CURSE_OF_AGONY))
-                            DoCast(victim, SPELL_CURSE_OF_AGONY);
+            if (rand()%2)
+                return;
 
-                    task.Repeat(7s);
-                });
-                break;
-            case CLASS_DRUID:              //
-                _scheduler.Schedule(5s, [this](TaskContext task)
-                {
-                    DoCastVictim(SPELL_MOONFIRE);
-                    task.Repeat(10s);
-                });
-                break;
-            case CLASS_DEATH_KNIGHT:       //
-                _scheduler.Schedule(3s, 6s, [this](TaskContext task)
-                {
-                    DoCastVictim(SPELL_PLAGUE_STRIKE);
-                    task.Repeat(6s, 12s);
-                });
-                break;
-            default:
-                break;
+            DoScriptText(RAND(SAY_SLAY_1,SAY_SLAY_2), me);
         }
-    }
 
-    void JustDied(Unit* /*killer*/) override
-    {
-        if (TempSummon* summon = me->ToTempSummon())
-            if (Unit* summoner = summon->GetSummonerUnit())
-                DoCast(summoner, SPELL_STOLEN_SOUL_DISPEL, true);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        _scheduler.Update(diff, [this]
+        void JustDied(Unit* /*Killer*/)
         {
+            DoScriptText(SAY_DEATH, me);
+            //When Exarch Maladar is defeated D'ore appear.
+            me->SummonCreature(19412, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_DESPAWN, 600000);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (!Avatar_summoned && HealthBelowPct(25))
+            {
+                if (me->IsNonMeleeSpellCasted(false))
+                    me->InterruptNonMeleeSpells(true);
+
+                DoScriptText(SAY_SUMMON, me);
+
+                DoCast(me, SPELL_SUMMON_AVATAR);
+                Avatar_summoned = true;
+                StolenSoul_Timer = 15000 + rand()% 15000;
+            }
+
+            if (StolenSoul_Timer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                {
+                    if (pTarget->GetTypeId() == TYPEID_PLAYER)
+                    {
+                        if (me->IsNonMeleeSpellCasted(false))
+                            me->InterruptNonMeleeSpells(true);
+
+                        uint32 i = urand(1,2);
+                        if (i == 1)
+                            DoScriptText(SAY_ROAR, me);
+                        else
+                            DoScriptText(SAY_SOUL_CLEAVE, me);
+
+                        soulmodel = pTarget->GetDisplayId();
+                        soulholder = pTarget->GetGUID();
+                        soulclass = pTarget->getClass();
+
+                        DoCast(pTarget, SPELL_STOLEN_SOUL);
+                        me->SummonCreature(ENTRY_STOLEN_SOUL, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10000);
+
+                        StolenSoul_Timer = 20000 + rand()% 10000;
+                    } else StolenSoul_Timer = 1000;
+                }
+            } else StolenSoul_Timer -= diff;
+
+            if (Ribbon_of_Souls_timer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                    DoCast(pTarget, SPELL_RIBBON_OF_SOULS);
+
+                Ribbon_of_Souls_timer = 5000 + (rand()%20 * 1000);
+            } else Ribbon_of_Souls_timer -= diff;
+
+            if (Fear_timer <= diff)
+            {
+                DoCast(me, SPELL_SOUL_SCREAM);
+                Fear_timer = 15000 + rand()% 15000;
+            } else Fear_timer -= diff;
+
             DoMeleeAttackIfReady();
-        });
-    }
+        }
+    };
 
-private:
-    TaskScheduler _scheduler;
-    uint8 _summonerClass;
 };
 
-// 32346 - Stolen Soul
-class spell_exarch_maladaar_stolen_soul : public SpellScript
+#define SPELL_AV_MORTAL_STRIKE          16856
+#define SPELL_AV_SUNDER_ARMOR           16145
+
+class mob_avatar_of_martyred : public CreatureScript
 {
-    PrepareSpellScript(spell_exarch_maladaar_stolen_soul);
+public:
+    mob_avatar_of_martyred() : CreatureScript("mob_avatar_of_martyred") { }
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return ValidateSpellInfo({ SPELL_SUMMON_STOLEN_SOUL });
+        return new mob_avatar_of_martyredAI (pCreature);
     }
 
-    void HandleAfterHit()
+    struct mob_avatar_of_martyredAI : public ScriptedAI
     {
-        GetHitUnit()->CastSpell(nullptr, SPELL_SUMMON_STOLEN_SOUL, true);
-    }
+        mob_avatar_of_martyredAI(Creature *c) : ScriptedAI(c) {}
 
-    void Register() override
-    {
-        AfterHit += SpellHitFn(spell_exarch_maladaar_stolen_soul::HandleAfterHit);
-    }
-};
+        uint32 Mortal_Strike_timer;
 
-// 33326 - Stolen Soul Dispel
-class spell_exarch_maladaar_stolen_soul_dispel : public AuraScript
-{
-    PrepareAuraScript(spell_exarch_maladaar_stolen_soul_dispel);
+        void Reset()
+        {
+            Mortal_Strike_timer = 10000;
+        }
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_STOLEN_SOUL });
-    }
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
 
-    void AfterApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        GetTarget()->RemoveAurasDueToSpell(SPELL_STOLEN_SOUL);
-    }
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
 
-    void Register() override
-    {
-        AfterEffectApply += AuraEffectApplyFn(spell_exarch_maladaar_stolen_soul_dispel::AfterApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-    }
+            if (Mortal_Strike_timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_AV_MORTAL_STRIKE);
+                Mortal_Strike_timer = 10000 + rand()%20 * 1000;
+            } else Mortal_Strike_timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_exarch_maladaar()
 {
-    RegisterAuchenaiCryptsCreatureAI(boss_exarch_maladaar);
-    RegisterAuchenaiCryptsCreatureAI(npc_stolen_soul);
-    RegisterSpellScript(spell_exarch_maladaar_stolen_soul);
-    RegisterSpellScript(spell_exarch_maladaar_stolen_soul_dispel);
+    new boss_exarch_maladaar();
+    new mob_avatar_of_martyred();
+    new mob_stolen_soul();
 }

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,14 +19,9 @@
 #ifndef TRINITY_FORMULAS_H
 #define TRINITY_FORMULAS_H
 
-#include "DBCStores.h"
-#include "Creature.h"
-#include "Log.h"
-#include "Map.h"
-#include "Player.h"
-#include "ScriptMgr.h"
-#include "SharedDefines.h"
 #include "World.h"
+#include "SharedDefines.h"
+#include "ScriptMgr.h"
 
 namespace Trinity
 {
@@ -42,8 +38,7 @@ namespace Trinity
         {
             return uint32(ceil(hk_honor_at_level_f(level, multiplier)));
         }
-    } // namespace Trinity::Honor
-
+    }
     namespace XP
     {
         inline uint8 GetGrayLevel(uint8 pl_level)
@@ -132,7 +127,7 @@ namespace Trinity
                     nBaseExp = 580;
                     break;
                 default:
-                    TC_LOG_ERROR("misc", "BaseGain: Unsupported content level {}", content);
+                    sLog->outError("BaseGain: Unsupported content level %u",content);
                     nBaseExp = 45;
                     break;
             }
@@ -157,50 +152,36 @@ namespace Trinity
                     baseGain = 0;
             }
 
-            if (sWorld->getIntConfig(CONFIG_MIN_CREATURE_SCALED_XP_RATIO))
-            {
-                // Use mob level instead of player level to avoid overscaling on gain in a min is enforced
-                uint32 baseGainMin = (mob_level * 5 + nBaseExp) * sWorld->getIntConfig(CONFIG_MIN_CREATURE_SCALED_XP_RATIO) / 100;
-                baseGain = std::max(baseGainMin, baseGain);
-            }
-
             sScriptMgr->OnBaseGainCalculation(baseGain, pl_level, mob_level, content);
             return baseGain;
         }
 
-        inline uint32 Gain(Player* player, Unit* u, bool isBattleGround = false)
+        inline uint32 Gain(Player *pl, Unit *u)
         {
-            Creature* creature = u->ToCreature();
-            uint32 gain = 0;
+            uint32 gain;
 
-            if (!creature || creature->CanGiveExperience())
+            if (u->GetTypeId() == TYPEID_UNIT &&
+                (((Creature*)u)->isTotem() || ((Creature*)u)->isPet() ||
+                (((Creature*)u)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_XP_AT_KILL) ||
+                ((Creature*)u)->GetCreatureInfo()->type == CREATURE_TYPE_CRITTER))
+                gain = 0;
+            else
             {
-                float xpMod = 1.0f;
+                gain = BaseGain(pl->getLevel(), u->getLevel(), GetContentLevelsForMapAndZone(u->GetMapId(), u->GetZoneId()));
 
-                gain = BaseGain(player->GetLevel(), u->GetLevel(), GetContentLevelsForMapAndZone(u->GetMapId(), u->GetZoneId()));
-
-                if (gain && creature)
+                if (gain != 0 && u->GetTypeId() == TYPEID_UNIT && ((Creature*)u)->isElite())
                 {
-                    if (creature->isElite())
-                    {
-                        // Elites in instances have a 2.75x XP bonus instead of the regular 2x world bonus.
-                        if (u->GetMap()->IsDungeon())
-                            xpMod *= 2.75f;
-                        else
-                            xpMod *= 2.0f;
-                    }
-
-                    xpMod *= creature->GetCreatureTemplate()->ModExperience;
+                    // Elites in instances have a 2.75x XP bonus instead of the regular 2x world bonus.
+                    if (u->GetMap() && u->GetMap()->IsDungeon())
+                       gain = uint32(gain * 2.75);
+                    else
+                        gain *= 2;
                 }
 
-                xpMod *= isBattleGround ? sWorld->getRate(RATE_XP_BG_KILL) : sWorld->getRate(RATE_XP_KILL);
-                if (creature && creature->m_PlayerDamageReq) // if players dealt less than 50% of the damage and were credited anyway (due to CREATURE_FLAG_EXTRA_NO_PLAYER_DAMAGE_REQ), scale XP gained appropriately (linear scaling)
-                    xpMod *= 1.0f - 2.0f * creature->m_PlayerDamageReq / creature->GetMaxHealth();
-
-                gain = uint32(gain * xpMod);
+                gain = uint32(gain * sWorld->getRate(RATE_XP_KILL));
             }
 
-            sScriptMgr->OnGainCalculation(gain, player, u);
+            sScriptMgr->OnGainCalculation(gain, pl, u);
             return gain;
         }
 
@@ -237,7 +218,7 @@ namespace Trinity
             sScriptMgr->OnGroupRateCalculation(rate, count, isRaid);
             return rate;
         }
-    } // namespace Trinity::XP
-} // namespace Trinity
+    }
+}
 
 #endif

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,10 +20,8 @@
 #define _PLAYER_DUMP_H
 
 #include <string>
-#include <iosfwd>
 #include <map>
 #include <set>
-#include "ObjectGuid.h"
 
 enum DumpTableType
 {
@@ -49,7 +48,7 @@ enum DumpTableType
     DTT_ITEM_GIFT,      // <- item guids                    // character_gifts
 
     DTT_PET,            //    -> pet guids collection       // character_pet
-    DTT_PET_TABLE       // <- pet guids                     // pet_aura, pet_spell, pet_spell_cooldown
+    DTT_PET_TABLE,      // <- pet guids                     // pet_aura, pet_spell, pet_spell_cooldown
 };
 
 enum DumpReturn
@@ -57,53 +56,43 @@ enum DumpReturn
     DUMP_SUCCESS,
     DUMP_FILE_OPEN_ERROR,
     DUMP_TOO_MANY_CHARS,
+    DUMP_UNEXPECTED_END,
     DUMP_FILE_BROKEN,
     DUMP_CHARACTER_DELETED
 };
 
-struct DumpTable;
-struct TableStruct;
-class StringTransaction;
-
-class TC_GAME_API PlayerDump
+class PlayerDump
 {
-    public:
-        static void InitializeTables();
-
     protected:
-        PlayerDump() { }
+        PlayerDump() {}
 };
 
-class TC_GAME_API PlayerDumpWriter : public PlayerDump
+class PlayerDumpWriter : public PlayerDump
 {
     public:
-        PlayerDumpWriter() { }
+        PlayerDumpWriter() {}
 
-        bool GetDump(ObjectGuid::LowType guid, std::string& dump);
-        DumpReturn WriteDumpToFile(std::string const& file, ObjectGuid::LowType guid);
-        DumpReturn WriteDumpToString(std::string& dump, ObjectGuid::LowType guid);
-
+        bool GetDump(uint32 guid, std::string& dump);
+        DumpReturn WriteDump(const std::string& file, uint32 guid);
     private:
-        bool AppendTable(StringTransaction& trans, ObjectGuid::LowType guid, TableStruct const& tableStruct, DumpTable const& dumpTable);
-        void PopulateGuids(ObjectGuid::LowType guid);
+        typedef std::set<uint32> GUIDs;
 
-        std::set<ObjectGuid::LowType> _pets;
-        std::set<ObjectGuid::LowType> _mails;
-        std::set<ObjectGuid::LowType> _items;
+        bool DumpTable(std::string& dump, uint32 guid, char const*tableFrom, char const*tableTo, DumpTableType type);
+        std::string GenerateWhereStr(char const* field, GUIDs const& guids, GUIDs::const_iterator& itr);
+        std::string GenerateWhereStr(char const* field, uint32 guid);
 
-        std::set<uint64> _itemSets;
+        GUIDs pets;
+        GUIDs mails;
+        GUIDs items;
 };
 
-class TC_GAME_API PlayerDumpReader : public PlayerDump
+class PlayerDumpReader : public PlayerDump
 {
     public:
-        PlayerDumpReader() { }
+        PlayerDumpReader() {}
 
-        DumpReturn LoadDumpFromFile(std::string const& file, uint32 account, std::string name, ObjectGuid::LowType guid);
-        DumpReturn LoadDumpFromString(std::string const& dump, uint32 account, std::string name, ObjectGuid::LowType guid);
-
-    private:
-        DumpReturn LoadDump(std::istream& input, uint32 account, std::string name, ObjectGuid::LowType guid);
+        DumpReturn LoadDump(const std::string& file, uint32 account, std::string name, uint32 guid);
 };
 
 #endif
+

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,103 +18,62 @@
 
 #include "PassiveAI.h"
 #include "Creature.h"
-#include "MovementDefines.h"
+#include "TemporarySummon.h"
 
-PassiveAI::PassiveAI(Creature* creature) : CreatureAI(creature)
+PassiveAI::PassiveAI(Creature *c) : CreatureAI(c) { me->SetReactState(REACT_PASSIVE); }
+PossessedAI::PossessedAI(Creature *c) : CreatureAI(c) { me->SetReactState(REACT_PASSIVE); }
+NullCreatureAI::NullCreatureAI(Creature *c) : CreatureAI(c) { me->SetReactState(REACT_PASSIVE); }
+
+void PassiveAI::UpdateAI(const uint32)
 {
-    creature->SetReactState(REACT_PASSIVE);
+    if (me->isInCombat() && me->getAttackers().empty())
+        EnterEvadeMode();
 }
 
-PossessedAI::PossessedAI(Creature* creature) : CreatureAI(creature)
-{
-    creature->SetReactState(REACT_PASSIVE);
-}
-
-NullCreatureAI::NullCreatureAI(Creature* creature) : CreatureAI(creature)
-{
-    creature->SetReactState(REACT_PASSIVE);
-}
-
-int32 NullCreatureAI::Permissible(Creature const* creature)
-{
-    if (creature->HasNpcFlag(UNIT_NPC_FLAG_SPELLCLICK))
-        return PERMIT_BASE_PROACTIVE + 50;
-
-    if (creature->IsTrigger())
-        return PERMIT_BASE_PROACTIVE;
-
-    return PERMIT_BASE_IDLE;
-}
-
-void PassiveAI::UpdateAI(uint32)
-{
-    if (me->IsEngaged() && !me->IsInCombat())
-        EnterEvadeMode(EVADE_REASON_NO_HOSTILES);
-}
-
-void PossessedAI::AttackStart(Unit* target)
+void PossessedAI::AttackStart(Unit *target)
 {
     me->Attack(target, true);
 }
 
-void PossessedAI::UpdateAI(uint32 /*diff*/)
+void PossessedAI::UpdateAI(const uint32 /*diff*/)
 {
-    if (me->GetVictim())
+    if (me->getVictim())
     {
-        if (!me->IsValidAttackTarget(me->GetVictim()))
+        if (!me->canAttack(me->getVictim()))
             me->AttackStop();
         else
             DoMeleeAttackIfReady();
     }
 }
 
-void PossessedAI::JustDied(Unit* /*u*/)
+void PossessedAI::JustDied(Unit * /*u*/)
 {
     // We died while possessed, disable our loot
-    me->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
+    me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
 }
 
-void CritterAI::JustEngagedWith(Unit* /*who*/)
+void PossessedAI::KilledUnit(Unit* victim)
 {
-    if (!me->HasUnitState(UNIT_STATE_FLEEING))
-        me->SetControlled(true, UNIT_STATE_FLEEING);
+    // We killed a creature, disable victim's loot
+    if (victim->GetTypeId() == TYPEID_UNIT)
+        victim->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
 }
 
-void CritterAI::MovementInform(uint32 type, uint32 /*id*/)
+void CritterAI::DamageTaken(Unit * /*done_by*/, uint32 &)
 {
-    if (type == TIMED_FLEEING_MOTION_TYPE)
-        EnterEvadeMode(EVADE_REASON_OTHER);
+    if (!me->HasUnitState(UNIT_STAT_FLEEING))
+        me->SetControlled(true, UNIT_STAT_FLEEING);
 }
 
-void CritterAI::EnterEvadeMode(EvadeReason why)
+void CritterAI::EnterEvadeMode()
 {
-    if (me->HasUnitState(UNIT_STATE_FLEEING))
-        me->SetControlled(false, UNIT_STATE_FLEEING);
-    CreatureAI::EnterEvadeMode(why);
+    if (me->HasUnitState(UNIT_STAT_FLEEING))
+        me->SetControlled(false, UNIT_STAT_FLEEING);
+    CreatureAI::EnterEvadeMode();
 }
 
-int32 CritterAI::Permissible(Creature const* creature)
-{
-    if (creature->IsCritter() && !creature->HasUnitTypeMask(UNIT_MASK_GUARDIAN))
-        return PERMIT_BASE_PROACTIVE;
-
-    return PERMIT_BASE_NO;
-}
-
-void TriggerAI::IsSummonedBy(WorldObject* summoner)
+void TriggerAI::IsSummonedBy(Unit *summoner)
 {
     if (me->m_spells[0])
-    {
-        CastSpellExtraArgs extra;
-        extra.OriginalCaster = summoner->GetGUID();
-        me->CastSpell(me, me->m_spells[0], extra);
-    }
-}
-
-int32 TriggerAI::Permissible(Creature const* creature)
-{
-    if (creature->IsTrigger() && creature->m_spells[0])
-        return PERMIT_BASE_SPECIAL;
-
-    return PERMIT_BASE_NO;
+        me->CastSpell(me, me->m_spells[0], false, 0, 0, summoner->GetGUID());
 }

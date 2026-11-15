@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,15 +20,12 @@
 #define TRINITYCORE_GOSSIP_H
 
 #include "Common.h"
-#include "ObjectGuid.h"
+#include "QuestDef.h"
 #include "NPCHandler.h"
-#include <map>
 
-class Quest;
 class WorldSession;
-enum QuestGiverStatus : uint8;
 
-#define GOSSIP_MAX_MENU_ITEMS               32
+#define GOSSIP_MAX_MENU_ITEMS 64                            // client supported items unknown, but provided number must be enough
 #define DEFAULT_GOSSIP_MESSAGE              0xffffff
 
 enum Gossip_Option
@@ -52,11 +50,10 @@ enum Gossip_Option
     GOSSIP_OPTION_UNLEARNPETTALENTS = 17,                   //UNIT_NPC_FLAG_TRAINER             (16) (bonus option for GOSSIP_OPTION_TRAINER)
     GOSSIP_OPTION_LEARNDUALSPEC     = 18,                   //UNIT_NPC_FLAG_TRAINER             (16) (bonus option for GOSSIP_OPTION_TRAINER)
     GOSSIP_OPTION_OUTDOORPVP        = 19,                   //added by code (option for outdoor pvp creatures)
-    GOSSIP_OPTION_DUALSPEC_INFO     = 20,                   //UNIT_NPC_FLAG_TRAINER             (16) (bonus option for GOSSIP_OPTION_TRAINER)
     GOSSIP_OPTION_MAX
 };
 
-enum GossipOptionIcon : uint8
+enum GossipOptionIcon
 {
     GOSSIP_ICON_CHAT                = 0,                    // white chat bubble
     GOSSIP_ICON_VENDOR              = 1,                    // brown bag
@@ -130,94 +127,86 @@ enum Poi_Icon
 
 struct GossipMenuItem
 {
-    uint8       MenuItemIcon;
-    bool        IsCoded;
-    std::string Message;
-    uint32      Sender;
-    uint32      OptionType;
-    std::string BoxMessage;
-    uint32      BoxMoney;
+    uint8       m_gIcon;
+    bool        m_gCoded;
+    std::string m_gMessage;
+    uint32      m_gSender;
+    uint32      m_gOptionId;
+    std::string m_gBoxMessage;
+    uint32      m_gBoxMoney;
 };
 
-// need an ordered container
-typedef std::map<uint32, GossipMenuItem> GossipMenuItemContainer;
+typedef std::vector<GossipMenuItem> GossipMenuItemList;
 
 struct GossipMenuItemData
 {
-    uint32 GossipActionMenuId;  // MenuId of the gossip triggered by this action
-    uint32 GossipActionPoi;
+    uint32 m_gAction_menu;
+    uint32 m_gAction_poi;
+    uint32 m_gAction_script;
 };
 
-// need an ordered container
-typedef std::map<uint32, GossipMenuItemData> GossipMenuItemDataContainer;
+typedef std::vector<GossipMenuItemData> GossipMenuItemDataList;
 
 struct QuestMenuItem
 {
-    uint32  QuestId;
-    uint8   QuestIcon;
+    uint32      m_qId;
+    uint8       m_qIcon;
 };
 
 typedef std::vector<QuestMenuItem> QuestMenuItemList;
 
-class TC_GAME_API GossipMenu
+class GossipMenu
 {
     public:
         GossipMenu();
         ~GossipMenu();
 
-        uint32 AddMenuItem(int32 menuItemId, GossipOptionIcon icon, std::string const& message, uint32 sender, uint32 action, std::string const& boxMessage, uint32 boxMoney, bool coded = false);
-        void AddMenuItem(uint32 menuId, uint32 menuItemId, uint32 sender, uint32 action);
+        void AddMenuItem(uint8 Icon, const std::string& Message, bool Coded = false);
+        void AddMenuItem(uint8 Icon, const std::string& Message, uint32 dtSender, uint32 dtAction, const std::string& BoxMessage, uint32 BoxMoney, bool Coded = false);
 
-        void SetMenuId(uint32 menu_id) { _menuId = menu_id; }
-        uint32 GetMenuId() const { return _menuId; }
-        void SetSenderGUID(ObjectGuid guid) { _senderGUID = guid; }
-        ObjectGuid GetSenderGUID() const { return _senderGUID; }
-        void SetLocale(LocaleConstant locale) { _locale = locale; }
-        LocaleConstant GetLocale() const { return _locale; }
+        // for using from scripts, don't must be inlined
+        void AddMenuItem(uint8 Icon, char const* Message, bool Coded = false);
+        void AddMenuItem(uint8 Icon, char const* Message, uint32 dtSender, uint32 dtAction, char const* BoxMessage, uint32 BoxMoney, bool Coded = false);
 
-        void AddGossipMenuItemData(uint32 menuItemId, uint32 gossipActionMenuId, uint32 gossipActionPoi);
+        void SetMenuId(uint32 menu_id) { m_gMenuId = menu_id; }
+        uint32 GetMenuId() const { return m_gMenuId; }
 
-        uint32 GetMenuItemCount() const { return uint32(_menuItems.size()); }
-        bool Empty() const { return _menuItems.empty(); }
+        void AddGossipMenuItemData(uint32 action_menu, uint32 action_poi, uint32 action_script);
 
-        GossipMenuItem const* GetItem(uint32 id) const
+        unsigned int MenuItemCount() const
         {
-            GossipMenuItemContainer::const_iterator itr = _menuItems.find(id);
-            if (itr != _menuItems.end())
-                return &itr->second;
-
-            return nullptr;
+            return m_gItems.size();
         }
 
-        GossipMenuItemData const* GetItemData(uint32 indexId) const
+        bool Empty() const
         {
-            GossipMenuItemDataContainer::const_iterator itr = _menuItemData.find(indexId);
-            if (itr != _menuItemData.end())
-                return &itr->second;
-
-            return nullptr;
+            return m_gItems.empty();
         }
 
-        uint32 GetMenuItemSender(uint32 menuItemId) const;
-        uint32 GetMenuItemAction(uint32 menuItemId) const;
-        bool IsMenuItemCoded(uint32 menuItemId) const;
+        GossipMenuItem const& GetItem(unsigned int Id) const
+        {
+            return m_gItems[ Id ];
+        }
+
+        GossipMenuItemData const& GetItemData(unsigned int indexId) const
+        {
+            return m_gItemsData[indexId];
+        }
+
+        uint32 MenuItemSender(unsigned int ItemId);
+        uint32 MenuItemAction(unsigned int ItemId);
+        bool MenuItemCoded(unsigned int ItemId);
 
         void ClearMenu();
 
-        GossipMenuItemContainer const& GetMenuItems() const
-        {
-            return _menuItems;
-        }
+    protected:
+        GossipMenuItemList      m_gItems;
+        GossipMenuItemDataList  m_gItemsData;
 
-    private:
-        GossipMenuItemContainer _menuItems;
-        GossipMenuItemDataContainer _menuItemData;
-        uint32 _menuId;
-        ObjectGuid _senderGUID;
-        LocaleConstant _locale;
+        uint32 m_gMenuId;
 };
 
-class TC_GAME_API QuestMenu
+class QuestMenu
 {
     public:
         QuestMenu();
@@ -225,51 +214,67 @@ class TC_GAME_API QuestMenu
 
         void AddMenuItem(uint32 QuestId, uint8 Icon);
         void ClearMenu();
-        uint8 GetMenuItemCount() const{ return uint8(_questMenuItems.size()); }
-        bool Empty() const { return _questMenuItems.empty(); }
-        bool HasItem(uint32 questId) const;
-        QuestMenuItem const& GetItem(uint16 index) const { return _questMenuItems[index]; }
 
-    private:
-        QuestMenuItemList _questMenuItems;
+        uint8 MenuItemCount() const
+        {
+            return m_qItems.size();
+        }
+
+        bool Empty() const
+        {
+            return m_qItems.empty();
+        }
+
+        bool HasItem(uint32 questid);
+
+        QuestMenuItem const& GetItem(uint16 Id) const
+        {
+            return m_qItems[ Id ];
+        }
+
+    protected:
+        QuestMenuItemList m_qItems;
 };
 
-class TC_GAME_API PlayerMenu
+class PlayerMenu
 {
+    private:
+        GossipMenu mGossipMenu;
+        QuestMenu  mQuestMenu;
+        WorldSession* pSession;
+
     public:
-        explicit PlayerMenu(WorldSession* session);
+        PlayerMenu(WorldSession *Session);
         ~PlayerMenu();
 
-        GossipMenu& GetGossipMenu() { return _gossipMenu; }
-        QuestMenu& GetQuestMenu() { return _questMenu; }
+        GossipMenu& GetGossipMenu() { return mGossipMenu; }
+        QuestMenu& GetQuestMenu() { return mQuestMenu; }
 
-        bool Empty() const { return _gossipMenu.Empty() && _questMenu.Empty(); }
+        bool Empty() const { return mGossipMenu.Empty() && mQuestMenu.Empty(); }
 
         void ClearMenus();
-        uint32 GetGossipOptionSender(uint32 selection) const { return _gossipMenu.GetMenuItemSender(selection); }
-        uint32 GetGossipOptionAction(uint32 selection) const { return _gossipMenu.GetMenuItemAction(selection); }
-        bool IsGossipOptionCoded(uint32 selection) const { return _gossipMenu.IsMenuItemCoded(selection); }
+        uint32 GossipOptionSender(unsigned int Selection);
+        uint32 GossipOptionAction(unsigned int Selection);
+        bool GossipOptionCoded(unsigned int Selection);
 
-        void SendGossipMenu(uint32 titleTextId, ObjectGuid objectGUID);
-        void SendCloseGossip();
-        void SendPointOfInterest(uint32 poiId) const;
+        void SendGossipMenu(uint32 TitleTextId, uint64 npcGUID);
+        void CloseGossip();
+        void SendPointOfInterest(float X, float Y, uint32 Icon, uint32 Flags, uint32 Data, const char * locName);
+        void SendPointOfInterest(uint32 poi_id);
+        void SendTalking(uint32 textID);
+        void SendTalking(char const * title, char const * text);
 
         /*********************************************************/
         /***                    QUEST SYSTEM                   ***/
         /*********************************************************/
-        void SendQuestGiverStatus(QuestGiverStatus questStatus, ObjectGuid npcGUID) const;
+        void SendQuestGiverStatus(uint8 questStatus, uint64 npcGUID);
 
-        void SendQuestGiverQuestList(QEmote const& eEmote, const std::string& Title, ObjectGuid npcGUID);
+        void SendQuestGiverQuestList(QEmote eEmote, const std::string& Title, uint64 npcGUID);
 
-        void SendQuestQueryResponse(Quest const* quest) const;
-        void SendQuestGiverQuestDetails(Quest const* quest, ObjectGuid npcGUID, bool autoLaunched) const;
+        void SendQuestQueryResponse (Quest const *pQuest);
+        void SendQuestGiverQuestDetails(Quest const *pQuest, uint64 npcGUID, bool ActivateAccept);
 
-        void SendQuestGiverOfferReward(Quest const* quest, ObjectGuid npcGUID, bool autoLaunched) const;
-        void SendQuestGiverRequestItems(Quest const* quest, ObjectGuid npcGUID, bool canComplete, bool autoLaunched) const;
-
-    private:
-        GossipMenu _gossipMenu;
-        QuestMenu  _questMenu;
-        WorldSession* _session;
+        void SendQuestGiverOfferReward(Quest const* pQuest, uint64 npcGUID, bool EnableNext);
+        void SendQuestGiverRequestItems(Quest const *pQuest, uint64 npcGUID, bool Completable, bool CloseOnCancel);
 };
 #endif

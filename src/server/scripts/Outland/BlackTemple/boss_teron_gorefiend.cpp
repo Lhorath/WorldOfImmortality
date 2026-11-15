@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,410 +16,503 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
+/* ScriptData
+SDName: Boss_Teron_Gorefiend
+SD%Complete: 60
+SDComment: Requires Mind Control support for Ghosts.
+SDCategory: Black Temple
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "black_temple.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ObjectAccessor.h"
-#include "PassiveAI.h"
-#include "Player.h"
-#include "ScriptedCreature.h"
-#include "SpellAuraEffects.h"
-#include "SpellScript.h"
 
-enum TeronTexts
-{
-    SAY_INTRO      = 0,
-    SAY_AGGRO      = 1,
-    SAY_SLAY       = 2,
-    SAY_INCINERATE = 3,
-    SAY_BLOSSOM    = 4,
-    SAY_CRUSHING   = 5,
-    SAY_DEATH      = 6
-};
+ //Speech'n'sound
+#define SAY_INTRO                       -1564037
+#define SAY_AGGRO                       -1564038
+#define SAY_SLAY1                       -1564039
+#define SAY_SLAY2                       -1564040
+#define SAY_SPELL1                      -1564041
+#define SAY_SPELL2                      -1564042
+#define SAY_SPECIAL1                    -1564043
+#define SAY_SPECIAL2                    -1564044
+#define SAY_ENRAGE                      -1564045
+#define SAY_DEATH                       -1564046
 
-enum TeronSpells
-{
-    //Teron
-    SPELL_INCINERATE                 = 40239,
-    SPELL_CRUSHING_SHADOWS           = 40243,
-    SPELL_SHADOW_OF_DEATH            = 40251,
-    SPELL_SHADOW_OF_DEATH_REMOVE     = 41999,
-    SPELL_BERSERK                    = 45078,
-    SPELL_SUMMON_DOOM_BLOSSOM        = 40188,
+//Spells
+#define SPELL_INCINERATE                40239
+#define SPELL_CRUSHING_SHADOWS          40243
+#define SPELL_SHADOWBOLT                40185
+#define SPELL_PASSIVE_SHADOWFORM        40326
+#define SPELL_SHADOW_OF_DEATH           40251
+#define SPELL_BERSERK                   45078
 
-    //Doom Blossom
-    SPELL_SUMMON_BLOSSOM_MOVE_TARGET = 40186,
-    SPELL_SHADOWBOLT                 = 40185,
+#define SPELL_ATROPHY                   40327               // Shadowy Constructs use this when they get within melee range of a player
 
-    //Shadow Construct
-    SPELL_ATROPHY                    = 40327,
+#define CREATURE_DOOM_BLOSSOM           23123
+#define CREATURE_SHADOWY_CONSTRUCT      23111
 
-    //Player
-    SPELL_SUMMON_SPIRIT              = 40266,
-    SPELL_SPIRITUAL_VENGEANCE        = 40268,
-    SPELL_POSSESS_SPIRIT_IMMUNE      = 40282,
-    SPELL_SUMMON_SKELETRON_1         = 40270,
-    SPELL_SUMMON_SKELETRON_2         = 41948,
-    SPELL_SUMMON_SKELETRON_3         = 41949,
-    SPELL_SUMMON_SKELETRON_4         = 41950,
-
-    //Vengeful Spirit
-    SPELL_SPIRIT_STRIKE              = 40325,
-    SPELL_SPIRIT_CHAINS              = 40175,
-    SPELL_SPIRIT_VOLLEY              = 40314,
-    SPELL_SPIRIT_SHIELD              = 40322,
-    SPELL_SPIRIT_LANCE               = 40157
-};
-
-enum TeronCreatures
-{
-    NPC_DOOM_BLOSSOM      = 23123,
-    NPC_SHADOWY_CONSTRUCT = 23111,
-    NPC_VENGEFUL_SPIRIT   = 23109 //Npc controlled by player
-};
-
-enum TeronEvents
-{
-    EVENT_ENRAGE = 1,
-    EVENT_INCINERATE,
-    EVENT_SUMMON_DOOM_BLOSSOM,
-    EVENT_SHADOW_DEATH,
-    EVENT_CRUSHING_SHADOWS
-};
-
-enum TeronActions
-{
-    ACTION_START_INTRO = 1
-};
-
-uint32 const SkeletronSpells[4] =
-{
-    SPELL_SUMMON_SKELETRON_1,
-    SPELL_SUMMON_SKELETRON_2,
-    SPELL_SUMMON_SKELETRON_3,
-    SPELL_SUMMON_SKELETRON_4
-};
-
-// 22871 - Teron Gorefiend
-struct boss_teron_gorefiend : public BossAI
-{
-    boss_teron_gorefiend(Creature* creature) : BossAI(creature, DATA_TERON_GOREFIEND) { }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-        Talk(SAY_AGGRO);
-        events.ScheduleEvent(EVENT_ENRAGE, 10min);
-        events.ScheduleEvent(EVENT_INCINERATE, 12s);
-        events.ScheduleEvent(EVENT_SUMMON_DOOM_BLOSSOM, 8s);
-        events.ScheduleEvent(EVENT_SHADOW_DEATH, 8s);
-        events.ScheduleEvent(EVENT_CRUSHING_SHADOWS, 18s);
-    }
-
-    void EnterEvadeMode(EvadeReason /*why*/) override
-    {
-        DoCast(SPELL_SHADOW_OF_DEATH_REMOVE);
-        summons.DespawnAll();
-        _DespawnAtEvade();
-    }
-
-    void DoAction(int32 action) override
-    {
-        if (action == ACTION_START_INTRO && me->IsAlive())
-            Talk(SAY_INTRO);
-    }
-
-    void KilledUnit(Unit* victim) override
-    {
-        if (victim->GetTypeId() == TYPEID_PLAYER)
-            Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        Talk(SAY_DEATH);
-        DoCast(SPELL_SHADOW_OF_DEATH_REMOVE);
-        _JustDied();
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
-        {
-            switch (eventId)
-            {
-                case EVENT_ENRAGE:
-                    DoCast(SPELL_BERSERK);
-                    break;
-                case EVENT_INCINERATE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                        DoCast(target, SPELL_INCINERATE);
-                    Talk(SAY_INCINERATE);
-                    events.Repeat(12s, 20s);
-                    break;
-                case EVENT_SUMMON_DOOM_BLOSSOM:
-                    DoCastSelf(SPELL_SUMMON_DOOM_BLOSSOM, true);
-                    Talk(SAY_BLOSSOM);
-                    events.Repeat(30s, 40s);
-                    break;
-                case EVENT_SHADOW_DEATH:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, 100.0f, true, true, -SPELL_SPIRITUAL_VENGEANCE))
-                        DoCast(target, SPELL_SHADOW_OF_DEATH);
-                    events.Repeat(30s, 35s);
-                    break;
-                case EVENT_CRUSHING_SHADOWS:
-                    DoCastSelf(SPELL_CRUSHING_SHADOWS, { SPELLVALUE_MAX_TARGETS, 5 });
-                    Talk(SAY_CRUSHING);
-                    events.Repeat(18s, 30s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
-        }
-
-        DoMeleeAttackIfReady();
-    }
-};
-
-// 23123 - Doom Blossom
-struct npc_doom_blossom : public NullCreatureAI
-{
-    npc_doom_blossom(Creature* creature) : NullCreatureAI(creature), _instance(me->GetInstanceScript()) { }
-
-    void Reset() override
-    {
-        /* Workaround - Until SMSG_SET_PLAY_HOVER_ANIM be implemented */
-        Position pos;
-        pos.Relocate(me);
-        pos.m_positionZ += 8.0f;
-        me->GetMotionMaster()->MoveTakeoff(0, pos);
-
-        DoCast(SPELL_SUMMON_BLOSSOM_MOVE_TARGET);
-        _scheduler.CancelAll();
-        DoZoneInCombat();
-        _scheduler.Schedule(12s, [this](TaskContext shadowBolt)
-        {
-            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                DoCast(target, SPELL_SHADOWBOLT);
-
-            shadowBolt.Repeat(2s);
-        });
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        _scheduler.Update(diff);
-    }
-
-private:
-    TaskScheduler _scheduler;
-    InstanceScript* _instance;
-};
-
-// 23111 - Shadowy Construct
-struct npc_shadowy_construct : public ScriptedAI
-{
-    npc_shadowy_construct(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void Reset() override
-    {
-        if (_instance->GetBossState(DATA_TERON_GOREFIEND) != IN_PROGRESS)
-        {
-            me->DespawnOrUnsummon();
-            return;
-        }
-
-        targetGUID.Clear();
-        _scheduler.CancelAll();
-        _scheduler.Schedule(12s, [this](TaskContext atrophy)
-        {
-            DoCastVictim(SPELL_ATROPHY);
-            atrophy.Repeat(10s, 12s);
-        });
-        _scheduler.Schedule(200ms, [this](TaskContext checkPlayer)
-        {
-            if (Unit* target = ObjectAccessor::GetUnit(*me, targetGUID))
-            {
-                if (!target->IsAlive() || !me->CanCreatureAttack(target))
-                    SelectNewTarget();
-            }
-            else
-                SelectNewTarget();
-
-            checkPlayer.Repeat(1s);
-        });
-
-        if (Creature* teron = _instance->GetCreature(DATA_TERON_GOREFIEND))
-            teron->AI()->JustSummoned(me);
-
-        SelectNewTarget();
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        _scheduler.Update(diff, [this]
-        {
-            DoMeleeAttackIfReady();
-        });
-    }
-
-    void SelectNewTarget()
-    {
-        if (Creature* teron = _instance->GetCreature(DATA_TERON_GOREFIEND))
-        {
-            Unit* target = teron->AI()->SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true, true, -SPELL_SPIRITUAL_VENGEANCE);
-            // He should target Vengeful Spirits only if has no other player available
-            if (!target)
-                target = teron->AI()->SelectTarget(SelectTargetMethod::Random, 0);
-
-            if (target)
-            {
-                ResetThreatList();
-                AttackStart(target);
-                AddThreat(target, 1000000.0f);
-                targetGUID = target->GetGUID();
-            }
-        }
-    }
-
-private:
-    TaskScheduler _scheduler;
-    InstanceScript* _instance;
-    ObjectGuid targetGUID;
-};
-
-// 40251 - Shadow of Death
-class spell_teron_gorefiend_shadow_of_death : public AuraScript
-{
-    PrepareAuraScript(spell_teron_gorefiend_shadow_of_death);
-
-    bool Validate(SpellInfo const* /*spell*/) override
-    {
-        return ValidateSpellInfo(
-        {
-            SPELL_SUMMON_SPIRIT,
-            SPELL_POSSESS_SPIRIT_IMMUNE,
-            SPELL_SPIRITUAL_VENGEANCE,
-            SPELL_SUMMON_SKELETRON_1,
-            SPELL_SUMMON_SKELETRON_2,
-            SPELL_SUMMON_SKELETRON_3,
-            SPELL_SUMMON_SKELETRON_4
-        });
-    }
-
-    void Absorb(AuraEffect* /*aurEff*/, DamageInfo& /*dmgInfo*/, uint32& /*absorbAmount*/)
-    {
-        PreventDefaultAction();
-    }
-
-    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_EXPIRE)
-        {
-            Unit* target = GetTarget();
-            target->CastSpell(target, SPELL_SUMMON_SPIRIT, true);
-
-            for (uint8 i = 0; i < 4; ++i)
-                target->CastSpell(target, SkeletronSpells[i], true);
-
-            target->CastSpell(target, SPELL_POSSESS_SPIRIT_IMMUNE, true);
-            target->CastSpell(target, SPELL_SPIRITUAL_VENGEANCE, true);
-        }
-    }
-
-    void Register() override
-    {
-        OnEffectAbsorb += AuraEffectAbsorbFn(spell_teron_gorefiend_shadow_of_death::Absorb, EFFECT_0);
-        AfterEffectRemove += AuraEffectRemoveFn(spell_teron_gorefiend_shadow_of_death::OnRemove, EFFECT_1, SPELL_AURA_OVERRIDE_CLASS_SCRIPTS, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
-// 40268 - Spiritual Vengeance
-class spell_teron_gorefiend_spiritual_vengeance : public AuraScript
-{
-    PrepareAuraScript(spell_teron_gorefiend_spiritual_vengeance);
-
-    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        GetTarget()->KillSelf();
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(spell_teron_gorefiend_spiritual_vengeance::OnRemove, EFFECT_0, SPELL_AURA_MOD_POSSESS, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
-// 41999 - Shadow of Death Remove
-class spell_teron_gorefiend_shadow_of_death_remove : public SpellScript
-{
-    PrepareSpellScript(spell_teron_gorefiend_shadow_of_death_remove);
-
-    bool Validate(SpellInfo const* /*spell*/) override
-    {
-        return ValidateSpellInfo(
-        {
-            SPELL_SHADOW_OF_DEATH,
-            SPELL_POSSESS_SPIRIT_IMMUNE,
-            SPELL_SPIRITUAL_VENGEANCE
-        });
-    }
-
-    void RemoveAuras()
-    {
-        Unit* target = GetHitUnit();
-
-        target->RemoveAurasDueToSpell(SPELL_POSSESS_SPIRIT_IMMUNE);
-        target->RemoveAurasDueToSpell(SPELL_SPIRITUAL_VENGEANCE);
-        target->RemoveAurasDueToSpell(SPELL_SHADOW_OF_DEATH);
-    }
-
-    void Register() override
-    {
-        OnHit += SpellHitFn(spell_teron_gorefiend_shadow_of_death_remove::RemoveAuras);
-    }
-};
-
-class at_teron_gorefiend_entrance : public OnlyOnceAreaTriggerScript
+class mob_doom_blossom : public CreatureScript
 {
 public:
-    at_teron_gorefiend_entrance() : OnlyOnceAreaTriggerScript("at_teron_gorefiend_entrance") { }
+    mob_doom_blossom() : CreatureScript("mob_doom_blossom") { }
 
-    bool TryHandleOnce(Player* player, AreaTriggerEntry const* /*areaTrigger*/) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        if (InstanceScript* instance = player->GetInstanceScript())
-            if (Creature* teron = instance->GetCreature(DATA_TERON_GOREFIEND))
-                teron->AI()->DoAction(ACTION_START_INTRO);
-
-        return true;
+        return new mob_doom_blossomAI(pCreature);
     }
+
+    struct mob_doom_blossomAI : public ScriptedAI
+    {
+        mob_doom_blossomAI(Creature *c) : ScriptedAI(c) {}
+
+        uint32 CheckTeronTimer;
+        uint32 ShadowBoltTimer;
+        uint64 TeronGUID;
+
+        void Reset()
+        {
+            CheckTeronTimer = 5000;
+            ShadowBoltTimer = 12000;
+            TeronGUID = 0;
+        }
+
+        void EnterCombat(Unit * /*who*/) { }
+        void AttackStart(Unit* /*who*/) {}
+        void MoveInLineOfSight(Unit* /*who*/) {}
+
+        void Despawn()
+        {
+            me->DealDamage(me, me->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+            me->RemoveCorpse();
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (CheckTeronTimer <= diff)
+            {
+                if (TeronGUID)
+                {
+                    DoZoneInCombat();
+
+                    Creature* Teron = (Unit::GetCreature((*me), TeronGUID));
+                    if ((Teron) && (!Teron->isAlive() || Teron->IsInEvadeMode()))
+                        Despawn();
+                }
+                else
+                    Despawn();
+
+                CheckTeronTimer = 5000;
+            } else CheckTeronTimer -= diff;
+
+            if (ShadowBoltTimer < diff && me->isInCombat())
+            {
+                DoCast(SelectTarget(SELECT_TARGET_RANDOM, 0), SPELL_SHADOWBOLT);
+                ShadowBoltTimer = 10000;
+            } else ShadowBoltTimer -= diff;
+            return;
+        }
+
+        void SetTeronGUID(uint64 guid){ TeronGUID = guid; }
+    };
+
+};
+
+class mob_shadowy_construct : public CreatureScript
+{
+public:
+    mob_shadowy_construct() : CreatureScript("mob_shadowy_construct") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new mob_shadowy_constructAI(pCreature);
+    }
+
+    struct mob_shadowy_constructAI : public ScriptedAI
+    {
+        mob_shadowy_constructAI(Creature* c) : ScriptedAI(c) {}
+
+        uint64 GhostGUID;
+        uint64 TeronGUID;
+
+        uint32 CheckPlayerTimer;
+        uint32 CheckTeronTimer;
+
+        void Reset()
+        {
+            GhostGUID = 0;
+            TeronGUID = 0;
+
+            CheckPlayerTimer = 2000;
+            CheckTeronTimer = 5000;
+        }
+
+        void EnterCombat(Unit* /*who*/) {}
+
+        void MoveInLineOfSight(Unit *who)
+        {
+            if (!who || (!who->isAlive()) || (who->GetGUID() == GhostGUID))
+                return;
+
+            ScriptedAI::MoveInLineOfSight(who);
+        }
+
+    /* Comment it out for now. NOTE TO FUTURE DEV: UNCOMMENT THIS OUT ONLY AFTER MIND CONTROL IS IMPLEMENTED
+        void DamageTaken(Unit* done_by, uint32 &damage)
+        {
+            if (done_by->GetGUID() != GhostGUID)
+            damage = 0;                                         // Only the ghost can deal damage.
+        }
+     */
+
+        void CheckPlayers()
+        {
+            std::list<HostileReference*>& m_threatlist = me->getThreatManager().getThreatList();
+            if (m_threatlist.empty())
+                return;                                         // No threat list. Don't continue.
+            std::list<HostileReference*>::const_iterator itr = m_threatlist.begin();
+            std::list<Unit*> targets;
+            for (; itr != m_threatlist.end(); ++itr)
+            {
+                Unit* pUnit = Unit::GetUnit((*me), (*itr)->getUnitGuid());
+                if (pUnit && pUnit->isAlive())
+                    targets.push_back(pUnit);
+            }
+            targets.sort(Trinity::ObjectDistanceOrderPred(me));
+            Unit *pTarget = targets.front();
+            if (pTarget && me->IsWithinDistInMap(pTarget, me->GetAttackDistance(pTarget)))
+            {
+                DoCast(pTarget, SPELL_ATROPHY);
+                me->AI()->AttackStart(pTarget);
+            }
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (CheckPlayerTimer <= diff)
+            {
+                CheckPlayers();
+                CheckPlayerTimer = 3000;
+            } else CheckPlayerTimer -= diff;
+
+            if (CheckTeronTimer <= diff)
+            {
+                Creature* Teron = (Unit::GetCreature((*me), TeronGUID));
+                if (!Teron || !Teron->isAlive() || Teron->IsInEvadeMode())
+                    me->DealDamage(me, me->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+
+                CheckTeronTimer = 5000;
+            } else CheckTeronTimer -= diff;
+        }
+    };
+
+};
+
+class boss_teron_gorefiend : public CreatureScript
+{
+public:
+    boss_teron_gorefiend() : CreatureScript("boss_teron_gorefiend") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new boss_teron_gorefiendAI (pCreature);
+    }
+
+    struct boss_teron_gorefiendAI : public ScriptedAI
+    {
+        boss_teron_gorefiendAI(Creature *c) : ScriptedAI(c)
+        {
+            pInstance = c->GetInstanceScript();
+        }
+
+        InstanceScript* pInstance;
+
+        uint32 IncinerateTimer;
+        uint32 SummonDoomBlossomTimer;
+        uint32 EnrageTimer;
+        uint32 CrushingShadowsTimer;
+        uint32 ShadowOfDeathTimer;
+        uint32 SummonShadowsTimer;
+        uint32 RandomYellTimer;
+        uint32 AggroTimer;
+
+        uint64 AggroTargetGUID;
+        uint64 GhostGUID;                                       // Player that gets killed by Shadow of Death and gets turned into a ghost
+
+        bool Intro;
+        bool Done;
+
+        void Reset()
+        {
+            if (pInstance)
+                pInstance->SetData(DATA_TERONGOREFIENDEVENT, NOT_STARTED);
+
+            IncinerateTimer = 20000 + rand()%11000;
+            SummonDoomBlossomTimer = 12000;
+            EnrageTimer = 600000;
+            CrushingShadowsTimer = 22000;
+            SummonShadowsTimer = 60000;
+            RandomYellTimer = 50000;
+
+            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+            // Start off unattackable so that the intro is done properly
+            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+
+            AggroTimer = 20000;
+            AggroTargetGUID = 0;
+            Intro = false;
+            Done = false;
+        }
+
+        void EnterCombat(Unit * /*who*/) {}
+
+        void MoveInLineOfSight(Unit* pWho)
+        {
+            if (!Intro && pWho->GetTypeId() == TYPEID_PLAYER && pWho->isTargetableForAttack() && me->IsHostileTo(pWho) && pWho->isInAccessiblePlaceFor(me))
+            {
+                if (me->IsWithinDistInMap(pWho, VISIBLE_RANGE) && me->IsWithinLOSInMap(pWho))
+                {
+                    if (pInstance)
+                        pInstance->SetData(DATA_TERONGOREFIENDEVENT, IN_PROGRESS);
+
+                    me->GetMotionMaster()->Clear(false);
+                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                    DoScriptText(SAY_INTRO, me);
+                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_TALK);
+                    AggroTargetGUID = pWho->GetGUID();
+                    Intro = true;
+                }
+            }
+            if (Done)
+                ScriptedAI::MoveInLineOfSight(pWho);
+        }
+
+        void KilledUnit(Unit * /*victim*/)
+        {
+            DoScriptText(RAND(SAY_SLAY1,SAY_SLAY2), me);
+        }
+
+        void JustDied(Unit * /*victim*/)
+        {
+            if (pInstance)
+                pInstance->SetData(DATA_TERONGOREFIENDEVENT, DONE);
+
+            DoScriptText(SAY_DEATH, me);
+        }
+
+        float CalculateRandomLocation(float Loc, uint32 radius)
+        {
+            float coord = Loc;
+            switch (urand(0,1))
+            {
+                case 0:
+                    coord += rand()%radius;
+                    break;
+                case 1:
+                    coord -= rand()%radius;
+                    break;
+            }
+            return coord;
+        }
+
+        void SetThreatList(Creature* Blossom)
+        {
+            if (!Blossom) return;
+
+            std::list<HostileReference*>& m_threatlist = me->getThreatManager().getThreatList();
+            std::list<HostileReference*>::const_iterator i = m_threatlist.begin();
+            for (i = m_threatlist.begin(); i != m_threatlist.end(); ++i)
+            {
+                Unit* pUnit = Unit::GetUnit((*me), (*i)->getUnitGuid());
+                if (pUnit && pUnit->isAlive())
+                {
+                    float threat = DoGetThreat(pUnit);
+                    Blossom->AddThreat(pUnit, threat);
+                }
+            }
+        }
+
+        void MindControlGhost()
+        {
+            /************************************************************************/
+            /** NOTE FOR FUTURE DEVELOPER: PROPERLY IMPLEMENT THE GHOST PORTION *****/
+            /**  ONLY AFTER TrinIty FULLY IMPLEMENTS MIND CONTROL ABILITIES      *****/
+            /**   THE CURRENT CODE IN THIS FUNCTION IS ONLY THE BEGINNING OF    *****/
+            /**    WHAT IS FULLY NECESSARY FOR GOREFIEND TO BE 100% COMPLETE    *****/
+            /************************************************************************/
+
+            Unit* Ghost = NULL;
+            if (GhostGUID)
+                Ghost = Unit::GetUnit((*me), GhostGUID);
+            if (Ghost && Ghost->isAlive() && Ghost->HasAura(SPELL_SHADOW_OF_DEATH))
+            {
+                /*float x,y,z;
+                Ghost->GetPosition(x,y,z);
+                Creature* control = me->SummonCreature(CREATURE_GHOST, x, y, z, 0, TEMPSUMMON_TIMED_DESAWN, 30000);
+                if (control)
+                {
+                    CAST_PLR(Ghost)->Possess(control);
+                    Ghost->DealDamage(Ghost, Ghost->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL,
+                false);
+                }*/
+                for (uint8 i = 0; i < 4; ++i)
+                {
+                    Creature* Construct = NULL;
+                    float X = CalculateRandomLocation(Ghost->GetPositionX(), 10);
+                    float Y = CalculateRandomLocation(Ghost->GetPositionY(), 10);
+                    Construct = me->SummonCreature(CREATURE_SHADOWY_CONSTRUCT, X, Y, Ghost->GetPositionZ(), 0, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 45000);
+                    if (Construct)
+                    {
+                        Construct->CastSpell(Construct, SPELL_PASSIVE_SHADOWFORM, true);
+                        SetThreatList(Construct);               // Use same function as Doom Blossom to set Threat List.
+                        CAST_AI(mob_shadowy_construct::mob_shadowy_constructAI, Construct->AI())->GhostGUID = GhostGUID;
+                        Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 1);
+                        if (!pTarget)                             // someone's trying to solo.
+                            pTarget = me->getVictim();
+
+                        if (pTarget)
+                            Construct->GetMotionMaster()->MoveChase(pTarget);
+                    }
+                }
+            }
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (Intro && !Done)
+            {
+                if (AggroTimer <= diff)
+                {
+                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    DoScriptText(SAY_AGGRO, me);
+                    me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+                    Done = true;
+                    if (AggroTargetGUID)
+                    {
+                        Unit* pUnit = Unit::GetUnit((*me), AggroTargetGUID);
+                        if (pUnit)
+                            AttackStart(pUnit);
+
+                        DoZoneInCombat();
+                    }
+                    else
+                    {
+                        EnterEvadeMode();
+                        return;
+                    }
+                } else AggroTimer -= diff;
+            }
+
+            if (!UpdateVictim() || !Done)
+                return;
+
+            if (SummonShadowsTimer <= diff)
+            {
+                //MindControlGhost();
+
+                for (uint8 i = 0; i < 2; ++i)
+                {
+                    Creature* Shadow = NULL;
+                    float X = CalculateRandomLocation(me->GetPositionX(), 10);
+                    Shadow = me->SummonCreature(CREATURE_SHADOWY_CONSTRUCT, X, me->GetPositionY(), me->GetPositionZ(), 0, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 0);
+                    if (Shadow)
+                    {
+                        Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 1);
+                        if (!pTarget)
+                            pTarget = me->getVictim();
+
+                        if (pTarget)
+                            Shadow->AI()->AttackStart(pTarget);
+                    }
+                }
+                SummonShadowsTimer = 60000;
+            } else SummonShadowsTimer -= diff;
+
+            if (SummonDoomBlossomTimer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                {
+                    float X = CalculateRandomLocation(pTarget->GetPositionX(), 20);
+                    float Y = CalculateRandomLocation(pTarget->GetPositionY(), 20);
+                    float Z = pTarget->GetPositionZ();
+                    Z = me->GetMap()->GetHeight(X, Y, Z);
+                    Creature* DoomBlossom = me->SummonCreature(CREATURE_DOOM_BLOSSOM, X, Y, Z, 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 20000);
+                    if (DoomBlossom)
+                    {
+                        DoomBlossom->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                        DoomBlossom->setFaction(me->getFaction());
+                        DoomBlossom->AddThreat(pTarget, 1.0f);
+                        CAST_AI(mob_doom_blossom::mob_doom_blossomAI, DoomBlossom->AI())->SetTeronGUID(me->GetGUID());
+                        pTarget->CombatStart(DoomBlossom);
+                        SetThreatList(DoomBlossom);
+                        SummonDoomBlossomTimer = 35000;
+                    }
+                }
+            } else SummonDoomBlossomTimer -= diff;
+
+            if (IncinerateTimer <= diff)
+            {
+                Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 1);
+                if (!pTarget)
+                    pTarget = me->getVictim();
+
+                if (pTarget)
+                {
+                    DoScriptText(RAND(SAY_SPECIAL1,SAY_SPECIAL2), me);
+                    DoCast(pTarget, SPELL_INCINERATE);
+                    IncinerateTimer = 20000 + rand()%31 * 1000;
+                }
+            } else IncinerateTimer -= diff;
+
+            if (CrushingShadowsTimer <= diff)
+            {
+                Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0);
+                if (pTarget && pTarget->isAlive())
+                    DoCast(pTarget, SPELL_CRUSHING_SHADOWS);
+                CrushingShadowsTimer = 10000 + rand()%16 * 1000;
+            } else CrushingShadowsTimer -= diff;
+
+            /*** NOTE FOR FUTURE DEV: UNCOMMENT BELOW ONLY IF MIND CONTROL IS FULLY IMPLEMENTED **/
+            /*if (ShadowOfDeathTimer <= diff)
+            {
+                Unit *pTarget = SelectUnit(SELECT_TARGET_RANDOM, 1);
+
+                if (!pTarget)
+                   pTarget = me->getVictim();
+
+                if (pTarget && pTarget->isAlive() && pTarget->GetTypeId() == TYPEID_PLAYER)
+                {
+                    DoCast(pTarget, SPELL_SHADOW_OF_DEATH);
+                    GhostGUID = pTarget->GetGUID();
+                    ShadowOfDeathTimer = 30000;
+                    SummonShadowsTimer = 53000; // Make it VERY close but slightly less so that we can check if the aura is still on the player
+                }
+            } else ShadowOfDeathTimer -= diff;*/
+
+            if (RandomYellTimer <= diff)
+            {
+                DoScriptText(RAND(SAY_SPELL1,SAY_SPELL2), me);
+                RandomYellTimer = 50000 + rand()%51 * 1000;
+            } else RandomYellTimer -= diff;
+
+            if (!me->HasAura(SPELL_BERSERK))
+            {
+                if (EnrageTimer <= diff)
+            {
+                DoCast(me, SPELL_BERSERK);
+                DoScriptText(SAY_ENRAGE, me);
+            } else EnrageTimer -= diff;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_teron_gorefiend()
 {
-    RegisterBlackTempleCreatureAI(boss_teron_gorefiend);
-    RegisterBlackTempleCreatureAI(npc_doom_blossom);
-    RegisterBlackTempleCreatureAI(npc_shadowy_construct);
-    RegisterSpellScript(spell_teron_gorefiend_shadow_of_death);
-    RegisterSpellScript(spell_teron_gorefiend_spiritual_vengeance);
-    RegisterSpellScript(spell_teron_gorefiend_shadow_of_death_remove);
-    new at_teron_gorefiend_entrance();
+    new mob_doom_blossom();
+    new mob_shadowy_construct();
+    new boss_teron_gorefiend();
 }

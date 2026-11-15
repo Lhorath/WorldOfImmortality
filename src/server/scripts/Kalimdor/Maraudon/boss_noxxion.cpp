@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,106 +16,121 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "maraudon.h"
-#include "ScriptedCreature.h"
-#include "SpellScript.h"
+/* ScriptData
+SDName: Boss_Noxxion
+SD%Complete: 100
+SDComment:
+SDCategory: Maraudon
+EndScriptData */
 
-enum NoxxionSpells
+#include "ScriptPCH.h"
+
+#define SPELL_TOXICVOLLEY           21687
+#define SPELL_UPPERCUT              22916
+
+class boss_noxxion : public CreatureScript
 {
-    SPELL_TOXIC_VOLLEY          = 21687,
-    SPELL_UPPERCUT              = 22916,
-    SPELL_SUMMON_SPAWNS_DUMMY   = 21708,
-    SPELL_SUMMON_SPAWNS         = 21707
-};
+public:
+    boss_noxxion() : CreatureScript("boss_noxxion") { }
 
-// 13282 - Noxxion
-struct boss_noxxion : public ScriptedAI
-{
-    boss_noxxion(Creature* creature) : ScriptedAI(creature) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _scheduler.CancelAll();
+        return new boss_noxxionAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    struct boss_noxxionAI : public ScriptedAI
     {
-        _scheduler
-            .SetValidator([this]
-            {
-                return !me->HasUnitState(UNIT_STATE_CASTING);
-            })
-            .Schedule(5s, 10s, [this](TaskContext task)
-            {
-                DoCastSelf(SPELL_TOXIC_VOLLEY);
-                task.Repeat(15s, 20s);
-            })
-            .Schedule(15s, 20s, [this](TaskContext task)
-            {
-                DoCastVictim(SPELL_UPPERCUT);
-                task.Repeat(20s, 30s);
-            })
-            .Schedule(30s, 40s, [this](TaskContext task)
-            {
-                DoCastSelf(SPELL_SUMMON_SPAWNS_DUMMY);
-                task.Repeat(50s, 60s);
-            });
-    }
+        boss_noxxionAI(Creature *c) : ScriptedAI(c) {}
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
+        uint32 ToxicVolley_Timer;
+        uint32 Uppercut_Timer;
+        uint32 Adds_Timer;
+        uint32 Invisible_Timer;
+        bool Invisible;
 
-        _scheduler.Update(diff, [this]
+        void Reset()
         {
+            ToxicVolley_Timer = 7000;
+            Uppercut_Timer = 16000;
+            Adds_Timer = 19000;
+            Invisible_Timer = 15000;                            //Too much too low?
+            Invisible = false;
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void SummonAdds(Unit* pVictim)
+        {
+            if (Creature *Add = DoSpawnCreature(13456, float(irand(-7,7)), float(irand(-7,7)), 0, 0, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 90000))
+                Add->AI()->AttackStart(pVictim);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (Invisible && Invisible_Timer <= diff)
+            {
+                //Become visible again
+                me->setFaction(14);
+                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                //Noxxion model
+                me->SetDisplayId(11172);
+                Invisible = false;
+                //me->m_canMove = true;
+            } else if (Invisible)
+            {
+                Invisible_Timer -= diff;
+                //Do nothing while invisible
+                return;
+            }
+
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            //ToxicVolley_Timer
+            if (ToxicVolley_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_TOXICVOLLEY);
+                ToxicVolley_Timer = 9000;
+            } else ToxicVolley_Timer -= diff;
+
+            //Uppercut_Timer
+            if (Uppercut_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_UPPERCUT);
+                Uppercut_Timer = 12000;
+            } else Uppercut_Timer -= diff;
+
+            //Adds_Timer
+            if (!Invisible && Adds_Timer <= diff)
+            {
+                //Interrupt any spell casting
+                //me->m_canMove = true;
+                me->InterruptNonMeleeSpells(false);
+                me->setFaction(35);
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                // Invisible Model
+                me->SetDisplayId(11686);
+                SummonAdds(me->getVictim());
+                SummonAdds(me->getVictim());
+                SummonAdds(me->getVictim());
+                SummonAdds(me->getVictim());
+                SummonAdds(me->getVictim());
+                Invisible = true;
+                Invisible_Timer = 15000;
+
+                Adds_Timer = 40000;
+            } else Adds_Timer -= diff;
+
             DoMeleeAttackIfReady();
-        });
-    }
-
-private:
-    TaskScheduler _scheduler;
-};
-
-// 21708 - Summon Noxxion's Spawns
-class spell_noxxion_summon_spawns : public AuraScript
-{
-    PrepareAuraScript(spell_noxxion_summon_spawns);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SUMMON_SPAWNS });
-    }
-
-    void AfterApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Creature* target = GetTarget()->ToCreature())
-        {
-            target->SetReactState(REACT_PASSIVE);
-            target->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
-            target->CastSpell(target, SPELL_SUMMON_SPAWNS, true);
         }
-    }
+    };
 
-    void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Creature* target = GetTarget()->ToCreature())
-        {
-            target->SetReactState(REACT_AGGRESSIVE);
-            target->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
-        }
-    }
-
-    void Register() override
-    {
-        AfterEffectApply += AuraEffectApplyFn(spell_noxxion_summon_spawns::AfterApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-        AfterEffectRemove += AuraEffectApplyFn(spell_noxxion_summon_spawns::AfterRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-    }
 };
 
 void AddSC_boss_noxxion()
 {
-    RegisterMaraudonCreatureAI(boss_noxxion);
-    RegisterSpellScript(spell_noxxion_summon_spawns);
+    new boss_noxxion();
 }

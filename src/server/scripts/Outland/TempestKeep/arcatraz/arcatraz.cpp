@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,757 +16,549 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * The way Mellichar's event is reset requires additional research
- */
+/* ScriptData
+SDName: Arcatraz
+SD%Complete: 60
+SDComment: Warden Mellichar, event controller for Skyriss event. Millhouse Manastorm. TODO: make better combatAI for Millhouse.
+SDCategory: Tempest Keep, The Arcatraz
+EndScriptData */
 
-#include "ScriptMgr.h"
+/* ContentData
+npc_millhouse_manastorm
+npc_warden_mellichar
+mob_zerekethvoidzone
+EndContentData */
+
+#include "ScriptPCH.h"
 #include "arcatraz.h"
-#include "Containers.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
 
-enum MillhouseTexts
+/*#####
+# npc_millhouse_manastorm
+#####*/
+
+enum eMillhouseSays
 {
-    SAY_INTRO_1                = 0,
-    SAY_INTRO_2                = 1,
-    SAY_INTRO_3                = 2,
-    SAY_INTRO_4                = 3,
-    SAY_WATER                  = 4,
-    SAY_BUFFS                  = 5,
-    SAY_DRINK                  = 6,
-    SAY_READY                  = 7,
-    SAY_SLAY                   = 8,
-    SAY_PYRO                   = 9,
-    SAY_ICEBLOCK               = 10,
-    SAY_LOWHP                  = 11,
-    SAY_DEATH                  = 12,
-    SAY_COMPLETE               = 13
+    SAY_INTRO_1                = -1552010,
+    SAY_INTRO_2                = -1552011,
+    SAY_WATER                  = -1552012,
+    SAY_BUFFS                  = -1552013,
+    SAY_DRINK                  = -1552014,
+    SAY_READY                  = -1552015,
+    SAY_KILL_1                 = -1552016,
+    SAY_KILL_2                 = -1552017,
+    SAY_PYRO                   = -1552018,
+    SAY_ICEBLOCK               = -1552019,
+    SAY_LOWHP                  = -1552020,
+    SAY_DEATH                  = -1552021,
+    SAY_COMPLETE               = -1552022,
 };
 
-enum MillhouseSpells
+enum eMillhouseSpells
 {
-    SPELL_SIMPLE_TELEPORT      = 12980,
     SPELL_CONJURE_WATER        = 36879,
     SPELL_ARCANE_INTELLECT     = 36880,
     SPELL_ICE_ARMOR            = 36881,
-    SPELL_DRINK                = 30024,
-
-    SPELL_FIREBALL             = 14034,
-    SPELL_FROSTBOLT            = 15497,
-    SPELL_ARCANE_MISSILES      = 33832,
+    SPELL_ARCANE_MISSILES      = 33833,
     SPELL_CONE_OF_COLD         = 12611,
     SPELL_FIRE_BLAST           = 13341,
+    SPELL_FIREBALL             = 14034,
+    SPELL_FROSTBOLT            = 15497,
     SPELL_PYROBLAST            = 33975,
-    SPELL_ICE_BLOCK            = 36911
 };
 
-enum MillhouseEvents
+class npc_millhouse_manastorm : public CreatureScript
 {
-    EVENT_INTRO_1              = 1,
-    EVENT_INTRO_2,
-    EVENT_INTRO_3,
-    EVENT_INTRO_4,
-    EVENT_INTRO_5,
-    EVENT_INTRO_6,
-    EVENT_INTRO_7,
-    EVENT_INTRO_8,
-    EVENT_INTRO_9,
-    EVENT_INTRO_10,
-    EVENT_INTRO_11,
-    EVENT_INTRO_12,
+    public:
 
-    EVENT_MAIN_SPELL,
-    EVENT_ARCANE_MISSILES,
-    EVENT_CONE_OF_COLD,
-    EVENT_FIRE_BLAST,
-    EVENT_PYROBLAST,
-    EVENT_ICE_BLOCK,
-    EVENT_LOW_HEALTH
-};
-
-enum MillhouseMisc
-{
-    POINT_CENTER               = 1
-};
-
-Position const CenterPos = { 445.88043f, -158.70554f, 43.068977f, 0.0f };
-
-// 20977 - Millhouse Manastorm
-struct npc_millhouse_manastorm : public ScriptedAI
-{
-    npc_millhouse_manastorm(Creature* creature) : ScriptedAI(creature),
-        _instance(creature->GetInstanceScript()), _lowHealth(false), _hasIceBlock(false) { }
-
-    void JustAppeared() override
-    {
-        me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-        _events.ScheduleEvent(EVENT_INTRO_1, 0s);
-    }
-
-    void Reset() override
-    {
-        _events.Reset();
-        _lowHealth = false;
-        _hasIceBlock = false;
-
-        if (_instance->GetBossState(DATA_HARBINGER_SKYRISS) == DONE)
+        npc_millhouse_manastorm()
+            : CreatureScript("npc_millhouse_manastorm")
         {
-            Talk(SAY_COMPLETE);
-            me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
         }
-    }
-
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        _events.ScheduleEvent(EVENT_MAIN_SPELL, 0s);
-        _events.ScheduleEvent(EVENT_ARCANE_MISSILES, 10s, 20s);
-        _events.ScheduleEvent(EVENT_CONE_OF_COLD, 15s, 25s);
-        _events.ScheduleEvent(EVENT_FIRE_BLAST, 20s, 30s);
-        _events.ScheduleEvent(EVENT_PYROBLAST, 30s, 45s);
-    }
-
-    void AttackStart(Unit* who) override
-    {
-        ScriptedAI::AttackStartCaster(who, 30.0f);
-    }
-
-    void MovementInform(uint32 type, uint32 pointId) override
-    {
-        if (type != POINT_MOTION_TYPE)
-            return;
-
-        if (pointId == POINT_CENTER)
-            _events.ScheduleEvent(EVENT_INTRO_12, 0s);
-    }
-
-    void DamageTaken(Unit* /*killer*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        if (!_lowHealth && me->HealthBelowPctDamaged(20, damage))
+        struct npc_millhouse_manastormAI : public ScriptedAI
         {
-            _lowHealth = true;
-            _events.ScheduleEvent(EVENT_LOW_HEALTH, 0s);
-        }
-        // Guessed, how this spell should be used?
-        if (!_hasIceBlock && me->HealthBelowPctDamaged(10, damage))
-        {
-            _hasIceBlock = true;
-            _events.ScheduleEvent(EVENT_ICE_BLOCK, 0s);
-        }
-    }
-
-    void OnSpellStart(SpellInfo const* spell) override
-    {
-        if (spell->Id == SPELL_PYROBLAST)
-            Talk(SAY_PYRO);
-    }
-
-    void OnSpellCast(SpellInfo const* spell) override
-    {
-        if (spell->Id == SPELL_ICE_BLOCK)
-            Talk(SAY_ICEBLOCK);
-    }
-
-    void KilledUnit(Unit* /*who*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        Talk(SAY_DEATH);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-        {
-            UpdateIntroEvents(diff);
-            return;
-        }
-
-        _events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
+            npc_millhouse_manastormAI(Creature* pCreature) : ScriptedAI(pCreature)
             {
-                case EVENT_MAIN_SPELL:
-                    DoCastVictim(RAND(SPELL_FIREBALL, SPELL_FROSTBOLT));
-                    _events.Repeat(3s);
-                    break;
-                case EVENT_ARCANE_MISSILES:
-                    DoCastVictim(SPELL_ARCANE_MISSILES);
-                    _events.Repeat(20s, 30s);
-                    break;
-                case EVENT_CONE_OF_COLD:
-                    DoCastSelf(SPELL_CONE_OF_COLD);
-                    _events.Repeat(20s, 30s);
-                    break;
-                case EVENT_FIRE_BLAST:
-                    DoCastVictim(SPELL_FIRE_BLAST);
-                    _events.Repeat(25s, 40s);
-                    break;
-                case EVENT_PYROBLAST:
-                    DoCastVictim(SPELL_PYROBLAST);
-                    _events.Repeat(40s, 60s);
-                    break;
-                case EVENT_ICE_BLOCK:
-                    DoCastSelf(SPELL_ICE_BLOCK);
-                    break;
-                case EVENT_LOW_HEALTH:
-                    Talk(SAY_LOWHP);
-                    break;
-                default:
-                    break;
+                pInstance = pCreature->GetInstanceScript();
             }
 
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
-        }
+            InstanceScript* pInstance;
 
-        DoMeleeAttackIfReady();
-    }
+            uint32 EventProgress_Timer;
+            uint32 Phase;
+            bool Init;
+            bool LowHp;
 
-    void UpdateIntroEvents(uint32 diff)
-    {
-        _events.Update(diff);
+            uint32 Pyroblast_Timer;
+            uint32 Fireball_Timer;
 
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
+            void Reset()
             {
-                case EVENT_INTRO_1:
-                    DoCastSelf(SPELL_SIMPLE_TELEPORT);
-                    _events.ScheduleEvent(EVENT_INTRO_2, 2s);
-                    break;
-                case EVENT_INTRO_2:
-                    Talk(SAY_INTRO_1);
-                    _events.ScheduleEvent(EVENT_INTRO_3, 4s + 500ms);
-                    break;
-                case EVENT_INTRO_3:
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
-                    _events.ScheduleEvent(EVENT_INTRO_4, 14s);
-                    break;
-                case EVENT_INTRO_4:
-                    if (Creature* mellichar = _instance->GetCreature(DATA_MELLICHAR))
-                        me->SetFacingToObject(mellichar);
-                    Talk(SAY_INTRO_2);
-                    _events.ScheduleEvent(EVENT_INTRO_5, 9s);
-                    break;
-                case EVENT_INTRO_5:
-                    Talk(SAY_INTRO_3);
-                    me->SetFacingTo(0.03490658476948738f);
-                    _events.ScheduleEvent(EVENT_INTRO_6, 8s);
-                    break;
-                case EVENT_INTRO_6:
-                    if (Creature* mellichar = _instance->GetCreature(DATA_MELLICHAR))
-                        me->SetFacingToObject(mellichar);
-                    Talk(SAY_INTRO_4);
-                    _events.ScheduleEvent(EVENT_INTRO_7, 5s);
-                    break;
-                case EVENT_INTRO_7:
-                    Talk(SAY_WATER);
-                    DoCastSelf(SPELL_CONJURE_WATER);
-                    _events.ScheduleEvent(EVENT_INTRO_8, 7s);
-                    break;
-                case EVENT_INTRO_8:
-                    Talk(SAY_BUFFS);
-                    DoCastSelf(SPELL_ARCANE_INTELLECT);
-                    _events.ScheduleEvent(EVENT_INTRO_9, 3s);
-                    break;
-                case EVENT_INTRO_9:
-                    DoCastSelf(SPELL_ICE_ARMOR);
-                    _events.ScheduleEvent(EVENT_INTRO_10, 6s);
-                    break;
-                case EVENT_INTRO_10:
-                    Talk(SAY_DRINK);
-                    DoCastSelf(SPELL_DRINK);
-                    _events.ScheduleEvent(EVENT_INTRO_11, 6s);
-                    break;
-                case EVENT_INTRO_11:
-                    Talk(SAY_READY);
-                    // Clear stand state from Drink spell manually, otherwise it will be not cleared
-                    me->SetStandState(UNIT_STAND_STATE_STAND);
-                    me->GetMotionMaster()->MovePoint(POINT_CENTER, CenterPos);
-                    break;
-                case EVENT_INTRO_12:
-                    if (Creature* mellichar = _instance->GetCreature(DATA_MELLICHAR))
-                        me->SetFacingToObject(mellichar);
-                    me->SetImmuneToAll(false);
-                    me->SetHomePosition(me->GetPosition());
-                    break;
-                default:
-                    break;
+                EventProgress_Timer = 2000;
+                LowHp = false;
+                Init = false;
+                Phase = 1;
+
+                Pyroblast_Timer = 1000;
+                Fireball_Timer = 2500;
+
+                if (pInstance)
+                {
+                    if (pInstance->GetData(TYPE_WARDEN_2) == DONE)
+                        Init = true;
+
+                    if (pInstance->GetData(TYPE_HARBINGERSKYRISS) == DONE)
+                        DoScriptText(SAY_COMPLETE, me);
+                }
             }
-        }
-    }
 
-private:
-    EventMap _events;
-    InstanceScript* _instance;
-    bool _lowHealth;
-    bool _hasIceBlock;
-};
-
-enum WardenTexts
-{
-    SAY_RELEASE_1         = 0,
-    SAY_RELEASE_2         = 1,
-    SAY_RELEASE_3         = 2,
-    SAY_RELEASE_4         = 3,
-    SAY_RELEASE_5         = 4,
-    SAY_RELEASE_6         = 5,
-    SAY_RELEASE_7         = 6,
-    SAY_RELEASE_8         = 7
-};
-
-enum WardenSpells
-{
-    SPELL_SEAL_SPHERE     = 36849,
-    SPELL_TARGET_OMEGA    = 36852,
-    SPELL_TARGET_ALPHA    = 36854,
-    SPELL_TARGET_BETA     = 36856,
-    SPELL_TARGET_DELTA    = 36857,
-    SPELL_TARGET_GAMMA    = 36858,
-    SPELL_QUIET_SUICIDE   = 3617
-};
-
-enum WardenEvents
-{
-    EVENT_MAIN_CHANNEL    = 1,
-
-    EVENT_RELEASE_1_1,
-    EVENT_RELEASE_1_2,
-    EVENT_RELEASE_1_3,
-    EVENT_RELEASE_1_4,
-    EVENT_RELEASE_1_5,
-    EVENT_RELEASE_1_6,
-    EVENT_RELEASE_1_7,
-    EVENT_RELEASE_1_8,
-    EVENT_RELEASE_1_9,
-
-    EVENT_RELEASE_2_1,
-    EVENT_RELEASE_2_2,
-    EVENT_RELEASE_2_3,
-    EVENT_RELEASE_2_4,
-    EVENT_RELEASE_2_5,
-    EVENT_RELEASE_2_6,
-
-    EVENT_RELEASE_3_1,
-    EVENT_RELEASE_3_2,
-    EVENT_RELEASE_3_3,
-    EVENT_RELEASE_3_4,
-    EVENT_RELEASE_3_5,
-    EVENT_RELEASE_3_6,
-    EVENT_RELEASE_3_7,
-
-    EVENT_RELEASE_4_1,
-    EVENT_RELEASE_4_2,
-    EVENT_RELEASE_4_3,
-    EVENT_RELEASE_4_4,
-    EVENT_RELEASE_4_5,
-    EVENT_RELEASE_4_6,
-
-    EVENT_RELEASE_5_1,
-    EVENT_RELEASE_5_2,
-    EVENT_RELEASE_5_3,
-    EVENT_RELEASE_5_4,
-    EVENT_RELEASE_5_5
-};
-
-enum WardenCreatures
-{
-    // Prisoner 1
-    NPC_TRICKSTER         = 20905,
-    NPC_PH_HUNTER         = 20906,
-    // Prisoner 2
-    NPC_MILLHOUSE_M       = 20977,
-    // Prisoner 3
-    NPC_AKKIRIS           = 20908,
-    NPC_SULFURON          = 20909,
-    // Prisoner 4
-    NPC_TW_DRAK           = 20910,
-    NPC_BL_DRAK           = 20911,
-    // Prisoner 5
-    NPC_SKYRISS           = 20912
-};
-
-Position const PrisonerSpawnPos[5] =
-{
-    { 472.231f, -150.860f, 42.6573f, 3.106690f },
-    { 417.242f, -149.795f, 42.6548f, 0.191986f },
-    { 420.851f, -174.337f, 42.6655f, 0.122173f },
-    { 470.364f, -174.656f, 42.6753f, 3.595380f },
-    { 446.086f, -182.506f, 44.0852f, 1.570800f }
-};
-
-// 20904 - Warden Mellichar
-struct npc_warden_mellichar : public ScriptedAI
-{
-    npc_warden_mellichar(Creature* creature) : ScriptedAI(creature),
-        _instance(creature->GetInstanceScript()), _summons(me), _inProgress(false) { }
-
-    void Reset() override
-    {
-        _events.Reset();
-        _summons.DespawnAll();
-        _events.ScheduleEvent(EVENT_MAIN_CHANNEL, 0s);
-        me->SetReactState(REACT_PASSIVE);
-
-        _instance->HandleGameObject(ObjectGuid::Empty, false, _instance->GetGameObject(DATA_STASIS_POD_ALPHA));
-        _instance->HandleGameObject(ObjectGuid::Empty, false, _instance->GetGameObject(DATA_STASIS_POD_BETA));
-        _instance->HandleGameObject(ObjectGuid::Empty, false, _instance->GetGameObject(DATA_STASIS_POD_DELTA));
-        _instance->HandleGameObject(ObjectGuid::Empty, false, _instance->GetGameObject(DATA_STASIS_POD_GAMMA));
-        _instance->HandleGameObject(ObjectGuid::Empty, false, _instance->GetGameObject(DATA_STASIS_POD_OMEGA));
-        _instance->HandleGameObject(ObjectGuid::Empty, true, _instance->GetGameObject(DATA_WARDENS_SHIELD));
-
-        if (_instance->GetBossState(DATA_HARBINGER_SKYRISS) == FAIL)
-        {
-            _instance->SetBossState(DATA_HARBINGER_SKYRISS, NOT_STARTED);
-            me->DespawnOrUnsummon(0s, 1min);
-        }
-    }
-
-    void MoveInLineOfSight(Unit* who) override
-    {
-        if (_inProgress)
-            return;
-
-        if (who->GetTypeId() != TYPEID_PLAYER || !who->IsWithinDist(me, INTERACTION_DISTANCE))
-            return;
-
-        JustEngagedWith(who);
-    }
-
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        if (_inProgress)
-            return;
-
-        _inProgress = true;
-        _events.ScheduleEvent(EVENT_RELEASE_1_1, 1s);
-        _instance->SetBossState(DATA_HARBINGER_SKYRISS, IN_PROGRESS);
-    }
-
-    void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
-    {
-        if (spellInfo->Id == SPELL_SEAL_SPHERE)
-            _instance->HandleGameObject(ObjectGuid::Empty, false, _instance->GetGameObject(DATA_WARDENS_SHIELD));
-    }
-
-    void DamageTaken(Unit* who, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-    {
-        // Creature is unkillable by default. But allow to kill self with Quiet Suicide spell
-        if (damage >= me->GetHealth() && who != me)
-            damage = me->GetHealth() -1;
-    }
-
-    void DoAction(int32 action) override
-    {
-        if (action == ACTION_RESET_PRISON)
-            Reset();
-    }
-
-    void JustSummoned(Creature* summon) override
-    {
-        _summons.Summon(summon);
-        DoZoneInCombat(summon);
-    }
-
-    void SummonedCreatureDies(Creature* summon, Unit* /*killer*/) override
-    {
-        // Not entirely correct. Next phase is started when prisoner is about to die, not when he's dead
-        switch (summon->GetEntry())
-        {
-            case NPC_TRICKSTER:
-            case NPC_PH_HUNTER:
-                _events.ScheduleEvent(EVENT_RELEASE_2_1, 0s);
-                break;
-            case NPC_AKKIRIS:
-            case NPC_SULFURON:
-                _events.ScheduleEvent(EVENT_RELEASE_4_1, 0s);
-                break;
-            case NPC_TW_DRAK:
-            case NPC_BL_DRAK:
-                _events.ScheduleEvent(EVENT_RELEASE_5_1, 0s);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _events.Update(diff);
-
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
+            void AttackStart(Unit* pWho)
             {
-                case EVENT_MAIN_CHANNEL:
-                    DoCastSelf(SPELL_TARGET_OMEGA);
-                    _events.Repeat(12s);
-                    break;
-
-                case EVENT_RELEASE_1_1:
-                    me->InterruptNonMeleeSpells(true);
-                    me->RemoveAurasDueToSpell(SPELL_TARGET_OMEGA);
-                    me->SetImmuneToPC(true);
-                    _events.CancelEvent(EVENT_MAIN_CHANNEL);
-                    _events.ScheduleEvent(EVENT_RELEASE_1_2, 2s);
-                    break;
-                case EVENT_RELEASE_1_2:
-                    me->SetFacingTo(1.605702877044677734f);
-                    // Apparently casting this spell makes him reset orientation to default
-                    DoCastSelf(SPELL_SEAL_SPHERE);
-                    Talk(SAY_RELEASE_1);
-                    _events.ScheduleEvent(EVENT_RELEASE_1_3, 23s);
-                    break;
-                case EVENT_RELEASE_1_3:
-                    Talk(SAY_RELEASE_2);
-                    _events.ScheduleEvent(EVENT_RELEASE_1_4, 2s);
-                    break;
-                case EVENT_RELEASE_1_4:
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
-                    _events.ScheduleEvent(EVENT_RELEASE_1_5, 2s);
-                    break;
-                case EVENT_RELEASE_1_5:
-                    DoCastSelf(SPELL_TARGET_ALPHA);
-                    _events.ScheduleEvent(EVENT_RELEASE_1_6, 4s);
-                    break;
-                case EVENT_RELEASE_1_6:
-                    _instance->HandleGameObject(ObjectGuid::Empty, true, _instance->GetGameObject(DATA_STASIS_POD_ALPHA));
-                    _events.ScheduleEvent(EVENT_RELEASE_1_7, 2s);
-                    break;
-                case EVENT_RELEASE_1_7:
-                    me->SetFacingTo(4.747295379638671875f);
-                    _events.ScheduleEvent(EVENT_RELEASE_1_8, 2s);
-                    break;
-                case EVENT_RELEASE_1_8:
-                    _events.ScheduleEvent(EVENT_MAIN_CHANNEL, 0s);
-                    _events.ScheduleEvent(EVENT_RELEASE_1_9, 6s);
-                    break;
-                case EVENT_RELEASE_1_9:
-                    me->SummonCreature(RAND(NPC_TRICKSTER, NPC_PH_HUNTER), PrisonerSpawnPos[0], TEMPSUMMON_MANUAL_DESPAWN);
-                    break;
-
-                case EVENT_RELEASE_2_1:
-                    me->InterruptNonMeleeSpells(true);
-                    me->RemoveAurasDueToSpell(SPELL_TARGET_OMEGA);
-                    me->SetFacingTo(1.675516128540039062f);
-                    Talk(SAY_RELEASE_3);
-                    _events.CancelEvent(EVENT_MAIN_CHANNEL);
-                    _events.ScheduleEvent(EVENT_RELEASE_2_2, 5s);
-                    break;
-                case EVENT_RELEASE_2_2:
-                    DoCastSelf(SPELL_TARGET_BETA);
-                    _events.ScheduleEvent(EVENT_RELEASE_2_3, 3s);
-                    break;
-                case EVENT_RELEASE_2_3:
-                    me->SetFacingTo(4.747295379638671875f);
-                    Talk(SAY_RELEASE_4);
-                    _events.ScheduleEvent(EVENT_RELEASE_2_4, 1s);
-                    break;
-                case EVENT_RELEASE_2_4:
-                    _instance->HandleGameObject(ObjectGuid::Empty, true, _instance->GetGameObject(DATA_STASIS_POD_BETA));
-                    _events.ScheduleEvent(EVENT_RELEASE_2_5, 1s);
-                    break;
-                case EVENT_RELEASE_2_5:
-                    _events.ScheduleEvent(EVENT_MAIN_CHANNEL, 0s);
-                    _events.ScheduleEvent(EVENT_RELEASE_2_6, 7s);
-                    break;
-                case EVENT_RELEASE_2_6:
-                    me->SummonCreature(NPC_MILLHOUSE_M, PrisonerSpawnPos[1], TEMPSUMMON_MANUAL_DESPAWN);
-                    _events.ScheduleEvent(EVENT_RELEASE_3_1, 12s);
-                    break;
-
-                case EVENT_RELEASE_3_1:
-                    me->InterruptNonMeleeSpells(true);
-                    me->RemoveAurasDueToSpell(SPELL_TARGET_OMEGA);
-                    _events.CancelEvent(EVENT_MAIN_CHANNEL);
-                    _events.ScheduleEvent(EVENT_RELEASE_3_2, 2s);
-                    break;
-                case EVENT_RELEASE_3_2:
-                    me->SetFacingTo(2.478367567062377929f);
-                    Talk(SAY_RELEASE_5);
-                    _events.ScheduleEvent(EVENT_RELEASE_3_3, 6s);
-                    break;
-                case EVENT_RELEASE_3_3:
-                    DoCastSelf(SPELL_TARGET_DELTA);
-                    _events.ScheduleEvent(EVENT_RELEASE_3_4, 3s);
-                    break;
-                case EVENT_RELEASE_3_4:
-                    me->SetFacingTo(4.747295379638671875f);
-                    _events.ScheduleEvent(EVENT_RELEASE_3_5, 1s);
-                    break;
-                case EVENT_RELEASE_3_5:
-                    _instance->HandleGameObject(ObjectGuid::Empty, true, _instance->GetGameObject(DATA_STASIS_POD_DELTA));
-                    _events.ScheduleEvent(EVENT_RELEASE_3_6, 4s);
-                    break;
-                case EVENT_RELEASE_3_6:
-                    _events.ScheduleEvent(EVENT_MAIN_CHANNEL, 0s);
-                    _events.ScheduleEvent(EVENT_RELEASE_3_7, 4s);
-                    break;
-                case EVENT_RELEASE_3_7:
-                    me->SummonCreature(RAND(NPC_AKKIRIS, NPC_SULFURON), PrisonerSpawnPos[2], TEMPSUMMON_MANUAL_DESPAWN);
-                    break;
-
-                case EVENT_RELEASE_4_1:
-                    me->InterruptNonMeleeSpells(true);
-                    me->RemoveAurasDueToSpell(SPELL_TARGET_OMEGA);
-                    me->SetFacingTo(6.056292533874511718f);
-                    Talk(SAY_RELEASE_6);
-                    _events.CancelEvent(EVENT_MAIN_CHANNEL);
-                    _events.ScheduleEvent(EVENT_RELEASE_4_2, 5s);
-                    break;
-                case EVENT_RELEASE_4_2:
-                    DoCastSelf(SPELL_TARGET_GAMMA);
-                    _events.ScheduleEvent(EVENT_RELEASE_4_3, 2s);
-                    break;
-                case EVENT_RELEASE_4_3:
-                    me->SetFacingTo(4.747295379638671875f);
-                    _events.ScheduleEvent(EVENT_RELEASE_4_4, 1s);
-                    break;
-                case EVENT_RELEASE_4_4:
-                    _instance->HandleGameObject(ObjectGuid::Empty, true, _instance->GetGameObject(DATA_STASIS_POD_GAMMA));
-                    _events.ScheduleEvent(EVENT_RELEASE_4_5, 2s);
-                    break;
-                case EVENT_RELEASE_4_5:
-                    _events.ScheduleEvent(EVENT_MAIN_CHANNEL, 0s);
-                    _events.ScheduleEvent(EVENT_RELEASE_4_6, 7s);
-                    break;
-                case EVENT_RELEASE_4_6:
-                    me->SummonCreature(RAND(NPC_TW_DRAK, NPC_BL_DRAK), PrisonerSpawnPos[3], TEMPSUMMON_MANUAL_DESPAWN);
-                    break;
-
-                case EVENT_RELEASE_5_1:
-                    me->InterruptNonMeleeSpells(true);
-                    me->RemoveAurasDueToSpell(SPELL_TARGET_OMEGA);
-                    Talk(SAY_RELEASE_7);
-                    _events.CancelEvent(EVENT_MAIN_CHANNEL);
-                    _events.ScheduleEvent(EVENT_RELEASE_5_2, 1s);
-                    break;
-                case EVENT_RELEASE_5_2:
-                    _instance->HandleGameObject(ObjectGuid::Empty, true, _instance->GetGameObject(DATA_STASIS_POD_OMEGA));
-                    _events.ScheduleEvent(EVENT_RELEASE_5_3, 10s);
-                    break;
-                case EVENT_RELEASE_5_3:
-                    me->SummonCreature(NPC_SKYRISS, PrisonerSpawnPos[4], TEMPSUMMON_MANUAL_DESPAWN);
-                    _events.ScheduleEvent(EVENT_RELEASE_5_4, 24s);
-                    break;
-                case EVENT_RELEASE_5_4:
-                    Talk(SAY_RELEASE_8);
-                    _events.ScheduleEvent(EVENT_RELEASE_5_5, 7s);
-                    break;
-                case EVENT_RELEASE_5_5:
-                    DoCastSelf(SPELL_QUIET_SUICIDE);
-                    _instance->HandleGameObject(ObjectGuid::Empty, true, _instance->GetGameObject(DATA_WARDENS_SHIELD));
-                    me->DespawnOrUnsummon(18s);
-                    break;
-                default:
-                    break;
+                if (me->Attack(pWho, true))
+                {
+                    me->AddThreat(pWho, 0.0f);
+                    me->SetInCombatWith(pWho);
+                    pWho->SetInCombatWith(me);
+                    me->GetMotionMaster()->MoveChase(pWho, 25.0f);
+                }
             }
-        }
-    }
 
-private:
-    InstanceScript* _instance;
-    EventMap _events;
-    SummonList _summons;
-    bool _inProgress;
-};
+            void EnterCombat(Unit * /*who*/){}
 
-enum ChaosBreath
-{
-    SPELL_NECROTIC_POISON     = 36693,
-    SPELL_CORROSIVE_POISON    = 36694,
-    SPELL_FEVERED_FATIGUE     = 36695,
-    SPELL_WITHERED_TOUCH      = 36696,
-    SPELL_SHRINK              = 36697,
-    SPELL_PIERCING_SHADOW     = 36698,
-    SPELL_WAVERING_WILL       = 36699,
-    SPELL_HEX                 = 36700
-};
+            void KilledUnit(Unit * /*victim*/)
+            {
+                DoScriptText(RAND(SAY_KILL_1,SAY_KILL_2), me);
+            }
 
-// 36677 - Chaos Breath
-class spell_arcatraz_chaos_breath : public SpellScript
-{
-    PrepareSpellScript(spell_arcatraz_chaos_breath);
+            void JustDied(Unit * /*victim*/)
+            {
+                DoScriptText(SAY_DEATH, me);
 
-    static constexpr std::array<uint32, 8> PossibleSpells = { SPELL_NECROTIC_POISON, SPELL_CORROSIVE_POISON, SPELL_FEVERED_FATIGUE, SPELL_WITHERED_TOUCH, SPELL_SHRINK, SPELL_PIERCING_SHADOW, SPELL_WAVERING_WILL, SPELL_HEX };
+                /*for questId 10886 (heroic mode only)
+                if (pInstance && pInstance->GetData(TYPE_HARBINGERSKYRISS) != DONE)
+                ->FailQuest();*/
+            }
 
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo(PossibleSpells);
-    }
+            void UpdateAI(const uint32 diff)
+            {
+                if (!Init)
+                {
+                    if (EventProgress_Timer <= diff)
+                    {
+                        if (Phase < 8)
+                        {
+                            switch(Phase)
+                            {
+                            case 1:
+                                DoScriptText(SAY_INTRO_1, me);
+                                EventProgress_Timer = 18000;
+                                break;
+                            case 2:
+                                DoScriptText(SAY_INTRO_2, me);
+                                EventProgress_Timer = 18000;
+                                break;
+                            case 3:
+                                DoScriptText(SAY_WATER, me);
+                                DoCast(me, SPELL_CONJURE_WATER);
+                                EventProgress_Timer = 7000;
+                                break;
+                            case 4:
+                                DoScriptText(SAY_BUFFS, me);
+                                DoCast(me, SPELL_ICE_ARMOR);
+                                EventProgress_Timer = 7000;
+                                break;
+                            case 5:
+                                DoScriptText(SAY_DRINK, me);
+                                DoCast(me, SPELL_ARCANE_INTELLECT);
+                                EventProgress_Timer = 7000;
+                                break;
+                            case 6:
+                                DoScriptText(SAY_READY, me);
+                                EventProgress_Timer = 6000;
+                                break;
+                            case 7:
+                                if (pInstance)
+                                    pInstance->SetData(TYPE_WARDEN_2,DONE);
+                                Init = true;
+                                break;
+                            }
+                            ++Phase;
+                        }
+                    }
+                    else
+                        EventProgress_Timer -= diff;
+                }
 
-    void HandleDummy(SpellEffIndex /*effIndex*/)
-    {
-        Unit* caster = GetCaster();
-        std::array<uint32, 8> spellsToCast = PossibleSpells;
+                if (!UpdateVictim())
+                    return;
+                if (!LowHp && HealthBelowPct(20))
+                {
+                    DoScriptText(SAY_LOWHP, me);
+                    LowHp = true;
+                }
 
-        Trinity::Containers::RandomShuffle(spellsToCast);
+                if (Pyroblast_Timer <= diff)
+                {
+                    if (me->IsNonMeleeSpellCasted(false))
+                        return;
 
-        for (uint32 i = 0; i < 3; ++i)
-            caster->CastSpell(caster, spellsToCast[i]);
-    }
+                    DoScriptText(SAY_PYRO, me);
 
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_arcatraz_chaos_breath::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
-    }
-};
+                    DoCast(me->getVictim(), SPELL_PYROBLAST);
+                    Pyroblast_Timer = 40000;
+                }
+                else
+                    Pyroblast_Timer -=diff;
 
-enum DeathCountRemover
-{
-    SPELL_DEATH_COUNT_DAMAGE       = 36657,
-    SPELL_DEATH_COUNT_DAMAGE_H     = 38818,
-    SPELL_DEATH_COUNT_REMOVER      = 36660,
-    SPELL_DEATH_COUNT_REMOVER_H    = 38820
-};
+                if (Fireball_Timer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_FIREBALL);
+                    Fireball_Timer = 4000;
+                }
+                else
+                    Fireball_Timer -=diff;
 
-// 36660, 38820 - Death Count
-class spell_arcatraz_death_count : public AuraScript
-{
-    PrepareAuraScript(spell_arcatraz_death_count);
+                DoMeleeAttackIfReady();
+            }
+        };
 
-    bool Validate(SpellInfo const* /*spell*/) override
-    {
-        return ValidateSpellInfo({ SPELL_DEATH_COUNT_DAMAGE, SPELL_DEATH_COUNT_DAMAGE_H });
-    }
-
-    void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        switch (GetId())
+        CreatureAI* GetAI(Creature* creature) const
         {
-            case SPELL_DEATH_COUNT_REMOVER:
-                GetTarget()->RemoveAurasDueToSpell(SPELL_DEATH_COUNT_DAMAGE);
-                break;
-            case SPELL_DEATH_COUNT_REMOVER_H:
-                GetTarget()->RemoveAurasDueToSpell(SPELL_DEATH_COUNT_DAMAGE_H);
-                break;
-            default:
-                break;
+            return new npc_millhouse_manastormAI(creature);
         }
-    }
+};
+/*#####
+# npc_warden_mellichar
+#####*/
 
-    void Register() override
-    {
-        AfterEffectApply += AuraEffectApplyFn(spell_arcatraz_death_count::OnApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-    }
+enum eWardenSays
+{
+    YELL_INTRO1         = -1552023,
+    YELL_INTRO2         = -1552024,
+    YELL_RELEASE1       = -1552025,
+    YELL_RELEASE2A      = -1552026,
+    YELL_RELEASE2B      = -1552027,
+    YELL_RELEASE3       = -1552028,
+    YELL_RELEASE4       = -1552029,
+    YELL_WELCOME        = -1552030,
 };
 
+enum eWardenUnits
+{
+    //phase 2(acid mobs)
+    ENTRY_TRICKSTER    = 20905,
+    ENTRY_PH_HUNTER    = 20906,
+    //phase 3
+    ENTRY_MILLHOUSE    = 20977,
+    //phase 4(acid mobs)
+    ENTRY_AKKIRIS      = 20908,
+    ENTRY_SULFURON     = 20909,
+    //phase 5(acid mobs)
+    ENTRY_TW_DRAK      = 20910,
+    ENTRY_BL_DRAK      = 20911,
+    //phase 6
+    ENTRY_SKYRISS      = 20912,
+};
+
+enum eWardenSpells
+{
+    //TARGET_SCRIPT
+    SPELL_TARGET_ALPHA  = 36856,
+    SPELL_TARGET_BETA   = 36854,
+    SPELL_TARGET_DELTA  = 36857,
+    SPELL_TARGET_GAMMA  = 36858,
+    SPELL_TARGET_OMEGA  = 36852,
+    SPELL_BUBBLE_VISUAL = 36849,
+};
+
+class npc_warden_mellichar : public CreatureScript
+{
+    public:
+
+        npc_warden_mellichar()
+            : CreatureScript("npc_warden_mellichar")
+        {
+        }
+        struct npc_warden_mellicharAI : public ScriptedAI
+        {
+            npc_warden_mellicharAI(Creature* pCreature) : ScriptedAI(pCreature)
+            {
+                pInstance = pCreature->GetInstanceScript();
+            }
+
+            InstanceScript* pInstance;
+
+            bool IsRunning;
+            bool CanSpawn;
+
+            uint32 EventProgress_Timer;
+            uint32 Phase;
+
+            void Reset()
+            {
+                IsRunning = false;
+                CanSpawn = false;
+
+                EventProgress_Timer = 22000;
+                Phase = 1;
+
+                me->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NON_ATTACKABLE);
+                DoCast(me, SPELL_TARGET_OMEGA);
+
+                if (pInstance)
+                    pInstance->SetData(TYPE_HARBINGERSKYRISS,NOT_STARTED);
+            }
+
+            void AttackStart(Unit* /*who*/) {}
+
+            void MoveInLineOfSight(Unit *who)
+            {
+                if (IsRunning)
+                    return;
+
+                if (!me->getVictim() && who->isTargetableForAttack() && (me->IsHostileTo(who)) && who->isInAccessiblePlaceFor(me))
+                {
+                    if (!me->canFly() && me->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
+                        return;
+                    if (who->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    float attackRadius = me->GetAttackDistance(who)/10;
+                    if (me->IsWithinDistInMap(who, attackRadius) && me->IsWithinLOSInMap(who))
+                        EnterCombat(who);
+                }
+            }
+
+            void EnterCombat(Unit * /*who*/)
+            {
+                DoScriptText(YELL_INTRO1, me);
+                DoCast(me, SPELL_BUBBLE_VISUAL);
+
+                if (pInstance)
+                {
+                    pInstance->SetData(TYPE_HARBINGERSKYRISS,IN_PROGRESS);
+                    pInstance->HandleGameObject(pInstance->GetData64(DATA_SPHERE_SHIELD), false);
+                    IsRunning = true;
+                }
+            }
+
+            bool CanProgress()
+            {
+                if (pInstance)
+                {
+                    if (Phase == 7 && pInstance->GetData(TYPE_WARDEN_4) == DONE)
+                        return true;
+                    if (Phase == 6 && pInstance->GetData(TYPE_WARDEN_3) == DONE)
+                        return true;
+                    if (Phase == 5 && pInstance->GetData(TYPE_WARDEN_2) == DONE)
+                        return true;
+                    if (Phase == 4)
+                        return true;
+                    if (Phase == 3 && pInstance->GetData(TYPE_WARDEN_1) == DONE)
+                        return true;
+                    if (Phase == 2 && pInstance->GetData(TYPE_HARBINGERSKYRISS) == IN_PROGRESS)
+                        return true;
+                    if (Phase == 1 && pInstance->GetData(TYPE_HARBINGERSKYRISS) == IN_PROGRESS)
+                        return true;
+                    return false;
+                }
+                return false;
+            }
+
+            void DoPrepareForPhase()
+            {
+                if (pInstance)
+                {
+                    me->InterruptNonMeleeSpells(true);
+                    me->RemoveAurasByType(SPELL_AURA_DUMMY);
+
+                    switch(Phase)
+                    {
+                    case 2:
+                        DoCast(me, SPELL_TARGET_ALPHA);
+                        pInstance->SetData(TYPE_WARDEN_1,IN_PROGRESS);
+                        pInstance->HandleGameObject(pInstance->GetData64(DATA_SPHERE_SHIELD), false);
+                        break;
+                    case 3:
+                        DoCast(me, SPELL_TARGET_BETA);
+                        pInstance->SetData(TYPE_WARDEN_2,IN_PROGRESS);
+                        break;
+                    case 5:
+                        DoCast(me, SPELL_TARGET_DELTA);
+                        pInstance->SetData(TYPE_WARDEN_3,IN_PROGRESS);
+                        break;
+                    case 6:
+                        DoCast(me, SPELL_TARGET_GAMMA);
+                        pInstance->SetData(TYPE_WARDEN_4,IN_PROGRESS);
+                        break;
+                    case 7:
+                        pInstance->SetData(TYPE_WARDEN_5,IN_PROGRESS);
+                        break;
+                    }
+                    CanSpawn = true;
+                }
+            }
+
+            void UpdateAI(const uint32 diff)
+            {
+                if (!IsRunning)
+                    return;
+
+                if (EventProgress_Timer <= diff)
+                {
+                    if (pInstance)
+                    {
+                        if (pInstance->GetData(TYPE_HARBINGERSKYRISS) == FAIL)
+                        {
+                            Reset();
+                            return;
+                        }
+                    }
+
+                    if (CanSpawn)
+                    {
+                        //continue beam omega pod, unless we are about to summon skyriss
+                        if (Phase != 7)
+                            DoCast(me, SPELL_TARGET_OMEGA);
+
+                        switch(Phase)
+                        {
+                        case 2:
+                            switch (urand(0,1))
+                            {
+                            case 0:
+                                me->SummonCreature(ENTRY_TRICKSTER,478.326f,-148.505f,42.56f,3.19f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,600000);
+                                break;
+                            case 1:
+                                me->SummonCreature(ENTRY_PH_HUNTER,478.326f,-148.505f,42.56f,3.19f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,600000);
+                                break;
+                            }
+                            break;
+                        case 3:
+                            me->SummonCreature(ENTRY_MILLHOUSE,413.292f,-148.378f,42.56f,6.27f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,600000);
+                            break;
+                        case 4:
+                            DoScriptText(YELL_RELEASE2B, me);
+                            break;
+                        case 5:
+                            switch (urand(0,1))
+                            {
+                            case 0:
+                                me->SummonCreature(ENTRY_AKKIRIS,420.179f,-174.396f,42.58f,0.02f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,600000);
+                                break;
+                            case 1:
+                                me->SummonCreature(ENTRY_SULFURON,420.179f,-174.396f,42.58f,0.02f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,600000);
+                                break;
+                            }
+                            break;
+                        case 6:
+                            switch (urand(0,1))
+                            {
+                            case 0:
+                                me->SummonCreature(ENTRY_TW_DRAK,471.795f,-174.58f,42.58f,3.06f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,600000);
+                                break;
+                            case 1:
+                                me->SummonCreature(ENTRY_BL_DRAK,471.795f,-174.58f,42.58f,3.06f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,600000);
+                                break;
+                            }
+                            break;
+                        case 7:
+                            me->SummonCreature(ENTRY_SKYRISS,445.763f,-191.639f,44.64f,1.60f,TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,600000);
+                            DoScriptText(YELL_WELCOME, me);
+                            break;
+                        }
+                        CanSpawn = false;
+                        ++Phase;
+                    }
+                    if (CanProgress())
+                    {
+                        switch(Phase)
+                        {
+                        case 1:
+                            DoScriptText(YELL_INTRO2, me);
+                            EventProgress_Timer = 10000;
+                            ++Phase;
+                            break;
+                        case 2:
+                            DoScriptText(YELL_RELEASE1, me);
+                            DoPrepareForPhase();
+                            EventProgress_Timer = 7000;
+                            break;
+                        case 3:
+                            DoScriptText(YELL_RELEASE2A, me);
+                            DoPrepareForPhase();
+                            EventProgress_Timer = 10000;
+                            break;
+                        case 4:
+                            DoPrepareForPhase();
+                            EventProgress_Timer = 15000;
+                            break;
+                        case 5:
+                            DoScriptText(YELL_RELEASE3, me);
+                            DoPrepareForPhase();
+                            EventProgress_Timer = 15000;
+                            break;
+                        case 6:
+                            DoScriptText(YELL_RELEASE4, me);
+                            DoPrepareForPhase();
+                            EventProgress_Timer = 15000;
+                            break;
+                        case 7:
+                            DoPrepareForPhase();
+                            EventProgress_Timer = 15000;
+                            break;
+                        }
+                    }
+                }
+                else
+                    EventProgress_Timer -= diff;
+            }
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new npc_warden_mellicharAI(creature);
+        }
+};
+
+/*#####
+# mob_zerekethvoidzone (this script probably not needed in future -> `creature_template_addon`.`auras`='36120 0')
+#####*/
+
+#define SPELL_VOID_ZONE_DAMAGE 36120
+
+class mob_zerekethvoidzone : public CreatureScript
+{
+    public:
+
+        mob_zerekethvoidzone()
+            : CreatureScript("mob_zerekethvoidzone")
+        {
+        }
+        struct mob_zerekethvoidzoneAI : public ScriptedAI
+        {
+            mob_zerekethvoidzoneAI(Creature* pCreature) : ScriptedAI(pCreature) {}
+
+            void Reset()
+            {
+                me->SetUInt32Value(UNIT_NPC_FLAGS,0);
+                me->setFaction(16);
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+
+                DoCast(me, SPELL_VOID_ZONE_DAMAGE);
+            }
+
+            void EnterCombat(Unit* /*who*/) {}
+        };
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new mob_zerekethvoidzoneAI(creature);
+        }
+};
 void AddSC_arcatraz()
 {
-    RegisterArcatrazCreatureAI(npc_millhouse_manastorm);
-    RegisterArcatrazCreatureAI(npc_warden_mellichar);
-    RegisterSpellScript(spell_arcatraz_chaos_breath);
-    RegisterSpellScript(spell_arcatraz_death_count);
+    new npc_millhouse_manastorm();
+    new npc_warden_mellichar();
+    new mob_zerekethvoidzone();
 }
+

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,270 +16,57 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
+/* ScriptData
+SDName: Black_Temple
+SD%Complete: 95
+SDComment: Spirit of Olum: Player Teleporter to Seer Kanai Teleport after defeating Naj'entus and Supremus. TODO: Find proper gossip.
+SDCategory: Black Temple
+EndScriptData */
+
+/* ContentData
+npc_spirit_of_olum
+EndContentData */
+
+#include "ScriptPCH.h"
 #include "black_temple.h"
-#include "ObjectAccessor.h"
-#include "ScriptedCreature.h"
-#include "SpellAuraEffects.h"
-#include "SpellScript.h"
 
-enum BlackTempleSpells
+/*###
+# npc_spirit_of_olum
+####*/
+
+#define SPELL_TELEPORT      41566                           // s41566 - Teleport to Ashtongue NPC's
+#define GOSSIP_OLUM1        "Teleport me to the other Ashtongue Deathsworn"
+
+class npc_spirit_of_olum : public CreatureScript
 {
-    // Wrathbone Flayer
-    SPELL_CLEAVE                = 15496,
-    SPELL_IGNORED               = 39544,
-    SPELL_SUMMON_CHANNEL        = 40094,
+public:
+    npc_spirit_of_olum() : CreatureScript("npc_spirit_of_olum") { }
 
-    // Angered Soul Fragment
-    SPELL_GREATER_INVISIBILITY  = 41253,
-    SPELL_ANGER                 = 41986,
-
-    // Illidari Nightlord
-    SPELL_SHADOW_INFERNO_DAMAGE = 39646
-};
-
-enum BlackTempleCreatures
-{
-    NPC_BLOOD_MAGE               = 22945,
-    NPC_DEATHSHAPER              = 22882
-};
-
-enum BlackTempleEvents
-{
-    // Wrathbone Flayer
-    EVENT_GET_CHANNELERS = 1,
-    EVENT_SET_CHANNELERS,
-    EVENT_CLEAVE,
-    EVENT_IGNORED
-};
-
-enum BlackTempleMisc
-{
-    GROUP_OUT_OF_COMBAT = 1
-};
-
-// 22953 - Wrathbone Flayer
-struct npc_wrathbone_flayer : public ScriptedAI
-{
-    npc_wrathbone_flayer(Creature* creature) : ScriptedAI(creature)
+    bool OnGossipSelect(Player* pPlayer, Creature* /*pCreature*/, uint32 /*uiSender*/, uint32 uiAction)
     {
-        Initialize();
-        _instance = creature->GetInstanceScript();
+        pPlayer->PlayerTalkClass->ClearMenus();
+        if (uiAction == GOSSIP_ACTION_INFO_DEF + 1)
+            pPlayer->CLOSE_GOSSIP_MENU();
+
+        pPlayer->InterruptNonMeleeSpells(false);
+        pPlayer->CastSpell(pPlayer, SPELL_TELEPORT, false);
+        return true;
     }
 
-    void Initialize()
+    bool OnGossipHello(Player* pPlayer, Creature* pCreature)
     {
-        _enteredCombat = false;
+        InstanceScript* pInstance = pCreature->GetInstanceScript();
+
+        if (pInstance && (pInstance->GetData(DATA_SUPREMUSEVENT) >= DONE) && (pInstance->GetData(DATA_HIGHWARLORDNAJENTUSEVENT) >= DONE))
+            pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_OLUM1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+
+        pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetGUID());
+        return true;
     }
 
-    void Reset() override
-    {
-        _events.ScheduleEvent(EVENT_GET_CHANNELERS, 3s);
-        Initialize();
-        _bloodmageList.clear();
-        _deathshaperList.clear();
-    }
-
-    void JustDied(Unit* /*killer*/) override { }
-
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        _events.ScheduleEvent(EVENT_CLEAVE, 5s);
-        _events.ScheduleEvent(EVENT_IGNORED, 7s);
-        _enteredCombat = true;
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!_enteredCombat)
-        {
-            _events.Update(diff);
-
-            while (uint32 eventId = _events.ExecuteEvent())
-            {
-                switch (eventId)
-                {
-                    case EVENT_GET_CHANNELERS:
-                    {
-                        std::list<Creature*> BloodMageList;
-                        me->GetCreatureListWithEntryInGrid(BloodMageList, NPC_BLOOD_MAGE, 15.0f);
-
-                        if (!BloodMageList.empty())
-                            for (std::list<Creature*>::const_iterator itr = BloodMageList.begin(); itr != BloodMageList.end(); ++itr)
-                            {
-                                _bloodmageList.push_back((*itr)->GetGUID());
-                                if ((*itr)->isDead())
-                                    (*itr)->Respawn();
-                            }
-
-                        std::list<Creature*> DeathShaperList;
-                        me->GetCreatureListWithEntryInGrid(DeathShaperList, NPC_DEATHSHAPER, 15.0f);
-
-                        if (!DeathShaperList.empty())
-                            for (std::list<Creature*>::const_iterator itr = DeathShaperList.begin(); itr != DeathShaperList.end(); ++itr)
-                            {
-                                _deathshaperList.push_back((*itr)->GetGUID());
-                                if ((*itr)->isDead())
-                                    (*itr)->Respawn();
-                            }
-
-                        _events.ScheduleEvent(EVENT_SET_CHANNELERS, 3s);
-
-                        break;
-                    }
-                    case EVENT_SET_CHANNELERS:
-                    {
-                        for (ObjectGuid guid : _bloodmageList)
-                            if (Creature* bloodmage = ObjectAccessor::GetCreature(*me, guid))
-                                bloodmage->CastSpell(nullptr, SPELL_SUMMON_CHANNEL);
-
-                        for (ObjectGuid guid : _deathshaperList)
-                            if (Creature* deathshaper = ObjectAccessor::GetCreature(*me, guid))
-                                deathshaper->CastSpell(nullptr, SPELL_SUMMON_CHANNEL);
-
-                        _events.Repeat(12s);
-
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            }
-        }
-
-        if (!UpdateVictim())
-            return;
-
-        _events.Update(diff);
-
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
-            {
-                case EVENT_CLEAVE:
-                    DoCastVictim(SPELL_CLEAVE);
-                    _events.Repeat(1s, 2s);
-                    break;
-                case EVENT_IGNORED:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                        DoCast(target, SPELL_IGNORED);
-                    _events.Repeat(10s);
-                    break;
-                default:
-                    break;
-            }
-        }
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    InstanceScript* _instance;
-    EventMap _events;
-    GuidList _bloodmageList;
-    GuidList _deathshaperList;
-    bool _enteredCombat;
-};
-
-// 23398 - Angered Soul Fragment
-struct npc_angered_soul_fragment : public ScriptedAI
-{
-    npc_angered_soul_fragment(Creature* creature) : ScriptedAI(creature) { }
-
-    void Reset() override
-    {
-        _scheduler.CancelAll();
-
-        _scheduler.Schedule(1s, GROUP_OUT_OF_COMBAT, [this](TaskContext invi)
-        {
-            DoCastSelf(SPELL_GREATER_INVISIBILITY);
-
-            /* Workaround - On Retail creature appear and "vanish" again periodically, but i cant find packets
-            with UPDATE_AURA on sniffs about it */
-            _scheduler.Schedule(5s, 10s, GROUP_OUT_OF_COMBAT, [this](TaskContext /*context*/)
-            {
-                me->RemoveAurasDueToSpell(SPELL_GREATER_INVISIBILITY);
-            });
-
-            invi.Repeat(15s, 25s);
-        });
-    }
-
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        me->RemoveAurasDueToSpell(SPELL_GREATER_INVISIBILITY);
-
-        _scheduler.CancelGroup(GROUP_OUT_OF_COMBAT);
-        _scheduler.Schedule(1s, [this](TaskContext anger)
-        {
-            Unit* target = me->GetVictim();
-            if (target && me->IsWithinMeleeRange(target))
-                DoCastSelf(SPELL_ANGER);
-            else
-                anger.Repeat(1s);
-        });
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _scheduler.Update(diff);
-
-        if (!UpdateVictim())
-            return;
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    TaskScheduler _scheduler;
-};
-
-// 41986 - Anger
-class spell_soul_fragment_anger : public SpellScript
-{
-    PrepareSpellScript(spell_soul_fragment_anger);
-
-    void HandleKill()
-    {
-        if (Creature* caster = GetCaster()->ToCreature())
-            caster->DespawnOrUnsummon(Milliseconds(200));
-    }
-
-    void Register() override
-    {
-        AfterCast += SpellCastFn(spell_soul_fragment_anger::HandleKill);
-    }
-};
-
-// 39645 - Shadow Inferno
-class spell_illidari_nightlord_shadow_inferno : public AuraScript
-{
-    PrepareAuraScript(spell_illidari_nightlord_shadow_inferno);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_SHADOW_INFERNO_DAMAGE });
-    }
-
-    void OnPeriodic(AuraEffect const* aurEffect)
-    {
-        PreventDefaultAction();
-        int32 bp = aurEffect->GetTickNumber() * aurEffect->GetAmount();
-        GetUnitOwner()->CastSpell(GetUnitOwner(), SPELL_SHADOW_INFERNO_DAMAGE, CastSpellExtraArgs(TRIGGERED_FULL_MASK).AddSpellBP0(bp));
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_illidari_nightlord_shadow_inferno::OnPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
-    }
 };
 
 void AddSC_black_temple()
 {
-    RegisterBlackTempleCreatureAI(npc_wrathbone_flayer);
-    RegisterBlackTempleCreatureAI(npc_angered_soul_fragment);
-    RegisterSpellScript(spell_soul_fragment_anger);
-    RegisterSpellScript(spell_illidari_nightlord_shadow_inferno);
+    new npc_spirit_of_olum();
 }

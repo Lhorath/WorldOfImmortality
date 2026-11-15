@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,59 +19,16 @@
 #ifndef DEF_THE_EYE_H
 #define DEF_THE_EYE_H
 
-#include "CreatureAIImpl.h"
-
-#define TheEyeScriptName "instance_the_eye"
-#define DataHeader "TE"
-
-constexpr uint32 EncounterCount = 4;
-
-enum TEDataTypes
-{
-    // Encounter States
-    DATA_ALAR                           = 0,
-    DATA_VOID_REAVER                    = 1,
-    DATA_SOLARIAN                       = 2,
-    DATA_KAELTHAS                       = 3,
-
-    // Additional Data
-    DATA_CAPERNIAN,
-    DATA_SANGUINAR,
-    DATA_TELONICUS,
-    DATA_THALADRED,
-
-    DATA_KAEL_STATUE_LEFT,
-    DATA_KAEL_STATUE_RIGHT,
-    DATA_TEMPEST_BRIDGE_WINDOW
-};
-
-enum TECreatureIds
-{
-    NPC_ALAR                            = 19514,
-    NPC_VOID_REAVER                     = 19516,
-    NPC_SOLARIAN                        = 18805,
-    NPC_KAELTHAS                        = 19622,
-    NPC_SANGUINAR                       = 20060,
-    NPC_CAPERNIAN                       = 20062,
-    NPC_TELONICUS                       = 20063,
-    NPC_THALADRED                       = 20064
-};
-
-enum TEGameObjectIds
-{
-    GO_TEMPEST_BRIDDGE_WINDOW           = 184069,
-    GO_KAEL_STATUE_RIGHT                = 184596,
-    GO_KAEL_STATUE_LEFT                 = 184597,
-    GO_ARCANE_DOOR_LEFT                 = 184324,
-    GO_ARCANE_DOOR_RIGHT                = 184325
-};
-
-template <class AI, class T>
-inline AI* GetTheEyeAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, TheEyeScriptName);
-}
-
-#define RegisterTheEyeCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetTheEyeAI)
-
+#define DATA_ALAREVENT                      1
+#define DATA_ASTROMANCER                    2
+#define DATA_GRANDASTROMANCERCAPERNIAN      3
+#define DATA_HIGHASTROMANCERSOLARIANEVENT   4
+#define DATA_KAELTHAS                       5
+#define DATA_KAELTHASEVENT                  6
+#define DATA_LORDSANGUINAR                  7
+#define DATA_MASTERENGINEERTELONICUS        8
+#define DATA_THALADREDTHEDARKENER           10
+#define DATA_VOIDREAVEREVENT                11
+#define DATA_ALAR                           12
 #endif
+

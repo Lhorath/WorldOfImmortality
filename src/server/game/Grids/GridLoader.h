@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -29,8 +30,6 @@
   GridLoader manages the grid (both local and remote).
  */
 
-//I cannot see why this cannot be replaced by a Grid::Visit
-/*
 #include "Define.h"
 #include "Grid.h"
 #include "TypeContainerVisitor.h"
@@ -45,32 +44,34 @@ class GridLoader
 {
     public:
 
-        // Loads the grid
+        /** Loads the grid
+         */
         template<class LOADER>
-            void Load(Grid<ACTIVE_OBJECT, WORLD_OBJECT_TYPES, GRID_OBJECT_TYPES> &grid, LOADER &loader)
+            void Load(Grid<ACTIVE_OBJECT,WORLD_OBJECT_TYPES, GRID_OBJECT_TYPES> &grid, LOADER &loader)
         {
             grid.LockGrid();
             loader.Load(grid);
             grid.UnlockGrid();
         }
 
-        // Stop the grid
+        /** Stop the grid
+         */
         template<class STOPER>
-            void Stop(Grid<ACTIVE_OBJECT, WORLD_OBJECT_TYPES, GRID_OBJECT_TYPES> &grid, STOPER &stoper)
+            void Stop(Grid<ACTIVE_OBJECT,WORLD_OBJECT_TYPES, GRID_OBJECT_TYPES> &grid, STOPER &stoper)
         {
             grid.LockGrid();
             stoper.Stop(grid);
             grid.UnlockGrid();
         }
-
-        // Unloads the grid
+        /** Unloads the grid
+         */
         template<class UNLOADER>
-            void Unload(Grid<ACTIVE_OBJECT, WORLD_OBJECT_TYPES, GRID_OBJECT_TYPES> &grid, UNLOADER &unloader)
+            void Unload(Grid<ACTIVE_OBJECT,WORLD_OBJECT_TYPES, GRID_OBJECT_TYPES> &grid, UNLOADER &unloader)
         {
             grid.LockGrid();
             unloader.Unload(grid);
             grid.UnlockGrid();
         }
 };
-*/
 #endif
+

@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,23 +20,26 @@
 #define TRINITY_TOTEMAI_H
 
 #include "CreatureAI.h"
-#include "PassiveAI.h"
 #include "Timer.h"
 
 class Creature;
 class Totem;
 
-class TC_GAME_API TotemAI : public NullCreatureAI
+class TotemAI : public CreatureAI
 {
     public:
-        explicit TotemAI(Creature* creature);
 
-        void AttackStart(Unit* victim) override;
+        explicit TotemAI(Creature *c);
 
-        void UpdateAI(uint32 diff) override;
-        static int32 Permissible(Creature const* creature);
+        void MoveInLineOfSight(Unit *);
+        void AttackStart(Unit *);
+        void EnterEvadeMode();
+
+        void UpdateAI(const uint32);
+        static int Permissible(const Creature *);
 
     private:
-        ObjectGuid _victimGUID;
+        uint64 i_victimGuid;
 };
 #endif
+

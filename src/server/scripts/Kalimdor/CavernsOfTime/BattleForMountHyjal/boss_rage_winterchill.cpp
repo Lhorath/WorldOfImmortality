@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,160 +15,197 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Combat timers requires to be revisited
- */
-
-#include "ScriptMgr.h"
+#include "ScriptPCH.h"
 #include "hyjal.h"
-#include "MotionMaster.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
+#include "hyjal_trash.h"
 
-enum WinterchillTexts
+#define SPELL_FROST_ARMOR 31256
+#define SPELL_DEATH_AND_DECAY 31258
+
+#define SPELL_FROST_NOVA 31250
+#define SPELL_ICEBOLT 31249
+
+#define SAY_ONDEATH "You have won this battle, but not... the... war"
+#define SOUND_ONDEATH 11026
+
+#define SAY_ONSLAY1 "All life must perish!"
+#define SAY_ONSLAY2 "Victory to the Legion!"
+#define SOUND_ONSLAY1 11025
+#define SOUND_ONSLAY2 11057
+
+#define SAY_DECAY1 "Crumble and rot!"
+#define SAY_DECAY2 "Ashes to ashes, dust to dust"
+#define SOUND_DECAY1 11023
+#define SOUND_DECAY2 11055
+
+#define SAY_NOVA1 "Succumb to the icy chill... of death!"
+#define SAY_NOVA2 "It will be much colder in your grave"
+#define SOUND_NOVA1 11024
+#define SOUND_NOVA2 11058
+
+#define SAY_ONAGGRO "The Legion's final conquest has begun! Once again the subjugation of this world is within our grasp. Let none survive!"
+#define SOUND_ONAGGRO 11022
+
+class boss_rage_winterchill : public CreatureScript
 {
-    SAY_INTRO                   = 0,
-    SAY_DECAY                   = 1,
-    SAY_NOVA                    = 2,
-    SAY_SLAY                    = 3,
-    SAY_DEATH                   = 4
-};
+public:
+    boss_rage_winterchill() : CreatureScript("boss_rage_winterchill") { }
 
-enum WinterchillSpells
-{
-    SPELL_ICEBOLT               = 31249,
-    SPELL_FROST_NOVA            = 31250,
-    SPELL_FROST_ARMOR           = 31256,
-    SPELL_DEATH_AND_DECAY       = 31258,
-    SPELL_BERSERK               = 26662
-};
-
-enum WinterchillEvents
-{
-    EVENT_ICEBOLT               = 1,
-    EVENT_FROST_NOVA,
-    EVENT_FROST_ARMOR,
-    EVENT_DEATH_AND_DECAY,
-    EVENT_BERSERK
-};
-
-// 17767 - Rage Winterchill
-struct boss_rage_winterchill : public BossAI
-{
-    boss_rage_winterchill(Creature* creature) : BossAI(creature, DATA_RAGEWINTERCHILL) { }
-
-    void JustAppeared() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        Talk(SAY_INTRO);
-        me->GetMotionMaster()->MovePath(RAND(PATH_ALLY_INITIAL_1, PATH_ALLY_INITIAL_2, PATH_ALLY_INITIAL_3), false);
+        return new boss_rage_winterchillAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_rage_winterchillAI : public hyjal_trashAI
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_ICEBOLT, 4s, 10s);
-        events.ScheduleEvent(EVENT_FROST_NOVA, 20s, 25s);
-        events.ScheduleEvent(EVENT_FROST_ARMOR, 40s, 60s);
-        events.ScheduleEvent(EVENT_DEATH_AND_DECAY, 30s, 40s);
-        events.ScheduleEvent(EVENT_BERSERK, 10min);
-    }
-
-    void OnSpellCast(SpellInfo const* spellInfo) override
-    {
-        switch (spellInfo->Id)
+        boss_rage_winterchillAI(Creature *c) : hyjal_trashAI(c)
         {
-            case SPELL_FROST_NOVA:
-                if (roll_chance_i(30))
-                    Talk(SAY_NOVA);
-                break;
-            case SPELL_DEATH_AND_DECAY:
-                if (roll_chance_i(30))
-                    Talk(SAY_DECAY);
-                break;
-            default:
-                break;
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
         }
-    }
 
-    void WaypointPathEnded(uint32 /*waypointId*/, uint32 pathId) override
-    {
-        switch (pathId)
+        uint32 FrostArmorTimer;
+        uint32 DecayTimer;
+        uint32 NovaTimer;
+        uint32 IceboltTimer;
+        bool pGo;
+        uint32 pos;
+
+        void Reset()
         {
-            case PATH_ALLY_INITIAL_1:
-            case PATH_ALLY_INITIAL_2:
-            case PATH_ALLY_INITIAL_3:
-                me->GetMotionMaster()->MovePath(RAND(PATH_ALLY_BASE_1, PATH_ALLY_BASE_2, PATH_ALLY_BASE_3), true);
-                break;
-            default:
-                break;
+            damageTaken = 0;
+            FrostArmorTimer = 37000;
+            DecayTimer = 45000;
+            NovaTimer = 15000;
+            IceboltTimer = 10000;
+
+            if (pInstance && IsEvent)
+                pInstance->SetData(DATA_RAGEWINTERCHILLEVENT, NOT_STARTED);
         }
-    }
 
-    // Do not reset SetActive, we want boss to be active all the time
-    void JustReachedHome() override { }
-
-    void KilledUnit(Unit* victim) override
-    {
-        if (victim->GetTypeId() == TYPEID_PLAYER)
-            Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void EnterCombat(Unit * /*who*/)
         {
-            switch (eventId)
+            if (pInstance && IsEvent)
+                pInstance->SetData(DATA_RAGEWINTERCHILLEVENT, IN_PROGRESS);
+            DoPlaySoundToSet(me, SOUND_ONAGGRO);
+            me->MonsterYell(SAY_ONAGGRO, LANG_UNIVERSAL, 0);
+        }
+
+        void KilledUnit(Unit * /*victim*/)
+        {
+            switch (urand(0,1))
             {
-                case EVENT_ICEBOLT:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.0f, true))
-                        DoCast(target, SPELL_ICEBOLT);
-                    events.Repeat(6s, 8s);
+                case 0:
+                    DoPlaySoundToSet(me, SOUND_ONSLAY1);
+                    me->MonsterYell(SAY_ONSLAY1, LANG_UNIVERSAL, NULL);
                     break;
-                case EVENT_FROST_NOVA:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 45.0f))
-                        DoCast(target, SPELL_FROST_NOVA);
-                    events.Repeat(30s, 45s);
-                    break;
-                case EVENT_FROST_ARMOR:
-                    DoCastSelf(SPELL_FROST_ARMOR);
-                    events.Repeat(40s, 60s);
-                    break;
-                case EVENT_DEATH_AND_DECAY:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.0f))
-                        DoCast(target, SPELL_DEATH_AND_DECAY);
-                    events.Repeat(35s, 50s);
-                    break;
-                case EVENT_BERSERK:
-                    DoCastSelf(SPELL_BERSERK);
-                    break;
-                default:
+                case 1:
+                    DoPlaySoundToSet(me, SOUND_ONSLAY2);
+                    me->MonsterYell(SAY_ONSLAY2, LANG_UNIVERSAL, NULL);
                     break;
             }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
         }
 
-        DoMeleeAttackIfReady();
-    }
+        void WaypointReached(uint32 i)
+        {
+            pos = i;
+            if (i == 7 && pInstance)
+            {
+                Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_JAINAPROUDMOORE));
+                if (pTarget && pTarget->isAlive())
+                    me->AddThreat(pTarget,0.0f);
+            }
+        }
+
+        void JustDied(Unit *victim)
+        {
+            hyjal_trashAI::JustDied(victim);
+            if (pInstance && IsEvent)
+                pInstance->SetData(DATA_RAGEWINTERCHILLEVENT, DONE);
+            DoPlaySoundToSet(me, SOUND_ONDEATH);
+            me->MonsterYell(SAY_ONDEATH, LANG_UNIVERSAL, NULL);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (IsEvent)
+            {
+                //Must update npc_escortAI
+                npc_escortAI::UpdateAI(diff);
+                if (!pGo)
+                {
+                    pGo = true;
+                    if (pInstance)
+                    {
+                        AddWaypoint(0, 4896.08f,    -1576.35f,    1333.65f);
+                        AddWaypoint(1, 4898.68f,    -1615.02f,    1329.48f);
+                        AddWaypoint(2, 4907.12f,    -1667.08f,    1321.00f);
+                        AddWaypoint(3, 4963.18f,    -1699.35f,    1340.51f);
+                        AddWaypoint(4, 4989.16f,    -1716.67f,    1335.74f);
+                        AddWaypoint(5, 5026.27f,    -1736.89f,    1323.02f);
+                        AddWaypoint(6, 5037.77f,    -1770.56f,    1324.36f);
+                        AddWaypoint(7, 5067.23f,    -1789.95f,    1321.17f);
+                        Start(false, true);
+                        SetDespawnAtEnd(false);
+                    }
+                }
+            }
+
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            if (FrostArmorTimer <= diff)
+            {
+                DoCast(me, SPELL_FROST_ARMOR);
+                FrostArmorTimer = 40000+rand()%20000;
+            } else FrostArmorTimer -= diff;
+            if (DecayTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_DEATH_AND_DECAY);
+                DecayTimer = 60000+rand()%20000;
+                switch (urand(0,1))
+                {
+                    case 0:
+                        DoPlaySoundToSet(me, SOUND_DECAY1);
+                        me->MonsterYell(SAY_DECAY1, LANG_UNIVERSAL, NULL);
+                        break;
+                    case 1:
+                        DoPlaySoundToSet(me, SOUND_DECAY2);
+                        me->MonsterYell(SAY_DECAY2, LANG_UNIVERSAL, NULL);
+                        break;
+                }
+            } else DecayTimer -= diff;
+            if (NovaTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FROST_NOVA);
+                NovaTimer = 30000+rand()%15000;
+                switch (urand(0,1))
+                {
+                    case 0:
+                        DoPlaySoundToSet(me, SOUND_NOVA1);
+                        me->MonsterYell(SAY_NOVA1, LANG_UNIVERSAL, NULL);
+                        break;
+                    case 1:
+                        DoPlaySoundToSet(me, SOUND_NOVA2);
+                        me->MonsterYell(SAY_NOVA2, LANG_UNIVERSAL, NULL);
+                        break;
+                }
+            } else NovaTimer -= diff;
+            if (IceboltTimer <= diff)
+            {
+                DoCast(SelectTarget(SELECT_TARGET_RANDOM,0,40,true), SPELL_ICEBOLT);
+                IceboltTimer = 11000+rand()%20000;
+            } else IceboltTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_rage_winterchill()
 {
-    RegisterHyjalCreatureAI(boss_rage_winterchill);
+    new boss_rage_winterchill();
 }

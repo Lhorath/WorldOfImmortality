@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,269 +17,91 @@
  */
 
 #include "ChannelMgr.h"
-#include "Channel.h"
-#include "ChannelPackets.h"
-#include "DatabaseEnv.h"
-#include "DBCStores.h"
-#include "Log.h"
-#include "Player.h"
+
 #include "World.h"
-#include "WorldSession.h"
+
+ChannelMgr* channelMgr(uint32 team)
+{
+    if (sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHANNEL))
+        return ACE_Singleton<AllianceChannelMgr, ACE_Null_Mutex>::instance();        // cross-faction
+
+    if (team == ALLIANCE)
+        return ACE_Singleton<AllianceChannelMgr, ACE_Null_Mutex>::instance();
+    if (team == HORDE)
+        return ACE_Singleton<HordeChannelMgr, ACE_Null_Mutex>::instance();
+
+    return NULL;
+}
 
 ChannelMgr::~ChannelMgr()
 {
-    for (auto itr = _channels.begin(); itr != _channels.end(); ++itr)
+    for (ChannelMap::iterator itr = channels.begin(); itr != channels.end(); ++itr)
         delete itr->second;
 
-    for (auto itr = _customChannels.begin(); itr != _customChannels.end(); ++itr)
-        delete itr->second;
+    channels.clear();
 }
 
-/*static*/ void ChannelMgr::LoadFromDB()
+Channel *ChannelMgr::GetJoinChannel(std::string name, uint32 channel_id)
 {
-    if (!sWorld->getBoolConfig(CONFIG_PRESERVE_CUSTOM_CHANNELS))
+    std::wstring wname;
+    Utf8toWStr(name,wname);
+    wstrToLower(wname);
+
+    if (channels.find(wname) == channels.end())
     {
-        TC_LOG_INFO("server.loading", ">> Loaded 0 custom chat channels. Custom channel saving is disabled.");
-        return;
+        Channel *nchan = new Channel(name,channel_id, team);
+        channels[wname] = nchan;
+        return nchan;
     }
 
-    uint32 oldMSTime = getMSTime();
-    if (uint32 days = sWorld->getIntConfig(CONFIG_PRESERVE_CUSTOM_CHANNEL_DURATION))
-    {
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_OLD_CHANNELS);
-        stmt->setUInt32(0, days * DAY);
-        CharacterDatabase.Execute(stmt);
-    }
+    return channels[wname];
+}
 
-    QueryResult result = CharacterDatabase.Query("SELECT name, team, announce, ownership, password, bannedList FROM channels");
-    if (!result)
-    {
-        TC_LOG_INFO("server.loading", ">> Loaded 0 custom chat channels. DB table `channels` is empty.");
-        return;
-    }
+Channel *ChannelMgr::GetChannel(std::string name, Player *p, bool pkt)
+{
+    std::wstring wname;
+    Utf8toWStr(name,wname);
+    wstrToLower(wname);
 
-    std::vector<std::pair<std::string, uint32>> toDelete;
-    uint32 count = 0;
-    do
-    {
-        Field* fields = result->Fetch();
-        std::string dbName = fields[0].GetString();
-        uint32 team = fields[1].GetUInt32();
-        bool dbAnnounce = fields[2].GetBool();
-        bool dbOwnership = fields[3].GetBool();
-        std::string dbPass = fields[4].GetString();
-        std::string dbBanned = fields[5].GetString();
+    ChannelMap::const_iterator i = channels.find(wname);
 
-        std::wstring channelName;
-        if (!Utf8toWStr(dbName, channelName))
+    if (i == channels.end())
+    {
+        if (pkt)
         {
-            TC_LOG_ERROR("server.loading", "Failed to load custom chat channel '{}' from database - invalid utf8 sequence? Deleted.", dbName);
-            toDelete.emplace_back(std::move(dbName), team);
-            continue;
+            WorldPacket data;
+            MakeNotOnPacket(&data,name);
+            p->GetSession()->SendPacket(&data);
         }
 
-        ChannelMgr* mgr = ForTeam(team);
-        if (!mgr)
-        {
-            TC_LOG_ERROR("server.loading", "Failed to load custom chat channel '{}' from database - invalid team {}. Deleted.", dbName, team);
-            toDelete.emplace_back(std::move(dbName), team);
-            continue;
-        }
-
-        auto [itr, isNew] = mgr->_customChannels.try_emplace(std::move(channelName));
-        if (!isNew)
-        {
-            // with CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHANNEL both teams share the same manager, so channels with the same name from each team collide
-            TC_LOG_ERROR("server.loading", "Failed to load custom chat channel '{}' (team {}) from database - a channel with the same name is already loaded. Skipped.", dbName, team);
-            continue;
-        }
-
-        Channel* channel = itr->second = new Channel(dbName, team, dbBanned);
-        channel->SetAnnounce(dbAnnounce);
-        channel->SetOwnership(dbOwnership);
-        channel->SetPassword(dbPass);
-
-        ++count;
-    } while (result->NextRow());
-
-    for (auto const& [dbName, team] : toDelete)
-    {
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHANNEL);
-        stmt->setString(0, dbName);
-        stmt->setUInt32(1, team);
-        CharacterDatabase.Execute(stmt);
+        return NULL;
     }
-
-    TC_LOG_INFO("server.loading", ">> Loaded {} custom chat channels in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+    else
+        return i->second;
 }
 
-/*static*/ ChannelMgr* ChannelMgr::ForTeam(uint32 team)
+void ChannelMgr::LeftChannel(std::string name)
 {
-    static ChannelMgr allianceChannelMgr(ALLIANCE);
-    static ChannelMgr hordeChannelMgr(HORDE);
+    std::wstring wname;
+    Utf8toWStr(name,wname);
+    wstrToLower(wname);
 
-    if (sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHANNEL))
-        return &allianceChannelMgr;        // cross-faction
+    ChannelMap::const_iterator i = channels.find(wname);
 
-    if (team == ALLIANCE)
-        return &allianceChannelMgr;
-
-    if (team == HORDE)
-        return &hordeChannelMgr;
-
-    return nullptr;
-}
-
-Channel* ChannelMgr::GetChannelForPlayerByNamePart(std::string const& namePart, Player* playerSearcher)
-{
-    std::wstring channelNamePart;
-    if (!Utf8toWStr(namePart, channelNamePart))
-        return nullptr;
-
-    wstrToLower(channelNamePart);
-    for (Channel* channel : playerSearcher->GetJoinedChannels())
-    {
-        std::string chanName = channel->GetName(playerSearcher->GetSession()->GetSessionDbcLocale());
-
-        std::wstring channelNameW;
-        if (!Utf8toWStr(chanName, channelNameW))
-            continue;
-
-        wstrToLower(channelNameW);
-        if (!channelNameW.compare(0, channelNamePart.size(), channelNamePart))
-            return channel;
-    }
-
-    return nullptr;
-}
-
-void ChannelMgr::SaveToDB()
-{
-    for (auto pair : _customChannels)
-        pair.second->UpdateChannelInDB();
-}
-
-Channel* ChannelMgr::GetSystemChannel(uint32 channelId, AreaTableEntry const* zoneEntry)
-{
-    ChatChannelsEntry const* channelEntry = sChatChannelsStore.AssertEntry(channelId);
-    uint32 zoneId = zoneEntry ? zoneEntry->ID : 0;
-    if (channelEntry->Flags & (CHANNEL_DBC_FLAG_GLOBAL | CHANNEL_DBC_FLAG_CITY_ONLY))
-        zoneId = 0;
-
-    std::pair<uint32, uint32> key = std::make_pair(channelId, zoneId);
-
-    auto itr = _channels.find(key);
-    if (itr != _channels.end())
-        return itr->second;
-
-    Channel* newChannel = new Channel(channelId, _team, zoneEntry);
-    _channels[key] = newChannel;
-    return newChannel;
-}
-
-Channel* ChannelMgr::CreateCustomChannel(std::string const& name)
-{
-    std::wstring channelName;
-    if (!Utf8toWStr(name, channelName))
-        return nullptr;
-
-    wstrToLower(channelName);
-
-    Channel*& c = _customChannels[channelName];
-    if (c)
-        return nullptr;
-
-    Channel* newChannel = new Channel(name, _team);
-    newChannel->SetDirty();
-
-    c = newChannel;
-    return newChannel;
-}
-
-Channel* ChannelMgr::GetCustomChannel(std::string const& name) const
-{
-    std::wstring channelName;
-    if (!Utf8toWStr(name, channelName))
-        return nullptr;
-
-    wstrToLower(channelName);
-    auto itr = _customChannels.find(channelName);
-    if (itr != _customChannels.end())
-        return itr->second;
-
-    return nullptr;
-}
-
-Channel* ChannelMgr::GetChannel(uint32 channelId, std::string const& name, Player* player, bool pkt /*= true*/, AreaTableEntry const* zoneEntry /*= nullptr*/) const
-{
-    Channel* ret = nullptr;
-    bool send = false;
-
-    if (channelId) // builtin
-    {
-        ChatChannelsEntry const* channelEntry = sChatChannelsStore.AssertEntry(channelId);
-        uint32 zoneId = zoneEntry ? zoneEntry->ID : 0;
-        if (channelEntry->Flags & (CHANNEL_DBC_FLAG_GLOBAL | CHANNEL_DBC_FLAG_CITY_ONLY))
-            zoneId = 0;
-
-        std::pair<uint32, uint32> key = std::make_pair(channelId, zoneId);
-
-        auto itr = _channels.find(key);
-        if (itr != _channels.end())
-            ret = itr->second;
-        else
-            send = true;
-    }
-    else // custom
-    {
-        std::wstring channelName;
-        if (!Utf8toWStr(name, channelName))
-            return nullptr;
-
-        wstrToLower(channelName);
-        auto itr = _customChannels.find(channelName);
-        if (itr != _customChannels.end())
-            ret = itr->second;
-        else
-            send = true;
-    }
-
-    if (send && pkt)
-    {
-        std::string channelName = name;
-        Channel::GetChannelName(channelName, channelId, player->GetSession()->GetSessionDbcLocale(), zoneEntry);
-
-        SendNotOnChannelNotify(player, channelName);
-    }
-
-    return ret;
-}
-
-void ChannelMgr::LeftChannel(uint32 channelId, AreaTableEntry const* zoneEntry)
-{
-    ChatChannelsEntry const* channelEntry = sChatChannelsStore.AssertEntry(channelId);
-    uint32 zoneId = zoneEntry ? zoneEntry->ID : 0;
-    if (channelEntry->Flags & (CHANNEL_DBC_FLAG_GLOBAL | CHANNEL_DBC_FLAG_CITY_ONLY))
-        zoneId = 0;
-
-    std::pair<uint32, uint32> key = std::make_pair(channelId, zoneId);
-
-    auto itr = _channels.find(key);
-    if (itr == _channels.end())
+    if (i == channels.end())
         return;
 
-    Channel* channel = itr->second;
-    if (!channel->GetNumPlayers())
+    Channel* channel = i->second;
+
+    if (channel->GetNumPlayers() == 0 && !channel->IsConstant())
     {
-        _channels.erase(itr);
+        channels.erase(wname);
         delete channel;
     }
 }
 
-void ChannelMgr::SendNotOnChannelNotify(Player const* player, std::string const& name)
+void ChannelMgr::MakeNotOnPacket(WorldPacket *data, std::string name)
 {
-    WorldPackets::Channel::ChannelNotify notify;
-    notify.Type = CHAT_NOT_MEMBER_NOTICE;
-    notify._Channel = name;
-    player->SendDirectMessage(notify.Write());
+    data->Initialize(SMSG_CHANNEL_NOTIFY, (1+10));  // we guess size
+    (*data) << (uint8)0x05 << name;
 }

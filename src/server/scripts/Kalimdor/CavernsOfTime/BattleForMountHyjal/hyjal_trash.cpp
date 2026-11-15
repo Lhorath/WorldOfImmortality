@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,43 +15,16 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
+#include "ScriptPCH.h"
 #include "hyjal.h"
 #include "hyjal_trash.h"
 #include "hyjalAI.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ObjectAccessor.h"
-#include "TemporarySummon.h"
 
-enum Spells
-{
-    SPELL_METEOR            = 33814, //infernal visual
-    SPELL_IMMOLATION        = 37059,
-    SPELL_FLAME_BUFFET      = 31724,
-    MODEL_INVIS             = 11686, //invisible model
-    SPELL_DISEASE_CLOUD     = 31607,
-    SPELL_KNOCKDOWN         = 31610,
-    SPELL_FRENZY            = 31540,
-    SPELL_RAISE_DEAD_1      = 31617,
-    SPELL_RAISE_DEAD_2      = 31624,
-    SPELL_RAISE_DEAD_3      = 31625,
-    SPELL_SHADOW_BOLT       = 31627,
-    SPELL_BANSHEE_CURSE     = 31651,
-    SPELL_BANSHEE_WAIL      = 38183,
-    SPELL_ANTI_MAGIC_SHELL  = 31662,
-    SPELL_WEB               = 28991,
-    SPELL_MANA_BURN         = 31729,
-    SPELL_FROST_BREATH      = 31688,
-    SPELL_GARGOYLE_STRIKE   = 31664,
-    SPELL_EXPLODING_SHOT    = 7896,
-};
-
-enum HyjalCreatureText
-{
-    TRASH_SAY_SLAY           = 0,
-    TRASH_SAY_DEATH          = 1,
-};
+#define SPELL_METEOR 33814 //infernal visual
+#define SPELL_IMMOLATION 37059
+#define SPELL_FLAME_BUFFET 31724
+#define NPC_TRIGGER  21987 //World Trigger (Tiny)
+#define MODEL_INVIS  11686 //invisible model
 
 float HordeWPs[8][3]=//basic waypoints from spawn to leader
 {
@@ -60,7 +33,7 @@ float HordeWPs[8][3]=//basic waypoints from spawn to leader
     {5554.58f,    -2514.66f,    1476.12f},
     {5554.16f,    -2567.23f,    1479.90f},
     {5540.67f,    -2625.99f,    1480.89f},
-    {5508.16f,    -2659.20f,    1480.15f}, //random rush starts from here
+    {5508.16f,    -2659.20f,    1480.15f},//random rush starts from here
     {5489.62f,    -2704.05f,    1482.18f},
     {5457.04f,    -2726.26f,    1485.10f}
 };
@@ -70,7 +43,7 @@ float AllianceWPs[8][3]=//basic waypoints from spawn to leader
     {4898.68f,    -1615.02f,    1329.48f},
     {4907.12f,    -1667.08f,    1321.00f},
     {4963.18f,    -1699.35f,    1340.51f},
-    {4989.16f,    -1716.67f,    1335.74f}, //first WP in the base, after the gate
+    {4989.16f,    -1716.67f,    1335.74f},//first WP in the base, after the gate
     {5026.27f,    -1736.89f,    1323.02f},
     {5037.77f,    -1770.56f,    1324.36f},
     {5067.23f,    -1789.95f,    1321.17f}
@@ -99,92 +72,92 @@ float FlyPathWPs[3][3]=//waypoints for the gargoyls and frost wyrms in horde bas
 
 float AllianceOverrunWP[55][3]=//waypoints in the alliance base used in the end in the cleaning wave
 {
-    {4976.37f, -1708.02f, 1339.43f}, //0spawn
-    {4994.83f, -1725.52f, 1333.25f}, //1 start
-    {4982.92f, -1753.7f, 1330.69f}, //2 end
-    {4996.75f, -1721.47f, 1332.95f}, //3 start
-    {5015.74f, -1755.05f, 1322.49f}, //4
-    {4998.68f, -1773.44f, 1329.59f}, //5
-    {4994.83f, -1725.52f, 1333.25f}, //6 start
-    {5022.8f, -1735.46f, 1323.53f}, //7
-    {5052.15f, -1729.02f, 1320.88f}, //8
-    {5082.43f, -1726.29f, 1327.87f}, //9
-    {4994.83f, -1725.52f, 1333.25f}, //10 start
-    {5018.92f, -1751.14f, 1322.19f}, //11
-    {5040.09f, -1792.09f, 1322.1f}, //12
-    {4994.83f, -1725.52f, 1333.25f}, //13 start
-    {5023.47f, -1748.1f, 1322.51f}, //14
-    {5013.43f, -1842.39f, 1322.07f}, //15
-    {4994.83f, -1725.52f, 1333.25f}, //16 start
-    {5020.8f, -1756.86f, 1322.2f}, //17
-    {5019.53f, -1824.6f, 1321.96f}, //18
-    {5043.42f, -1853.75f, 1324.52f}, //19
-    {5053.02f, -1864.13f, 1330.36f}, //20
-    {5062.49f, -1852.47f, 1330.49f}, //21
-    {5015.27f, -1738.77f, 1324.83f}, //35//start 22
-    {5027.97f, -1775.25f, 1321.87f}, //34 23
-    {5015.94f, -1821.24f, 1321.86f}, //33 24
-    {4983.25f, -1857.4f, 1320.48f}, //32 25
-    {4981.51f, -1883.7f, 1322.34f}, //31 26
-    {5002.33f, -1893.98f, 1325.88f}, //30 27
-    {5049.32f, -1886.54f, 1331.69f}, //29 28
-    {5089.68f, -1846.88f, 1328.99f}, //28 29
-    {5127.90f, -1825.14f, 1335.58f}, //27 30
-    {5163.27f, -1789.08f, 1337.04f}, //26 31
-    {5138.97f, -1755.88f, 1334.57f}, //25 32
-    {5096.63f, -1742.22f, 1329.61f}, //24 33
-    {5065.81f, -1729.43f, 1325.66f}, //23 34
-    {5049.32f, -1726.31f, 1320.64f}, //22 start
-    {5081.07f, -1902.10f, 1346.36f}, //36 abo start
-    {5107.65f, -1912.03f, 1356.49f}, //37
-    {5132.83f, -1927.07f, 1362.42f}, //38
-    {5147.78f, -1954.41f, 1365.98f}, //39
-    {5164.96f, -1966.48f, 1367.04f}, //40
-    {5189.04f, -1961.06f, 1367.90f}, //41
-    {5212.27f, -1975.30f, 1365.58f}, //42
-    {5221.82f, -1994.18f, 1364.97f}, //43 end1
-    {5202.23f, -1994.94f, 1367.59f}, //44 end2
-    {5279.94f, -2049.68f, 1311.38f}, //45 garg1
-    {5289.15f, -2219.06f, 1291.12f}, //46 garg2
-    {5202.07f, -2136.10f, 1305.07f}, //47 garg3
-    {5071.52f, -2425.63f, 1454.48f}, //48 garg4
-    {5120.65f, -2467.92f, 1463.93f}, //49 garg5
-    {5283.04f, -2043.26f, 1300.11f}, //50 garg target1
-    {5313.22f, -2207.60f, 1290.06f}, //51 garg target2
-    {5180.41f, -2121.87f, 1292.62f}, //52 garg target3
-    {5088.68f, -2432.04f, 1441.73f}, //53 garg target4
+    {4976.37f,-1708.02f,1339.43f},//0spawn
+    {4994.83f,-1725.52f,1333.25f},//1 start
+    {4982.92f,-1753.7f,1330.69f},//2 end
+    {4996.75f,-1721.47f,1332.95f},//3 start
+    {5015.74f,-1755.05f,1322.49f},//4
+    {4998.68f,-1773.44f,1329.59f},//5
+    {4994.83f,-1725.52f,1333.25f},//6 start
+    {5022.8f,-1735.46f,1323.53f},//7
+    {5052.15f,-1729.02f,1320.88f},//8
+    {5082.43f,-1726.29f,1327.87f},//9
+    {4994.83f,-1725.52f,1333.25f},//10 start
+    {5018.92f,-1751.14f,1322.19f},//11
+    {5040.09f,-1792.09f,1322.1f},//12
+    {4994.83f,-1725.52f,1333.25f},//13 start
+    {5023.47f,-1748.1f,1322.51f},//14
+    {5013.43f,-1842.39f,1322.07f},//15
+    {4994.83f,-1725.52f,1333.25f},//16 start
+    {5020.8f,-1756.86f,1322.2f},//17
+    {5019.53f,-1824.6f,1321.96f},//18
+    {5043.42f,-1853.75f,1324.52f},//19
+    {5053.02f,-1864.13f,1330.36f},//20
+    {5062.49f,-1852.47f,1330.49f},//21
+    {5015.27f, -1738.77f, 1324.83f},//35//start 22
+    {5027.97f, -1775.25f, 1321.87f},//34 23
+    {5015.94f, -1821.24f, 1321.86f},//33 24
+    {4983.25f, -1857.4f, 1320.48f},//32 25
+    {4981.51f, -1883.7f, 1322.34f},//31 26
+    {5002.33f, -1893.98f, 1325.88f},//30 27
+    {5049.32f, -1886.54f, 1331.69f},//29 28
+    {5089.68f, -1846.88f, 1328.99f},//28 29
+    {5127.90f, -1825.14f, 1335.58f},//27 30
+    {5163.27f, -1789.08f, 1337.04f},//26 31
+    {5138.97f, -1755.88f, 1334.57f},//25 32
+    {5096.63f, -1742.22f, 1329.61f},//24 33
+    {5065.81f, -1729.43f, 1325.66f},//23 34
+    {5049.32f, -1726.31f, 1320.64f},//22 start
+    {5081.07f, -1902.10f, 1346.36f},//36 abo start
+    {5107.65f, -1912.03f, 1356.49f},//37
+    {5132.83f, -1927.07f, 1362.42f},//38
+    {5147.78f, -1954.41f, 1365.98f},//39
+    {5164.96f, -1966.48f, 1367.04f},//40
+    {5189.04f, -1961.06f, 1367.90f},//41
+    {5212.27f, -1975.30f, 1365.58f},//42
+    {5221.82f, -1994.18f, 1364.97f},//43 end1
+    {5202.23f, -1994.94f, 1367.59f},//44 end2
+    {5279.94f, -2049.68f, 1311.38f},//45 garg1
+    {5289.15f, -2219.06f, 1291.12f},//46 garg2
+    {5202.07f, -2136.10f, 1305.07f},//47 garg3
+    {5071.52f, -2425.63f, 1454.48f},//48 garg4
+    {5120.65f, -2467.92f, 1463.93f},//49 garg5
+    {5283.04f, -2043.26f, 1300.11f},//50 garg target1
+    {5313.22f, -2207.60f, 1290.06f},//51 garg target2
+    {5180.41f, -2121.87f, 1292.62f},//52 garg target3
+    {5088.68f, -2432.04f, 1441.73f},//53 garg target4
     {5111.26f, -2454.73f, 1449.63f}//54 garg target5
 
 };
 
 float HordeOverrunWP[21][3]=//waypoints in the horde base used in the end in the cleaning wave
 {
-    {5490.72f, -2702.94f, 1482.14f}, //0 start
-    {5469.77f, -2741.34f, 1486.95f},
-    {5439.47f, -2771.02f, 1494.59f},
-    {5408.85f, -2811.92f, 1505.68f},
-    {5423.87f, -2857.80f, 1515.55f},
-    {5428.19f, -2898.15f, 1524.61f},
-    {5394.59f, -2930.05f, 1528.23f},
-    {5351.11f, -2935.80f, 1532.24f},
-    {5312.37f, -2959.06f, 1536.21f},
-    {5264.93f, -2989.80f, 1545.70f},
-    {5256.63f, -3056.16f, 1559.24f},
-    {5267.32f, -3119.55f, 1575.36f},
-    {5305.61f, -3139.88f, 1586.38f},
-    {5330.56f, -3135.37f, 1588.58f},
-    {5365.87f, -3139.78f, 1583.96f},
-    {5389.39f, -3163.57f, 1582.57f}, //15 end
-    {5500.86f, -2669.89f, 1481.04f}, //16 start
-    {5472.08f, -2715.14f, 1483.55f},
-    {5450.11f, -2721.47f, 1485.61f},
-    {5433.25f, -2712.93f, 1493.02f}, //19 end 1
-    {5429.91f, -2718.44f, 1493.42f}//20 end 2
+    {5490.72f,-2702.94f,1482.14f},//0 start
+    {5469.77f,-2741.34f,1486.95f},
+    {5439.47f,-2771.02f,1494.59f},
+    {5408.85f,-2811.92f,1505.68f},
+    {5423.87f,-2857.80f,1515.55f},
+    {5428.19f,-2898.15f,1524.61f},
+    {5394.59f,-2930.05f,1528.23f},
+    {5351.11f,-2935.80f,1532.24f},
+    {5312.37f,-2959.06f,1536.21f},
+    {5264.93f,-2989.80f,1545.70f},
+    {5256.63f,-3056.16f,1559.24f},
+    {5267.32f,-3119.55f,1575.36f},
+    {5305.61f,-3139.88f,1586.38f},
+    {5330.56f,-3135.37f,1588.58f},
+    {5365.87f,-3139.78f,1583.96f},
+    {5389.39f,-3163.57f,1582.57f},//15 end
+    {5500.86f,-2669.89f,1481.04f},//16 start
+    {5472.08f,-2715.14f,1483.55f},
+    {5450.11f,-2721.47f,1485.61f},
+    {5433.25f,-2712.93f,1493.02f},//19 end 1
+    {5429.91f,-2718.44f,1493.42f}//20 end 2
 };
 
-hyjal_trashAI::hyjal_trashAI(Creature* creature) : EscortAI(creature)
+hyjal_trashAI::hyjal_trashAI(Creature *c) : npc_escortAI(c)
 {
-    instance = creature->GetInstanceScript();
+    pInstance = c->GetInstanceScript();
     IsEvent = false;
     Delay = 0;
     LastOverronPos = 0;
@@ -194,20 +167,20 @@ hyjal_trashAI::hyjal_trashAI(Creature* creature) : EscortAI(creature)
     faction = 0;
     useFlyPath = false;
     damageTaken = 0;
-    memset(DummyTarget, 0, sizeof(DummyTarget));
     Reset();
 }
 
-void hyjal_trashAI::DamageTaken(Unit* done_by, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/)
+void hyjal_trashAI::DamageTaken(Unit *done_by, uint32 &damage)
 {
-    if (!done_by || done_by->GetTypeId() == TYPEID_PLAYER || done_by->IsPet())
+    if (done_by->GetTypeId() == TYPEID_PLAYER || (done_by->GetTypeId() == TYPEID_UNIT && CAST_CRE(done_by)->isPet()))
     {
         damageTaken += damage;
-        instance->SetData(DATA_RAIDDAMAGE, damage);//store raid's damage
+        if (pInstance)
+            pInstance->SetData(DATA_RAIDDAMAGE,damage);//store raid's damage
     }
 }
 
-void hyjal_trashAI::UpdateAI(uint32 /*diff*/)
+void hyjal_trashAI::UpdateAI(const uint32 /*diff*/)
 {
     if (IsOverrun && !SetupOverrun)
     {
@@ -223,132 +196,132 @@ void hyjal_trashAI::UpdateAI(uint32 /*diff*/)
             if (me->GetEntry() == ABOMINATION)
             {
                 for (uint8 i = 0; i < 4; ++i)
-                    AddWaypoint(i, AllianceWPs[i][0]+irand(-3, 3), AllianceWPs[i][1]+irand(-3, 3), AllianceWPs[i][2]);
-                switch (OverrunType)
+                    AddWaypoint(i, AllianceWPs[i][0]+irand(-3,3), AllianceWPs[i][1]+irand(-3,3), AllianceWPs[i][2]);
+                switch(OverrunType)
                 {
                     case 0:
-                        AddWaypoint(4, AllianceOverrunWP[22][0]+irand(-3, 3), AllianceOverrunWP[22][1]+irand(-3, 3), AllianceOverrunWP[22][2], true);
-                        AddWaypoint(5, AllianceOverrunWP[23][0]+irand(-3, 3), AllianceOverrunWP[23][1]+irand(-3, 3), AllianceOverrunWP[23][2], true);
-                        AddWaypoint(6, AllianceOverrunWP[24][0]+irand(-3, 3), AllianceOverrunWP[24][1]+irand(-3, 3), AllianceOverrunWP[24][2], true);
-                        AddWaypoint(7, AllianceOverrunWP[25][0]+irand(-3, 3), AllianceOverrunWP[25][1]+irand(-3, 3), AllianceOverrunWP[25][2], true);
-                        AddWaypoint(8, AllianceOverrunWP[26][0]+irand(-3, 3), AllianceOverrunWP[26][1]+irand(-3, 3), AllianceOverrunWP[26][2], true);
-                        AddWaypoint(9, AllianceOverrunWP[27][0]+irand(-3, 3), AllianceOverrunWP[27][1]+irand(-3, 3), AllianceOverrunWP[27][2], true);
-                        AddWaypoint(10, AllianceOverrunWP[28][0]+irand(-3, 3), AllianceOverrunWP[28][1]+irand(-3, 3), AllianceOverrunWP[28][2], true);
+                        AddWaypoint(4, AllianceOverrunWP[22][0]+irand(-3,3), AllianceOverrunWP[22][1]+irand(-3,3), AllianceOverrunWP[22][2]);
+                        AddWaypoint(5, AllianceOverrunWP[23][0]+irand(-3,3), AllianceOverrunWP[23][1]+irand(-3,3), AllianceOverrunWP[23][2]);
+                        AddWaypoint(6, AllianceOverrunWP[24][0]+irand(-3,3), AllianceOverrunWP[24][1]+irand(-3,3), AllianceOverrunWP[24][2]);
+                        AddWaypoint(7, AllianceOverrunWP[25][0]+irand(-3,3), AllianceOverrunWP[25][1]+irand(-3,3), AllianceOverrunWP[25][2]);
+                        AddWaypoint(8, AllianceOverrunWP[26][0]+irand(-3,3), AllianceOverrunWP[26][1]+irand(-3,3), AllianceOverrunWP[26][2]);
+                        AddWaypoint(9, AllianceOverrunWP[27][0]+irand(-3,3), AllianceOverrunWP[27][1]+irand(-3,3), AllianceOverrunWP[27][2]);
+                        AddWaypoint(10, AllianceOverrunWP[28][0]+irand(-3,3), AllianceOverrunWP[28][1]+irand(-3,3), AllianceOverrunWP[28][2]);
 
-                        AddWaypoint(11, AllianceOverrunWP[36][0]+irand(-3, 3), AllianceOverrunWP[36][1]+irand(-3, 3), AllianceOverrunWP[36][2], true);
-                        AddWaypoint(12, AllianceOverrunWP[37][0]+irand(-3, 3), AllianceOverrunWP[37][1]+irand(-3, 3), AllianceOverrunWP[37][2], true);
-                        AddWaypoint(13, AllianceOverrunWP[38][0]+irand(-3, 3), AllianceOverrunWP[38][1]+irand(-3, 3), AllianceOverrunWP[38][2], true);
-                        AddWaypoint(14, AllianceOverrunWP[39][0]+irand(-3, 3), AllianceOverrunWP[39][1]+irand(-3, 3), AllianceOverrunWP[39][2], true);
-                        AddWaypoint(15, AllianceOverrunWP[40][0]+irand(-3, 3), AllianceOverrunWP[40][1]+irand(-3, 3), AllianceOverrunWP[40][2], true);
-                        AddWaypoint(16, AllianceOverrunWP[41][0]+irand(-3, 3), AllianceOverrunWP[41][1]+irand(-3, 3), AllianceOverrunWP[41][2], true);
-                        AddWaypoint(17, AllianceOverrunWP[42][0]+irand(-3, 3), AllianceOverrunWP[42][1]+irand(-3, 3), AllianceOverrunWP[42][2], true);
-                        AddWaypoint(18, AllianceOverrunWP[43][0]+irand(-3, 3), AllianceOverrunWP[43][1]+irand(-3, 3), AllianceOverrunWP[43][2], true);
-                        me->SetHomePosition(AllianceOverrunWP[43][0]+irand(-3, 3), AllianceOverrunWP[43][1]+irand(-3, 3), AllianceOverrunWP[43][2], 0);
+                        AddWaypoint(11, AllianceOverrunWP[36][0]+irand(-3,3), AllianceOverrunWP[36][1]+irand(-3,3), AllianceOverrunWP[36][2]);
+                        AddWaypoint(12, AllianceOverrunWP[37][0]+irand(-3,3), AllianceOverrunWP[37][1]+irand(-3,3), AllianceOverrunWP[37][2]);
+                        AddWaypoint(13, AllianceOverrunWP[38][0]+irand(-3,3), AllianceOverrunWP[38][1]+irand(-3,3), AllianceOverrunWP[38][2]);
+                        AddWaypoint(14, AllianceOverrunWP[39][0]+irand(-3,3), AllianceOverrunWP[39][1]+irand(-3,3), AllianceOverrunWP[39][2]);
+                        AddWaypoint(15, AllianceOverrunWP[40][0]+irand(-3,3), AllianceOverrunWP[40][1]+irand(-3,3), AllianceOverrunWP[40][2]);
+                        AddWaypoint(16, AllianceOverrunWP[41][0]+irand(-3,3), AllianceOverrunWP[41][1]+irand(-3,3), AllianceOverrunWP[41][2]);
+                        AddWaypoint(17, AllianceOverrunWP[42][0]+irand(-3,3), AllianceOverrunWP[42][1]+irand(-3,3), AllianceOverrunWP[42][2]);
+                        AddWaypoint(18, AllianceOverrunWP[43][0]+irand(-3,3), AllianceOverrunWP[43][1]+irand(-3,3), AllianceOverrunWP[43][2]);
+                        me->SetHomePosition(AllianceOverrunWP[43][0]+irand(-3,3), AllianceOverrunWP[43][1]+irand(-3,3), AllianceOverrunWP[43][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 18;
-                        Start(true);
+                        Start(true, true);
                         break;
                      case 1:
-                        AddWaypoint(4, AllianceOverrunWP[22][0]+irand(-3, 3), AllianceOverrunWP[22][1]+irand(-3, 3), AllianceOverrunWP[22][2], true);
-                        AddWaypoint(5, AllianceOverrunWP[23][0]+irand(-3, 3), AllianceOverrunWP[23][1]+irand(-3, 3), AllianceOverrunWP[23][2], true);
-                        AddWaypoint(6, AllianceOverrunWP[24][0]+irand(-3, 3), AllianceOverrunWP[24][1]+irand(-3, 3), AllianceOverrunWP[24][2], true);
-                        AddWaypoint(7, AllianceOverrunWP[25][0]+irand(-3, 3), AllianceOverrunWP[25][1]+irand(-3, 3), AllianceOverrunWP[25][2], true);
-                        AddWaypoint(8, AllianceOverrunWP[26][0]+irand(-3, 3), AllianceOverrunWP[26][1]+irand(-3, 3), AllianceOverrunWP[26][2], true);
-                        AddWaypoint(9, AllianceOverrunWP[27][0]+irand(-3, 3), AllianceOverrunWP[27][1]+irand(-3, 3), AllianceOverrunWP[27][2], true);
-                        AddWaypoint(10, AllianceOverrunWP[28][0]+irand(-3, 3), AllianceOverrunWP[28][1]+irand(-3, 3), AllianceOverrunWP[28][2], true);
+                        AddWaypoint(4, AllianceOverrunWP[22][0]+irand(-3,3), AllianceOverrunWP[22][1]+irand(-3,3), AllianceOverrunWP[22][2]);
+                        AddWaypoint(5, AllianceOverrunWP[23][0]+irand(-3,3), AllianceOverrunWP[23][1]+irand(-3,3), AllianceOverrunWP[23][2]);
+                        AddWaypoint(6, AllianceOverrunWP[24][0]+irand(-3,3), AllianceOverrunWP[24][1]+irand(-3,3), AllianceOverrunWP[24][2]);
+                        AddWaypoint(7, AllianceOverrunWP[25][0]+irand(-3,3), AllianceOverrunWP[25][1]+irand(-3,3), AllianceOverrunWP[25][2]);
+                        AddWaypoint(8, AllianceOverrunWP[26][0]+irand(-3,3), AllianceOverrunWP[26][1]+irand(-3,3), AllianceOverrunWP[26][2]);
+                        AddWaypoint(9, AllianceOverrunWP[27][0]+irand(-3,3), AllianceOverrunWP[27][1]+irand(-3,3), AllianceOverrunWP[27][2]);
+                        AddWaypoint(10, AllianceOverrunWP[28][0]+irand(-3,3), AllianceOverrunWP[28][1]+irand(-3,3), AllianceOverrunWP[28][2]);
 
-                        AddWaypoint(11, AllianceOverrunWP[36][0]+irand(-3, 3), AllianceOverrunWP[36][1]+irand(-3, 3), AllianceOverrunWP[36][2], true);
-                        AddWaypoint(12, AllianceOverrunWP[37][0]+irand(-3, 3), AllianceOverrunWP[37][1]+irand(-3, 3), AllianceOverrunWP[37][2], true);
-                        AddWaypoint(13, AllianceOverrunWP[38][0]+irand(-3, 3), AllianceOverrunWP[38][1]+irand(-3, 3), AllianceOverrunWP[38][2], true);
-                        AddWaypoint(14, AllianceOverrunWP[39][0]+irand(-3, 3), AllianceOverrunWP[39][1]+irand(-3, 3), AllianceOverrunWP[39][2], true);
-                        AddWaypoint(15, AllianceOverrunWP[40][0]+irand(-3, 3), AllianceOverrunWP[40][1]+irand(-3, 3), AllianceOverrunWP[40][2], true);
-                        AddWaypoint(16, AllianceOverrunWP[41][0]+irand(-3, 3), AllianceOverrunWP[41][1]+irand(-3, 3), AllianceOverrunWP[41][2], true);
-                        AddWaypoint(17, AllianceOverrunWP[42][0]+irand(-3, 3), AllianceOverrunWP[42][1]+irand(-3, 3), AllianceOverrunWP[42][2], true);
-                        AddWaypoint(18, AllianceOverrunWP[44][0]+irand(-3, 3), AllianceOverrunWP[44][1]+irand(-3, 3), AllianceOverrunWP[44][2], true);
-                        me->SetHomePosition(AllianceOverrunWP[44][0]+irand(-3, 3), AllianceOverrunWP[44][1]+irand(-3, 3), AllianceOverrunWP[44][2], 0);
+                        AddWaypoint(11, AllianceOverrunWP[36][0]+irand(-3,3), AllianceOverrunWP[36][1]+irand(-3,3), AllianceOverrunWP[36][2]);
+                        AddWaypoint(12, AllianceOverrunWP[37][0]+irand(-3,3), AllianceOverrunWP[37][1]+irand(-3,3), AllianceOverrunWP[37][2]);
+                        AddWaypoint(13, AllianceOverrunWP[38][0]+irand(-3,3), AllianceOverrunWP[38][1]+irand(-3,3), AllianceOverrunWP[38][2]);
+                        AddWaypoint(14, AllianceOverrunWP[39][0]+irand(-3,3), AllianceOverrunWP[39][1]+irand(-3,3), AllianceOverrunWP[39][2]);
+                        AddWaypoint(15, AllianceOverrunWP[40][0]+irand(-3,3), AllianceOverrunWP[40][1]+irand(-3,3), AllianceOverrunWP[40][2]);
+                        AddWaypoint(16, AllianceOverrunWP[41][0]+irand(-3,3), AllianceOverrunWP[41][1]+irand(-3,3), AllianceOverrunWP[41][2]);
+                        AddWaypoint(17, AllianceOverrunWP[42][0]+irand(-3,3), AllianceOverrunWP[42][1]+irand(-3,3), AllianceOverrunWP[42][2]);
+                        AddWaypoint(18, AllianceOverrunWP[44][0]+irand(-3,3), AllianceOverrunWP[44][1]+irand(-3,3), AllianceOverrunWP[44][2]);
+                        me->SetHomePosition(AllianceOverrunWP[44][0]+irand(-3,3), AllianceOverrunWP[44][1]+irand(-3,3), AllianceOverrunWP[44][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 18;
-                        Start(true);
+                        Start(true, true);
                         break;
                     default:
                         for (uint8 i = 22; i < 36; ++i)
-                            AddWaypoint(i-18, AllianceOverrunWP[i][0]+irand(-3, 3), AllianceOverrunWP[i][1]+irand(-3, 3), AllianceOverrunWP[i][2], true);
+                            AddWaypoint(i-18, AllianceOverrunWP[i][0]+irand(-3,3), AllianceOverrunWP[i][1]+irand(-3,3), AllianceOverrunWP[i][2]);
 
                         SetDespawnAtEnd(true);
                         LastOverronPos = 17;
-                        Start(true);
+                        Start(true, true);
                         break;
                 }
             }
             if (me->GetEntry() == GHOUL)
             {
                 for (uint8 i = 0; i < 4; ++i)
-                    AddWaypoint(i, AllianceWPs[i][0]+irand(-3, 3), AllianceWPs[i][1]+irand(-3, 3), AllianceWPs[i][2]);
-                switch (OverrunType)
+                    AddWaypoint(i, AllianceWPs[i][0]+irand(-3,3), AllianceWPs[i][1]+irand(-3,3), AllianceWPs[i][2]);
+                switch(OverrunType)
                 {
                     case 0:
-                        AddWaypoint(4, AllianceOverrunWP[1][0]+irand(-3, 3), AllianceOverrunWP[1][1]+irand(-3, 3), AllianceOverrunWP[1][2], true);
-                        AddWaypoint(5, AllianceOverrunWP[2][0]+irand(-3, 3), AllianceOverrunWP[2][1]+irand(-3, 3), AllianceOverrunWP[2][2], true);
-                        me->SetHomePosition(AllianceOverrunWP[2][0]+irand(-3, 3), AllianceOverrunWP[2][1]+irand(-3, 3), AllianceOverrunWP[2][2], 0);
+                        AddWaypoint(4, AllianceOverrunWP[1][0]+irand(-3,3), AllianceOverrunWP[1][1]+irand(-3,3), AllianceOverrunWP[1][2]);
+                        AddWaypoint(5, AllianceOverrunWP[2][0]+irand(-3,3), AllianceOverrunWP[2][1]+irand(-3,3), AllianceOverrunWP[2][2]);
+                        me->SetHomePosition(AllianceOverrunWP[2][0]+irand(-3,3), AllianceOverrunWP[2][1]+irand(-3,3), AllianceOverrunWP[2][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 5;
-                        Start(true);
+                        Start(true, true);
                         break;
                     case 1:
-                        AddWaypoint(4, AllianceOverrunWP[3][0]+irand(-3, 3), AllianceOverrunWP[3][1]+irand(-3, 3), AllianceOverrunWP[3][2], true);
-                        AddWaypoint(5, AllianceOverrunWP[4][0]+irand(-3, 3), AllianceOverrunWP[4][1]+irand(-3, 3), AllianceOverrunWP[4][2], true);
-                        AddWaypoint(6, AllianceOverrunWP[5][0]+irand(-3, 3), AllianceOverrunWP[5][1]+irand(-3, 3), AllianceOverrunWP[5][2], true);
-                        me->SetHomePosition(AllianceOverrunWP[5][0]+irand(-3, 3), AllianceOverrunWP[5][1]+irand(-3, 3), AllianceOverrunWP[5][2], 0);
+                        AddWaypoint(4, AllianceOverrunWP[3][0]+irand(-3,3), AllianceOverrunWP[3][1]+irand(-3,3), AllianceOverrunWP[3][2]);
+                        AddWaypoint(5, AllianceOverrunWP[4][0]+irand(-3,3), AllianceOverrunWP[4][1]+irand(-3,3), AllianceOverrunWP[4][2]);
+                        AddWaypoint(6, AllianceOverrunWP[5][0]+irand(-3,3), AllianceOverrunWP[5][1]+irand(-3,3), AllianceOverrunWP[5][2]);
+                        me->SetHomePosition(AllianceOverrunWP[5][0]+irand(-3,3), AllianceOverrunWP[5][1]+irand(-3,3), AllianceOverrunWP[5][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 6;
-                        Start(true);
+                        Start(true, true);
                         break;
                     case 2:
-                        AddWaypoint(4, AllianceOverrunWP[6][0]+irand(-3, 3), AllianceOverrunWP[6][1]+irand(-3, 3), AllianceOverrunWP[6][2], true);
-                        AddWaypoint(5, AllianceOverrunWP[7][0]+irand(-3, 3), AllianceOverrunWP[7][1]+irand(-3, 3), AllianceOverrunWP[7][2], true);
-                        AddWaypoint(6, AllianceOverrunWP[8][0]+irand(-3, 3), AllianceOverrunWP[8][1]+irand(-3, 3), AllianceOverrunWP[8][2], true);
-                        AddWaypoint(7, AllianceOverrunWP[9][0]+irand(-3, 3), AllianceOverrunWP[9][1]+irand(-3, 3), AllianceOverrunWP[9][2], true);
-                        me->SetHomePosition(AllianceOverrunWP[9][0]+irand(-3, 3), AllianceOverrunWP[9][1]+irand(-3, 3), AllianceOverrunWP[9][2], 0);
+                        AddWaypoint(4, AllianceOverrunWP[6][0]+irand(-3,3), AllianceOverrunWP[6][1]+irand(-3,3), AllianceOverrunWP[6][2]);
+                        AddWaypoint(5, AllianceOverrunWP[7][0]+irand(-3,3), AllianceOverrunWP[7][1]+irand(-3,3), AllianceOverrunWP[7][2]);
+                        AddWaypoint(6, AllianceOverrunWP[8][0]+irand(-3,3), AllianceOverrunWP[8][1]+irand(-3,3), AllianceOverrunWP[8][2]);
+                        AddWaypoint(7, AllianceOverrunWP[9][0]+irand(-3,3), AllianceOverrunWP[9][1]+irand(-3,3), AllianceOverrunWP[9][2]);
+                        me->SetHomePosition(AllianceOverrunWP[9][0]+irand(-3,3), AllianceOverrunWP[9][1]+irand(-3,3), AllianceOverrunWP[9][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 7;
-                        Start(true);
+                        Start(true, true);
                         break;
                     case 3:
-                        AddWaypoint(4, AllianceOverrunWP[10][0]+irand(-3, 3), AllianceOverrunWP[10][1]+irand(-3, 3), AllianceOverrunWP[10][2], true);
-                        AddWaypoint(5, AllianceOverrunWP[11][0]+irand(-3, 3), AllianceOverrunWP[11][1]+irand(-3, 3), AllianceOverrunWP[11][2], true);
-                        AddWaypoint(6, AllianceOverrunWP[12][0]+irand(-3, 3), AllianceOverrunWP[12][1]+irand(-3, 3), AllianceOverrunWP[12][2], true);
-                        me->SetHomePosition(AllianceOverrunWP[12][0]+irand(-3, 3), AllianceOverrunWP[12][1]+irand(-3, 3), AllianceOverrunWP[12][2], 0);
+                        AddWaypoint(4, AllianceOverrunWP[10][0]+irand(-3,3), AllianceOverrunWP[10][1]+irand(-3,3), AllianceOverrunWP[10][2]);
+                        AddWaypoint(5, AllianceOverrunWP[11][0]+irand(-3,3), AllianceOverrunWP[11][1]+irand(-3,3), AllianceOverrunWP[11][2]);
+                        AddWaypoint(6, AllianceOverrunWP[12][0]+irand(-3,3), AllianceOverrunWP[12][1]+irand(-3,3), AllianceOverrunWP[12][2]);
+                        me->SetHomePosition(AllianceOverrunWP[12][0]+irand(-3,3), AllianceOverrunWP[12][1]+irand(-3,3), AllianceOverrunWP[12][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 6;
-                        Start(true);
+                        Start(true, true);
                         break;
                     case 4:
-                        AddWaypoint(4, AllianceOverrunWP[13][0]+irand(-3, 3), AllianceOverrunWP[13][1]+irand(-3, 3), AllianceOverrunWP[13][2], true);
-                        AddWaypoint(5, AllianceOverrunWP[14][0]+irand(-3, 3), AllianceOverrunWP[14][1]+irand(-3, 3), AllianceOverrunWP[14][2], true);
-                        AddWaypoint(6, AllianceOverrunWP[15][0]+irand(-3, 3), AllianceOverrunWP[15][1]+irand(-3, 3), AllianceOverrunWP[15][2], true);
-                        me->SetHomePosition(AllianceOverrunWP[15][0]+irand(-3, 3), AllianceOverrunWP[15][1]+irand(-3, 3), AllianceOverrunWP[15][2], 0);
+                        AddWaypoint(4, AllianceOverrunWP[13][0]+irand(-3,3), AllianceOverrunWP[13][1]+irand(-3,3), AllianceOverrunWP[13][2]);
+                        AddWaypoint(5, AllianceOverrunWP[14][0]+irand(-3,3), AllianceOverrunWP[14][1]+irand(-3,3), AllianceOverrunWP[14][2]);
+                        AddWaypoint(6, AllianceOverrunWP[15][0]+irand(-3,3), AllianceOverrunWP[15][1]+irand(-3,3), AllianceOverrunWP[15][2]);
+                        me->SetHomePosition(AllianceOverrunWP[15][0]+irand(-3,3), AllianceOverrunWP[15][1]+irand(-3,3), AllianceOverrunWP[15][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 6;
-                        Start(true);
+                        Start(true, true);
                         break;
                     case 5:
-                        AddWaypoint(4, AllianceOverrunWP[16][0]+irand(-3, 3), AllianceOverrunWP[16][1]+irand(-3, 3), AllianceOverrunWP[16][2], true);
-                        AddWaypoint(5, AllianceOverrunWP[17][0]+irand(-3, 3), AllianceOverrunWP[17][1]+irand(-3, 3), AllianceOverrunWP[17][2], true);
-                        AddWaypoint(6, AllianceOverrunWP[18][0]+irand(-3, 3), AllianceOverrunWP[18][1]+irand(-3, 3), AllianceOverrunWP[18][2], true);
-                        AddWaypoint(7, AllianceOverrunWP[19][0]+irand(-3, 3), AllianceOverrunWP[19][1]+irand(-3, 3), AllianceOverrunWP[19][2], true);
-                        AddWaypoint(8, AllianceOverrunWP[20][0]+irand(-3, 3), AllianceOverrunWP[20][1]+irand(-3, 3), AllianceOverrunWP[20][2], true);
-                        AddWaypoint(9, AllianceOverrunWP[21][0]+irand(-3, 3), AllianceOverrunWP[21][1]+irand(-3, 3), AllianceOverrunWP[21][2], true);
-                        me->SetHomePosition(AllianceOverrunWP[21][0]+irand(-3, 3), AllianceOverrunWP[21][1]+irand(-3, 3), AllianceOverrunWP[21][2], 0);
+                        AddWaypoint(4, AllianceOverrunWP[16][0]+irand(-3,3), AllianceOverrunWP[16][1]+irand(-3,3), AllianceOverrunWP[16][2]);
+                        AddWaypoint(5, AllianceOverrunWP[17][0]+irand(-3,3), AllianceOverrunWP[17][1]+irand(-3,3), AllianceOverrunWP[17][2]);
+                        AddWaypoint(6, AllianceOverrunWP[18][0]+irand(-3,3), AllianceOverrunWP[18][1]+irand(-3,3), AllianceOverrunWP[18][2]);
+                        AddWaypoint(7, AllianceOverrunWP[19][0]+irand(-3,3), AllianceOverrunWP[19][1]+irand(-3,3), AllianceOverrunWP[19][2]);
+                        AddWaypoint(8, AllianceOverrunWP[20][0]+irand(-3,3), AllianceOverrunWP[20][1]+irand(-3,3), AllianceOverrunWP[20][2]);
+                        AddWaypoint(9, AllianceOverrunWP[21][0]+irand(-3,3), AllianceOverrunWP[21][1]+irand(-3,3), AllianceOverrunWP[21][2]);
+                        me->SetHomePosition(AllianceOverrunWP[21][0]+irand(-3,3), AllianceOverrunWP[21][1]+irand(-3,3), AllianceOverrunWP[21][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 9;
-                        Start(true);
+                        Start(true, true);
                         break;
                     default:
                         for (uint8 i = 22; i < 36; ++i)
-                            AddWaypoint(i-18, AllianceOverrunWP[i][0]+irand(-3, 3), AllianceOverrunWP[i][1]+irand(-3, 3), AllianceOverrunWP[i][2], true);
+                            AddWaypoint(i-18, AllianceOverrunWP[i][0]+irand(-3,3), AllianceOverrunWP[i][1]+irand(-3,3), AllianceOverrunWP[i][2]);
                         SetDespawnAtEnd(true);
                         LastOverronPos = 17;
-                        Start(true);
+                        Start(true, true);
                         break;
                 }
             }
@@ -358,164 +331,174 @@ void hyjal_trashAI::UpdateAI(uint32 /*diff*/)
             if (me->GetEntry() == GHOUL)
             {
                 for (uint8 i = 0; i < 6; ++i)
-                    AddWaypoint(i, HordeWPs[i][0]+irand(-3, 3), HordeWPs[i][1]+irand(-3, 3), HordeWPs[i][2]);
-                switch (OverrunType)
+                    AddWaypoint(i, HordeWPs[i][0]+irand(-3,3), HordeWPs[i][1]+irand(-3,3), HordeWPs[i][2]);
+                switch(OverrunType)
                 {
                     case 0:
-                        AddWaypoint(5, HordeOverrunWP[16][0]+irand(-10, 10), HordeOverrunWP[16][1]+irand(-10, 10), HordeOverrunWP[16][2], true);
-                        AddWaypoint(6, HordeOverrunWP[17][0]+irand(-10, 10), HordeOverrunWP[17][1]+irand(-10, 10), HordeOverrunWP[17][2], true);
-                        AddWaypoint(7, HordeOverrunWP[18][0], HordeOverrunWP[18][1], HordeOverrunWP[18][2], true);
-                        AddWaypoint(8, HordeOverrunWP[19][0], HordeOverrunWP[19][1], HordeOverrunWP[19][2], true);
-                        me->SetHomePosition(HordeOverrunWP[19][0], HordeOverrunWP[19][1], HordeOverrunWP[19][2], 0);
+                        AddWaypoint(5, HordeOverrunWP[16][0]+irand(-10,10), HordeOverrunWP[16][1]+irand(-10,10), HordeOverrunWP[16][2]);
+                        AddWaypoint(6, HordeOverrunWP[17][0]+irand(-10,10), HordeOverrunWP[17][1]+irand(-10,10), HordeOverrunWP[17][2]);
+                        AddWaypoint(7, HordeOverrunWP[18][0], HordeOverrunWP[18][1], HordeOverrunWP[18][2]);
+                        AddWaypoint(8, HordeOverrunWP[19][0], HordeOverrunWP[19][1], HordeOverrunWP[19][2]);
+                        me->SetHomePosition(HordeOverrunWP[19][0], HordeOverrunWP[19][1], HordeOverrunWP[19][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 8;
-                        Start(true);
+                        Start(true, true);
                         break;
                     case 1:
-                        AddWaypoint(5, HordeOverrunWP[16][0]+irand(-10, 10), HordeOverrunWP[16][1]+irand(-10, 10), HordeOverrunWP[16][2], true);
-                        AddWaypoint(6, HordeOverrunWP[17][0]+irand(-10, 10), HordeOverrunWP[17][1]+irand(-10, 10), HordeOverrunWP[17][2], true);
-                        AddWaypoint(7, HordeOverrunWP[18][0], HordeOverrunWP[18][1], HordeOverrunWP[18][2], true);
-                        AddWaypoint(8, HordeOverrunWP[20][0], HordeOverrunWP[20][1], HordeOverrunWP[20][2], true);
-                        me->SetHomePosition(HordeOverrunWP[20][0], HordeOverrunWP[20][1], HordeOverrunWP[20][2], 0);
+                        AddWaypoint(5, HordeOverrunWP[16][0]+irand(-10,10), HordeOverrunWP[16][1]+irand(-10,10), HordeOverrunWP[16][2]);
+                        AddWaypoint(6, HordeOverrunWP[17][0]+irand(-10,10), HordeOverrunWP[17][1]+irand(-10,10), HordeOverrunWP[17][2]);
+                        AddWaypoint(7, HordeOverrunWP[18][0], HordeOverrunWP[18][1], HordeOverrunWP[18][2]);
+                        AddWaypoint(8, HordeOverrunWP[20][0], HordeOverrunWP[20][1], HordeOverrunWP[20][2]);
+                        me->SetHomePosition(HordeOverrunWP[20][0], HordeOverrunWP[20][1], HordeOverrunWP[20][2],0);
                         SetDespawnAtEnd(false);
                         LastOverronPos = 8;
-                        Start(true);
+                        Start(true, true);
                         break;
                     default:
                         for (uint8 i = 0; i < 16; ++i)
-                            AddWaypoint(i+6, HordeOverrunWP[i][0]+irand(-10, 10), HordeOverrunWP[i][1]+irand(-10, 10), HordeOverrunWP[i][2], true);
+                            AddWaypoint(i+6, HordeOverrunWP[i][0]+irand(-10,10), HordeOverrunWP[i][1]+irand(-10,10), HordeOverrunWP[i][2]);
                         SetDespawnAtEnd(true);
                         LastOverronPos = 21;
-                        Start(true);
+                        Start(true, true);
                         break;
                 }
             }
             if (me->GetEntry() == ABOMINATION)
             {
                 for (uint8 i = 0; i < 6; ++i)
-                    AddWaypoint(i, HordeWPs[i][0]+irand(-10, 10), HordeWPs[i][1]+irand(-10, 10), HordeWPs[i][2], true);
+                    AddWaypoint(i, HordeWPs[i][0]+irand(-10,10), HordeWPs[i][1]+irand(-10,10), HordeWPs[i][2]);
                 for (uint8 i = 0; i < 16; ++i)
-                    AddWaypoint(i+6, HordeOverrunWP[i][0]+irand(-10, 10), HordeOverrunWP[i][1]+irand(-10, 10), HordeOverrunWP[i][2], true);
+                    AddWaypoint(i+6, HordeOverrunWP[i][0]+irand(-10,10), HordeOverrunWP[i][1]+irand(-10,10), HordeOverrunWP[i][2]);
                 SetDespawnAtEnd(true);
                 LastOverronPos = 21;
-                Start(true);
+                Start(true, true);
             }
         }
     }
 }
 
-void hyjal_trashAI::JustDied(Unit* /*killer*/)
+void hyjal_trashAI::JustDied(Unit * /*victim*/)
 {
+    if (!pInstance)
+        return;
     if (IsEvent && !me->isWorldBoss())
-        instance->SetData(DATA_TRASH, 0);//signal trash is dead
+        pInstance->SetData(DATA_TRASH, 0);//signal trash is dead
 
-    if (instance->GetData(DATA_RAIDDAMAGE) < MINRAIDDAMAGE && !me->isWorldBoss())
-        me->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);//no loot
+    if ((pInstance->GetData(DATA_RAIDDAMAGE) < MINRAIDDAMAGE && !me->isWorldBoss()) || (damageTaken < me->GetMaxHealth()/4 && me->isWorldBoss()))
+        me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);//no loot
 }
 
-class npc_giant_infernal : public CreatureScript
+class mob_giant_infernal : public CreatureScript
 {
 public:
-    npc_giant_infernal() : CreatureScript("npc_giant_infernal") { }
+    mob_giant_infernal() : CreatureScript("mob_giant_infernal") { }
 
-    struct npc_giant_infernalAI : public hyjal_trashAI
+    struct mob_giant_infernalAI : public hyjal_trashAI
     {
-        npc_giant_infernalAI(Creature* creature) : hyjal_trashAI(creature)
+        mob_giant_infernalAI(Creature* c) : hyjal_trashAI(c)
         {
-            instance = creature->GetInstanceScript();
+            pInstance = c->GetInstanceScript();
             meteor = false;//call once!
             CanMove = false;
-            Delay = rand32() % 30000;
-            me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-            me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+            Delay = rand()%30000;
+            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             me->SetDisplayId(MODEL_INVIS);
-            go = false;
-            Initialize();
-        }
-
-        void Initialize()
-        {
-            spawnTimer = 2000;
-            FlameBuffetTimer = 2000;
-            imol = false;
+            pGo = false;
+            pos = 0;
+            Reset();
         }
 
         bool meteor;
         bool CanMove;
-        bool go;
+        bool WpEnabled;
+        bool pGo;
+        uint32 pos;
         uint32 spawnTimer;
         uint32 FlameBuffetTimer;
         bool imol;
 
-        void Reset() override
+        void Reset()
         {
-            Initialize();
+            spawnTimer = 2000;
+            FlameBuffetTimer= 2000;
+            imol = false;
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) {}
 
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
+        void WaypointReached(uint32 i)
         {
-            if (waypointId == 0 && !IsOverrun)
+            pos = i;
+            if (i == 0 && pInstance && !IsOverrun)
             {
-                if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
+                if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
                 {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
                 }
             }
         }
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             if (Delay <= diff)
             {
                 Delay=0;
-            }
-            else
-            {
-                Delay -= diff;
+            }else{
+                Delay-=diff;
                 return;
             }
             if (!meteor)
             {
-                if (Creature* trigger = me->SummonCreature(NPC_WORLD_TRIGGER_TINY, me->GetPositionWithOffset({ 8.0f, 8.0f, frand(25.0f, 35.0f), 0.0f }), TEMPSUMMON_TIMED_DESPAWN, 1s))
+                float x,y,z;
+                me->GetPosition(x,y,z);
+                Creature* trigger = me->SummonCreature(NPC_TRIGGER,x+8,y+8,z+25+rand()%10,me->GetOrientation(),TEMPSUMMON_TIMED_DESPAWN,1000);
+                if (trigger)
                 {
-                    trigger->SetDisableGravity(true);
-                    trigger->CastSpell(me, SPELL_METEOR, true);
+                    trigger->SetVisible(false);
+                    trigger->setFaction(me->getFaction());
+                    trigger->AddUnitMovementFlag(MOVEMENTFLAG_LEVITATING);
+                    trigger->CastSpell(me,SPELL_METEOR,true);
                 }
                 me->GetMotionMaster()->Clear();
                 meteor = true;
             } else if (!CanMove){
                 if (spawnTimer <= diff)
                 {
-                    me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-                    me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     me->SetDisplayId(me->GetUInt32Value(UNIT_FIELD_NATIVEDISPLAYID));
                     CanMove = true;
-                    if (instance->GetData(DATA_ALLIANCE_RETREAT) && !instance->GetData(DATA_HORDE_RETREAT))
+                    if (pInstance)
                     {
-                        Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                        if (target && target->IsAlive())
-                            AddThreat(target, 0.0f);
-                    } else if (instance->GetData(DATA_ALLIANCE_RETREAT) && instance->GetData(DATA_HORDE_RETREAT)){
-                        //do overrun
+                        if (pInstance->GetData(DATA_ALLIANCE_RETREAT) && !pInstance->GetData(DATA_HORDE_RETREAT))
+                        {
+                            Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                            if (pTarget && pTarget->isAlive())
+                                me->AddThreat(pTarget,0.0f);
+                        } else if (pInstance->GetData(DATA_ALLIANCE_RETREAT) && pInstance->GetData(DATA_HORDE_RETREAT)){
+                            //do overrun
+                        }
                     }
                 } else spawnTimer -= diff;
             }
             if (!CanMove)return;
             hyjal_trashAI::UpdateAI(diff);
             if (IsEvent || IsOverrun)
-                EscortAI::UpdateAI(diff);
+                npc_escortAI::UpdateAI(diff);
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-                    go = true;
-                    AddWaypoint(0, HordeWPs[7][0]+irand(-3, 3), HordeWPs[7][1]+irand(-3, 3), HordeWPs[7][2], true);//HordeWPs[7] infront of thrall
-                    Start(true);
-                    SetDespawnAtEnd(false);
+                    pGo = true;
+                    if (pInstance)
+                    {
+                        AddWaypoint(0, HordeWPs[7][0]+irand(-3,3),    HordeWPs[7][1]+irand(-3,3),    HordeWPs[7][2]);//HordeWPs[7] infront of thrall
+                        Start(true, true);
+                        SetDespawnAtEnd(false);
+                    }
                 }
             }
 
@@ -524,104 +507,107 @@ public:
             if (!imol)
             {
                 DoCast(me, SPELL_IMMOLATION);
-                imol = true;
+                imol=true;
             }
             if (FlameBuffetTimer <= diff)
             {
-                DoCastVictim(SPELL_FLAME_BUFFET, true);
+                DoCast(me->getVictim(), SPELL_FLAME_BUFFET, true);
                 FlameBuffetTimer = 7000;
             } else FlameBuffetTimer -= diff;
             DoMeleeAttackIfReady();
         }
     };
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_giant_infernalAI>(creature);
+        return new mob_giant_infernalAI(pCreature);
     }
 };
 
-class npc_abomination : public CreatureScript
+#define SPELL_DISEASE_CLOUD 31607
+#define SPELL_KNOCKDOWN 31610
+
+class mob_abomination : public CreatureScript
 {
 public:
-    npc_abomination() : CreatureScript("npc_abomination") { }
+    mob_abomination() : CreatureScript("mob_abomination") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_abominationAI>(creature);
+        return new mob_abominationAI(pCreature);
     }
 
-    struct npc_abominationAI : public hyjal_trashAI
+    struct mob_abominationAI : public hyjal_trashAI
     {
-        npc_abominationAI(Creature* creature) : hyjal_trashAI(creature)
+        mob_abominationAI(Creature* c) : hyjal_trashAI(c)
         {
-            instance = creature->GetInstanceScript();
-            go = false;
-            Initialize();
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            Reset();
         }
 
-        void Initialize()
+        bool pGo;
+        uint32 KnockDownTimer;
+        uint32 pos;
+        void Reset()
         {
             KnockDownTimer = 10000;
         }
 
-        bool go;
-        uint32 KnockDownTimer;
-        void Reset() override
+        void WaypointReached(uint32 i)
         {
-            Initialize();
-        }
-
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
-        {
-            if (waypointId == 7 && !IsOverrun)
+            pos = i;
+            if (i == 7 && pInstance && !IsOverrun)
             {
-                if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
+                if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
                 {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
-                }
-                else
-                {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_JAINAPROUDMOORE));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
+                }else{
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_JAINAPROUDMOORE));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
                 }
             }
-            if (waypointId == LastOverronPos && IsOverrun)
+            if (i == LastOverronPos && IsOverrun)
             {
                 if ((faction == 0 && LastOverronPos == 17) || (faction == 1 && LastOverronPos == 21))
                 {
-                    me->DespawnOrUnsummon();
+                    me->setDeathState(DEAD);
+                    me->RemoveCorpse();
                 }
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) {}
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             hyjal_trashAI::UpdateAI(diff);
             if (IsEvent || IsOverrun)
-                EscortAI::UpdateAI(diff);
+                npc_escortAI::UpdateAI(diff);
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-                    go = true;
-                    if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                    pGo = true;
+                    if (pInstance)
                     {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, HordeWPs[i][0]+irand(-3, 3), HordeWPs[i][1]+irand(-3, 3), HordeWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
-                    }else//use alliance WPs
-                    {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, AllianceWPs[i][0]+irand(-3, 3), AllianceWPs[i][1]+irand(-3, 3), AllianceWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
+                        if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, HordeWPs[i][0]+irand(-3,3),    HordeWPs[i][1]+irand(-3,3),    HordeWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }else//use alliance WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, AllianceWPs[i][0]+irand(-3,3),    AllianceWPs[i][1]+irand(-3,3),    AllianceWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }
                     }
                 }
             }
@@ -631,8 +617,8 @@ public:
                 return;
             if (KnockDownTimer <= diff)
             {
-                DoCastVictim(SPELL_KNOCKDOWN);
-                KnockDownTimer = 15000 + rand32() % 10000;
+                DoCast(me->getVictim(), SPELL_KNOCKDOWN);
+                KnockDownTimer = 15000+rand()%10000;
             } else KnockDownTimer -= diff;
             DoMeleeAttackIfReady();
         }
@@ -640,99 +626,102 @@ public:
 
 };
 
-class npc_ghoul : public CreatureScript
+#define SPELL_FRENZY 31540
+
+class mob_ghoul : public CreatureScript
 {
 public:
-    npc_ghoul() : CreatureScript("npc_ghoul") { }
+    mob_ghoul() : CreatureScript("mob_ghoul") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_ghoulAI>(creature);
+        return new mob_ghoulAI(pCreature);
     }
 
-    struct npc_ghoulAI : public hyjal_trashAI
+    struct mob_ghoulAI : public hyjal_trashAI
     {
-        npc_ghoulAI(Creature* creature) : hyjal_trashAI(creature)
+        mob_ghoulAI(Creature* c) : hyjal_trashAI(c)
         {
-            instance = creature->GetInstanceScript();
-            go = false;
-            Initialize();
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            Reset();
         }
 
-        void Initialize()
+        bool pGo;
+        uint32 FrenzyTimer;
+        uint32 pos;
+        uint32 MoveTimer;
+        bool RandomMove;
+        void Reset()
         {
-            FrenzyTimer = 5000 + rand32() % 5000;
+            FrenzyTimer = 5000+rand()%5000;
             MoveTimer = 2000;
             RandomMove = false;
         }
 
-        bool go;
-        uint32 FrenzyTimer;
-        uint32 MoveTimer;
-        bool RandomMove;
-        void Reset() override
+        void WaypointReached(uint32 i)
         {
-            Initialize();
-        }
-
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
-        {
-            if (waypointId == 7 && !IsOverrun)
+            pos = i;
+            if (i == 7 && pInstance && !IsOverrun)
             {
-                if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
+                if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
                 {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
-                }
-                else
-                {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_JAINAPROUDMOORE));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
+                }else{
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_JAINAPROUDMOORE));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
                 }
             }
-            if (waypointId == LastOverronPos && IsOverrun)
+            if (i == LastOverronPos && IsOverrun)
             {
-                me->SetEmoteState(EMOTE_ONESHOT_ATTACK_UNARMED);
+                me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_ATTACKUNARMED);
                 if ((faction == 0 && LastOverronPos == 17) || (faction == 1 && LastOverronPos == 21))
                 {
-                    me->DespawnOrUnsummon();
+                    me->setDeathState(DEAD);
+                    me->RemoveCorpse();
                 }
+
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) {}
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             hyjal_trashAI::UpdateAI(diff);
             if (IsEvent || IsOverrun)
-                EscortAI::UpdateAI(diff);
+                npc_escortAI::UpdateAI(diff);
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-                    go = true;
-                    if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                    pGo = true;
+                    if (pInstance)
                     {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, HordeWPs[i][0]+irand(-3, 3), HordeWPs[i][1]+irand(-3, 3), HordeWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
-                    }else//use alliance WPs
-                    {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, AllianceWPs[i][0]+irand(-3, 3), AllianceWPs[i][1]+irand(-3, 3), AllianceWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
+                        if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, HordeWPs[i][0]+irand(-3,3),    HordeWPs[i][1]+irand(-3,3),    HordeWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }else//use alliance WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, AllianceWPs[i][0]+irand(-3,3),    AllianceWPs[i][1]+irand(-3,3),    AllianceWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }
                     }
                 }
             }
             if (FrenzyTimer <= diff)
             {
                 DoCast(me, SPELL_FRENZY);
-                FrenzyTimer = 15000 + rand32() % 15000;
+                FrenzyTimer = 15000+rand()%15000;
             } else FrenzyTimer -= diff;
             if (!UpdateVictim())
                 return;
@@ -743,134 +732,120 @@ public:
 
 };
 
-class npc_necromancer : public CreatureScript
+#define SPELL_RAISE_DEAD_1 31617
+#define SPELL_RAISE_DEAD_2 31624
+#define SPELL_RAISE_DEAD_3 31625
+#define SPELL_SHADOW_BOLT 31627
+
+class mob_necromancer : public CreatureScript
 {
 public:
-    npc_necromancer() : CreatureScript("npc_necromancer") { }
+    mob_necromancer() : CreatureScript("mob_necromancer") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_necromancerAI>(creature);
+        return new mob_necromancerAI(pCreature);
     }
 
-    struct npc_necromancerAI : public hyjal_trashAI
+    struct mob_necromancerAI : public hyjal_trashAI
     {
-        npc_necromancerAI(Creature* creature) : hyjal_trashAI(creature), summons(me)
+        mob_necromancerAI(Creature* c) : hyjal_trashAI(c), summons(me)
         {
-            instance = creature->GetInstanceScript();
-            go = false;
-            Initialize();
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            Reset();
         }
-
-        void Initialize()
-        {
-            ShadowBoltTimer = 1000 + rand32() % 5000;
-        }
-
         SummonList summons;
-        bool go;
+        bool pGo;
         uint32 ShadowBoltTimer;
-
-        void Reset() override
+        uint32 pos;
+        void Reset()
         {
-            Initialize();
+            ShadowBoltTimer = 1000+rand()%5000;
             summons.DespawnAll();
         }
 
-        void JustSummoned(Creature* summon) override
+        void JustSummoned(Creature* summon)
         {
-            Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 30, true);
-            if (target)
-                summon->Attack(target, false);
+            Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0,30,true);
+            if (pTarget && summon)
+                summon->Attack(pTarget,false);
             summons.Summon(summon);
         }
-
-        void SummonedCreatureDespawn(Creature* summon) override
+        void SummonedCreatureDespawn(Creature *summon) {summons.Despawn(summon);}
+        void WaypointReached(uint32 i)
         {
-            summons.Despawn(summon);
-        }
-
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
-        {
-            if (waypointId == 7 && !IsOverrun)
+            pos = i;
+            if (i == 7 && pInstance && !IsOverrun)
             {
-                if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
+                if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
                 {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
-                }
-                else
-                {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_JAINAPROUDMOORE));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
+                }else{
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_JAINAPROUDMOORE));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
                 }
             }
         }
 
-        void KilledUnit(Unit* /*victim*/) override
+        void KilledUnit(Unit* /*victim*/)
         {
-            Talk(TRASH_SAY_SLAY);
-            switch (urand(0, 2))
+            switch (urand(0,2))
             {
                 case 0:
-                    DoSpawnCreature(17902, 3, 0, 0, 0, TEMPSUMMON_TIMED_DESPAWN, 60s);
-                    DoSpawnCreature(17902, -3, 0, 0, 0, TEMPSUMMON_TIMED_DESPAWN, 60s);
+                    DoSpawnCreature(17902,3,0,0,0,TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    DoSpawnCreature(17902,-3,0,0,0,TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 1:
-                    DoSpawnCreature(17903, 3, 0, 0, 0, TEMPSUMMON_TIMED_DESPAWN, 60s);
-                    DoSpawnCreature(17903, -3, 0, 0, 0, TEMPSUMMON_TIMED_DESPAWN, 60s);
+                    DoSpawnCreature(17903,3,0,0,0,TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    DoSpawnCreature(17903,-3,0,0,0,TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 2:
-                    DoSpawnCreature(RAND(17902, 17903), 3, 0, 0, 0, TEMPSUMMON_TIMED_DESPAWN, 60s);
+                    DoSpawnCreature(RAND(17902,17903),3,0,0,0,TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) {}
 
-        void JustDied(Unit* killer) override
-        {
-            hyjal_trashAI::JustDied(killer);
-            Talk(TRASH_SAY_DEATH);
-        }
-
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             hyjal_trashAI::UpdateAI(diff);
-
             if (IsEvent || IsOverrun)
-                EscortAI::UpdateAI(diff);
-
+                npc_escortAI::UpdateAI(diff);
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-                    go = true;
-                    if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                    pGo = true;
+                    if (pInstance)
                     {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, HordeWPs[i][0]+irand(-3, 3), HordeWPs[i][1]+irand(-3, 3), HordeWPs[i][2], true);
-                        Start(true);
-                        SetDespawnAtEnd(false);
-                    }else//use alliance WPs
-                    {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, AllianceWPs[i][0]+irand(-3, 3), AllianceWPs[i][1]+irand(-3, 3), AllianceWPs[i][2], true);
-                        Start(true);
-                        SetDespawnAtEnd(false);
+                        if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, HordeWPs[i][0]+irand(-3,3),    HordeWPs[i][1]+irand(-3,3),    HordeWPs[i][2]);
+                            Start(true, true);
+                            SetDespawnAtEnd(false);
+                        }else//use alliance WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, AllianceWPs[i][0]+irand(-3,3),    AllianceWPs[i][1]+irand(-3,3),    AllianceWPs[i][2]);
+                            Start(true, true);
+                            SetDespawnAtEnd(false);
+                        }
                     }
                 }
             }
-
             if (!UpdateVictim())
                 return;
-
             if (ShadowBoltTimer <= diff)
             {
-                DoCastVictim(SPELL_SHADOW_BOLT);
-                ShadowBoltTimer = 20000 + rand32() % 10000;
+                DoCast(me->getVictim(), SPELL_SHADOW_BOLT);
+                ShadowBoltTimer = 20000+rand()%10000;
             } else ShadowBoltTimer -= diff;
 
             DoMeleeAttackIfReady();
@@ -879,96 +854,87 @@ public:
 
 };
 
-class npc_banshee : public CreatureScript
+#define SPELL_BANSHEE_CURSE 31651
+#define SPELL_BANSHEE_WAIL 38183
+#define SPELL_ANTI_MAGIC_SHELL 31662
+
+class mob_banshee : public CreatureScript
 {
 public:
-    npc_banshee() : CreatureScript("npc_banshee") { }
+    mob_banshee() : CreatureScript("mob_banshee") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_bansheeAI>(creature);
+        return new mob_bansheeAI(pCreature);
     }
 
-    struct npc_bansheeAI : public hyjal_trashAI
+    struct mob_bansheeAI : public hyjal_trashAI
     {
-        npc_bansheeAI(Creature* creature) : hyjal_trashAI(creature)
+        mob_bansheeAI(Creature* c) : hyjal_trashAI(c)
         {
-            instance = creature->GetInstanceScript();
-            go = false;
-            Initialize();
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            Reset();
         }
 
-        void Initialize()
-        {
-            CourseTimer = 20000 + rand32() % 5000;
-            WailTimer = 15000 + rand32() % 5000;
-            ShellTimer = 50000 + rand32() % 10000;
-        }
-
-        bool go;
+        bool pGo;
         uint32 CourseTimer;
         uint32 WailTimer;
         uint32 ShellTimer;
-
-        void Reset() override
+        uint32 pos;
+        void Reset()
         {
-            Initialize();
+            CourseTimer = 20000+rand()%5000;
+            WailTimer = 15000+rand()%5000;
+            ShellTimer = 50000+rand()%10000;
         }
 
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
+        void WaypointReached(uint32 i)
         {
-            if (waypointId == 7 && !IsOverrun)
+            pos = i;
+            if (i == 7 && pInstance && !IsOverrun)
             {
-                if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
+                if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
                 {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
-                }
-                else
-                {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_JAINAPROUDMOORE));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
+                }else{
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_JAINAPROUDMOORE));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
                 }
             }
         }
 
-        void KilledUnit(Unit* /*victim*/) override
-        {
-            Talk(TRASH_SAY_SLAY);
-        }
+        void EnterCombat(Unit* /*who*/) {}
 
-        void JustDied(Unit* killer) override
-        {
-            hyjal_trashAI::JustDied(killer);
-            Talk(TRASH_SAY_DEATH);
-        }
-
-        void JustEngagedWith(Unit* /*who*/) override { }
-
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             hyjal_trashAI::UpdateAI(diff);
             if (IsEvent || IsOverrun)
-                EscortAI::UpdateAI(diff);
+                npc_escortAI::UpdateAI(diff);
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-                    go = true;
-                    if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                    pGo = true;
+                    if (pInstance)
                     {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, HordeWPs[i][0]+irand(-3, 3), HordeWPs[i][1]+irand(-3, 3), HordeWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
-                    }else//use alliance WPs
-                    {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, AllianceWPs[i][0]+irand(-3, 3), AllianceWPs[i][1]+irand(-3, 3), AllianceWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
+                        if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, HordeWPs[i][0]+irand(-3,3),    HordeWPs[i][1]+irand(-3,3),    HordeWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }else//use alliance WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, AllianceWPs[i][0]+irand(-3,3),    AllianceWPs[i][1]+irand(-3,3),    AllianceWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }
                     }
                 }
             }
@@ -976,18 +942,18 @@ public:
                 return;
             if (CourseTimer <= diff)
             {
-                DoCastVictim(SPELL_BANSHEE_CURSE);
-                CourseTimer = 20000 + rand32() % 5000;
+                DoCast(me->getVictim(), SPELL_BANSHEE_CURSE);
+                CourseTimer = 20000+rand()%5000;
             } else CourseTimer -= diff;
             if (WailTimer <= diff)
             {
-                DoCastVictim(SPELL_BANSHEE_WAIL);
-                WailTimer = 15000 + rand32() % 5000;
+                DoCast(me->getVictim(), SPELL_BANSHEE_WAIL);
+                WailTimer = 15000+rand()%5000;
             } else WailTimer -= diff;
             if (ShellTimer <= diff)
             {
                 DoCast(me, SPELL_ANTI_MAGIC_SHELL);
-                ShellTimer = 50000 + rand32() % 10000;
+                ShellTimer = 50000+rand()%10000;
             } else ShellTimer -= diff;
             DoMeleeAttackIfReady();
         }
@@ -995,81 +961,82 @@ public:
 
 };
 
-class npc_crypt_fiend : public CreatureScript
+#define SPELL_WEB 28991
+
+class mob_crypt_fiend : public CreatureScript
 {
 public:
-    npc_crypt_fiend() : CreatureScript("npc_crypt_fiend") { }
+    mob_crypt_fiend() : CreatureScript("mob_crypt_fiend") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_crypt_fiendAI>(creature);
+        return new mob_crypt_fiendAI(pCreature);
     }
 
-    struct npc_crypt_fiendAI : public hyjal_trashAI
+    struct mob_crypt_fiendAI : public hyjal_trashAI
     {
-        npc_crypt_fiendAI(Creature* creature) : hyjal_trashAI(creature)
+        mob_crypt_fiendAI(Creature* c) : hyjal_trashAI(c)
         {
-            instance = creature->GetInstanceScript();
-            go = false;
-            Initialize();
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            Reset();
         }
 
-        void Initialize()
-        {
-            WebTimer = 20000 + rand32() % 5000;
-        }
-
-        bool go;
+        bool pGo;
         uint32 WebTimer;
-
-        void Reset() override
+        uint32 pos;
+        void Reset()
         {
-            Initialize();
+            WebTimer = 20000+rand()%5000;
         }
 
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
+        void WaypointReached(uint32 i)
         {
-            if (waypointId == 7 && !IsOverrun)
+            pos = i;
+            if (i == 7 && pInstance && !IsOverrun)
             {
-                if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
+                if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
                 {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
-                }
-                else
-                {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_JAINAPROUDMOORE));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
+                }else{
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_JAINAPROUDMOORE));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
                 }
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) {}
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             hyjal_trashAI::UpdateAI(diff);
             if (IsEvent || IsOverrun)
-                EscortAI::UpdateAI(diff);
+                npc_escortAI::UpdateAI(diff);
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-                    go = true;
-                    if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                    pGo = true;
+                    if (pInstance)
                     {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, HordeWPs[i][0]+irand(-3, 3), HordeWPs[i][1]+irand(-3, 3), HordeWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
-                    }else//use alliance WPs
-                    {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, AllianceWPs[i][0]+irand(-3, 3), AllianceWPs[i][1]+irand(-3, 3), AllianceWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
+                        if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, HordeWPs[i][0]+irand(-3,3),    HordeWPs[i][1]+irand(-3,3),    HordeWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }else//use alliance WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, AllianceWPs[i][0]+irand(-3,3),    AllianceWPs[i][1]+irand(-3,3),    AllianceWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }
+
                     }
                 }
             }
@@ -1077,8 +1044,8 @@ public:
                 return;
             if (WebTimer <= diff)
             {
-                DoCastVictim(SPELL_WEB);
-                WebTimer = 20000 + rand32() % 5000;
+                DoCast(me->getVictim(), SPELL_WEB);
+                WebTimer = 20000+rand()%5000;
             } else WebTimer -= diff;
             DoMeleeAttackIfReady();
         }
@@ -1086,81 +1053,82 @@ public:
 
 };
 
-class npc_fel_stalker : public CreatureScript
+#define SPELL_MANA_BURN 31729
+
+class mob_fel_stalker : public CreatureScript
 {
 public:
-    npc_fel_stalker() : CreatureScript("npc_fel_stalker") { }
+    mob_fel_stalker() : CreatureScript("mob_fel_stalker") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_fel_stalkerAI>(creature);
+        return new mob_fel_stalkerAI(pCreature);
     }
 
-    struct npc_fel_stalkerAI : public hyjal_trashAI
+    struct mob_fel_stalkerAI : public hyjal_trashAI
     {
-        npc_fel_stalkerAI(Creature* creature) : hyjal_trashAI(creature)
+        mob_fel_stalkerAI(Creature* c) : hyjal_trashAI(c)
         {
-            instance = creature->GetInstanceScript();
-            go = false;
-            Initialize();
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            Reset();
         }
 
-        void Initialize()
-        {
-            ManaBurnTimer = 9000 + rand32() % 5000;
-        }
-
-        bool go;
+        bool pGo;
         uint32 ManaBurnTimer;
-
-        void Reset() override
+        uint32 pos;
+        void Reset()
         {
-            Initialize();
+            ManaBurnTimer = 9000+rand()%5000;
         }
 
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
+        void WaypointReached(uint32 i)
         {
-            if (waypointId == 7 && !IsOverrun)
+            pos = i;
+            if (i == 7 && pInstance && !IsOverrun)
             {
-                if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
+                if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, attack thrall
                 {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
-                }
-                else
-                {
-                    Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_JAINAPROUDMOORE));
-                    if (target && target->IsAlive())
-                        AddThreat(target, 0.0f);
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
+                }else{
+                    Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_JAINAPROUDMOORE));
+                    if (pTarget && pTarget->isAlive())
+                        me->AddThreat(pTarget,0.0f);
                 }
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) {}
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             hyjal_trashAI::UpdateAI(diff);
             if (IsEvent || IsOverrun)
-                EscortAI::UpdateAI(diff);
+                npc_escortAI::UpdateAI(diff);
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-                    go = true;
-                    if (instance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                    pGo = true;
+                    if (pInstance)
                     {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, HordeWPs[i][0]+irand(-3, 3), HordeWPs[i][1]+irand(-3, 3), HordeWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
-                    }else//use alliance WPs
-                    {
-                        for (uint8 i = 0; i < 8; ++i)
-                            AddWaypoint(i, AllianceWPs[i][0]+irand(-3, 3), AllianceWPs[i][1]+irand(-3, 3), AllianceWPs[i][2], true);
-                        Start(false);
-                        SetDespawnAtEnd(false);
+                        if (pInstance->GetData(DATA_ALLIANCE_RETREAT))//2.alliance boss down, use horde WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, HordeWPs[i][0]+irand(-3,3),    HordeWPs[i][1]+irand(-3,3),    HordeWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }else//use alliance WPs
+                        {
+                            for (uint8 i = 0; i < 8; ++i)
+                                AddWaypoint(i, AllianceWPs[i][0]+irand(-3,3),    AllianceWPs[i][1]+irand(-3,3),    AllianceWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }
+
                     }
                 }
             }
@@ -1168,8 +1136,8 @@ public:
                 return;
             if (ManaBurnTimer <= diff)
             {
-                DoCastVictim(SPELL_MANA_BURN);
-                ManaBurnTimer = 9000 + rand32() % 5000;
+                DoCast(me->getVictim(), SPELL_MANA_BURN);
+                ManaBurnTimer = 9000+rand()%5000;
             } else ManaBurnTimer -= diff;
             DoMeleeAttackIfReady();
         }
@@ -1177,315 +1145,299 @@ public:
 
 };
 
-class npc_frost_wyrm : public CreatureScript
+#define SPELL_FROST_BREATH 31688
+
+class mob_frost_wyrm : public CreatureScript
 {
 public:
-    npc_frost_wyrm() : CreatureScript("npc_frost_wyrm") { }
+    mob_frost_wyrm() : CreatureScript("mob_frost_wyrm") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_frost_wyrmAI>(creature);
+        return new mob_frost_wyrmAI(pCreature);
     }
 
-    struct npc_frost_wyrmAI : public hyjal_trashAI
+    struct mob_frost_wyrmAI : public hyjal_trashAI
     {
-        npc_frost_wyrmAI(Creature* creature) : hyjal_trashAI(creature)
+        mob_frost_wyrmAI(Creature* c) : hyjal_trashAI(c)
         {
-            Initialize();
-            instance = creature->GetInstanceScript();
-            go = false;
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            Reset();
         }
 
-        void Initialize()
+        bool pGo;
+        uint32 FrostBreathTimer;
+        uint32 pos;
+        uint32 MoveTimer;
+
+        void Reset()
         {
             FrostBreathTimer = 5000;
             MoveTimer = 0;
+            me->AddUnitMovementFlag(MOVEMENTFLAG_LEVITATING);
         }
 
-        bool go;
-        uint32 FrostBreathTimer;
-        uint32 MoveTimer;
-
-        void Reset() override
+        void WaypointReached(uint32 i)
         {
-            Initialize();
-        }
-
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
-        {
-            if (waypointId == 2 && !IsOverrun)
+            pos = i;
+            if (i == 2 && pInstance && !IsOverrun)
             {
-                Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                if (target && target->IsAlive())
+                Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                if (pTarget && pTarget->isAlive())
                 {
-                    AddThreat(target, 0.0f);
-                    DoCast(target, SPELL_FROST_BREATH, true);
+                    me->AddThreat(pTarget,0.0f);
+                    DoCast(pTarget, SPELL_FROST_BREATH, true);
                 }
             }
         }
 
-        void JustDied(Unit* /*killer*/) override
+        void JustDied(Unit * /*victim*/)
         {
-            if (IsEvent)
-                instance->SetData(DATA_TRASH, 0);//signal trash is dead
+            if (pInstance && IsEvent)
+                pInstance->SetData(DATA_TRASH, 0);//signal trash is dead
 
-            float x, y, z;
-            me->GetPosition(x, y, z);
-            me->UpdateGroundPositionZ(x, y, z);
-            me->GetMotionMaster()->MovePoint(0, x, y, z);
-            me->UpdatePosition(x, y, z, 0);
+            float x,y,z;
+            me->GetPosition(x,y,z);
+            z = me->GetMap()->GetHeight(x, y, z);
+            me->GetMotionMaster()->MovePoint(0,x,y,z);
+            me->GetMap()->CreatureRelocation(me, x,y,z,0);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override { }
+        void EnterCombat(Unit* /*who*/) {}
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             hyjal_trashAI::UpdateAI(diff);
-
             if (IsEvent || IsOverrun)
             {
-                ENSURE_AI(hyjal_trashAI, me->AI())->SetActiveAttacker(false);
-                EscortAI::UpdateAI(diff);
+                CAST_AI(hyjal_trashAI, me->AI())->SetCanAttack(false);
+                npc_escortAI::UpdateAI(diff);
             }
-
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-
-                    if (!useFlyPath)
+                    pGo = true;
+                    if (pInstance)
                     {
-                        for (uint8 i = 0; i < 3; ++i)
-                            AddWaypoint(i, FrostWyrmWPs[i][0], FrostWyrmWPs[i][1], FrostWyrmWPs[i][2], true);
+                        if (!useFlyPath)
+                        {
+                            for (uint8 i = 0; i < 3; ++i)
+                                AddWaypoint(i, FrostWyrmWPs[i][0],    FrostWyrmWPs[i][1],    FrostWyrmWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }else{//fly path FlyPathWPs
+                            for (uint8 i = 0; i < 3; ++i)
+                                AddWaypoint(i, FlyPathWPs[i][0]+irand(-10,10),    FlyPathWPs[i][1]+irand(-10,10),    FlyPathWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }
                     }
-                    else
-                    {//fly path FlyPathWPs
-                        for (uint8 i = 0; i < 3; ++i)
-                            AddWaypoint(i, FlyPathWPs[i][0]+irand(-10, 10), FlyPathWPs[i][1]+irand(-10, 10), FlyPathWPs[i][2], true);
-                    }
-                    go = true;
-                    Start(false);
-                    SetDespawnAtEnd(false);
                 }
             }
-
             if (!UpdateVictim())
                 return;
-
-            if (!me->IsWithinDist(me->GetVictim(), 25))
-            {
+            if (!me->IsWithinDist(me->getVictim(), 25)){
                 if (MoveTimer <= diff)
                 {
-                    me->GetMotionMaster()->MoveChase(me->GetVictim());
+                    me->GetMotionMaster()->MoveChase(me->getVictim());
                     MoveTimer = 2000;
-                }
-                else
-                    MoveTimer -= diff;
+                } else MoveTimer-=diff;
             }
 
             if (FrostBreathTimer <= diff)
             {
-                if (!me->IsWithinDist(me->GetVictim(), 25))
+                if (!me->IsWithinDist(me->getVictim(), 25))
                 {
-                    DoCastVictim(SPELL_FROST_BREATH);
+                    DoCast(me->getVictim(), SPELL_FROST_BREATH);
                     me->StopMoving();
                     me->GetMotionMaster()->Clear();
                     FrostBreathTimer = 4000;
                 }
-            }
-            else
-                FrostBreathTimer -= diff;
+            } else FrostBreathTimer -= diff;
         }
     };
+
 };
 
-class npc_gargoyle : public CreatureScript
+#define SPELL_GARGOYLE_STRIKE 31664
+
+class mob_gargoyle : public CreatureScript
 {
 public:
-    npc_gargoyle() : CreatureScript("npc_gargoyle") { }
+    mob_gargoyle() : CreatureScript("mob_gargoyle") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<npc_gargoyleAI>(creature);
+        return new mob_gargoyleAI(pCreature);
     }
 
-    struct npc_gargoyleAI : public hyjal_trashAI
+    struct mob_gargoyleAI : public hyjal_trashAI
     {
-        npc_gargoyleAI(Creature* creature) : hyjal_trashAI(creature)
+        mob_gargoyleAI(Creature* c) : hyjal_trashAI(c)
         {
-            instance = creature->GetInstanceScript();
-            go = false;
-            for (uint8 i = 0; i < 3; ++i)
-                DummyTarget[i] = 0;
-            Initialize();
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            DummyTarget[0] = 0;DummyTarget[1] = 0;DummyTarget[2] = 0;
+            Reset();
         }
 
-        void Initialize()
-        {
-            forcemove = true;
-            Zpos = 10.0f;
-            StrikeTimer = 2000 + rand32() % 5000;
-            MoveTimer = 0;
-        }
-
-        bool go;
+        bool pGo;
         uint32 StrikeTimer;
+        uint32 pos;
         uint32 MoveTimer;
         float Zpos;
         bool forcemove;
 
-        void Reset() override
+        void Reset()
         {
-            Initialize();
+            forcemove = true;
+            Zpos = 10.0f;
+            StrikeTimer = 2000+rand()%5000;
+            MoveTimer = 0;
+            me->AddUnitMovementFlag(MOVEMENTFLAG_LEVITATING);
         }
 
-        void WaypointReached(uint32 waypointId, uint32 /*pathId*/) override
+        void WaypointReached(uint32 i)
         {
-            if (waypointId == 2 && !IsOverrun)
+            pos = i;
+            if (i == 2 && pInstance && !IsOverrun)
             {
-                Creature* target = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_THRALL));
-                if (target && target->IsAlive())
+                Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                if (pTarget && pTarget->isAlive())
                 {
-                    AddThreat(target, 0.0f);
-                    DoCast(target, SPELL_GARGOYLE_STRIKE, true);
+                    me->AddThreat(pTarget,0.0f);
+                    DoCast(pTarget, SPELL_GARGOYLE_STRIKE, true);
                 }
             }
         }
 
-        void JustDied(Unit* killer) override
+        void JustDied(Unit *victim)
         {
-            float x, y, z;
-            me->GetPosition(x, y, z);
-            me->UpdateGroundPositionZ(x, y, z);
-            me->GetMotionMaster()->MovePoint(0, x, y, z);
-            me->UpdatePosition(x, y, z, 0);
-            hyjal_trashAI::JustDied(killer);
+            float x,y,z;
+            me->GetPosition(x,y,z);
+            z = me->GetMap()->GetHeight(x, y, z);
+            me->GetMotionMaster()->MovePoint(0,x,y,z);
+            me->GetMap()->CreatureRelocation(me, x,y,z,0);
+            hyjal_trashAI::JustDied(victim);
         }
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             hyjal_trashAI::UpdateAI(diff);
-
             if (IsEvent || IsOverrun)
             {
-                ENSURE_AI(hyjal_trashAI, me->AI())->SetActiveAttacker(false);
-                EscortAI::UpdateAI(diff);
+                CAST_AI(hyjal_trashAI, me->AI())->SetCanAttack(false);
+                npc_escortAI::UpdateAI(diff);
             }
-
             if (IsEvent)
             {
-                if (!go)
+                if (!pGo)
                 {
-                    if (!useFlyPath)
+                    pGo = true;
+                    if (pInstance)
                     {
-                        for (uint8 i = 0; i < 3; ++i)
-                            AddWaypoint(i, GargoyleWPs[i][0]+irand(-10, 10), GargoyleWPs[i][1]+irand(-10, 10), GargoyleWPs[i][2], true);
-                    }else{//fly path FlyPathWPs
-                        for (uint8 i = 0; i < 3; ++i)
-                            AddWaypoint(i, FlyPathWPs[i][0]+irand(-10, 10), FlyPathWPs[i][1]+irand(-10, 10), FlyPathWPs[i][2], true);
+                        if (!useFlyPath)
+                        {
+                            for (uint8 i = 0; i < 3; ++i)
+                                AddWaypoint(i, GargoyleWPs[i][0]+irand(-10,10), GargoyleWPs[i][1]+irand(-10,10), GargoyleWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }else{//fly path FlyPathWPs
+                            for (uint8 i = 0; i < 3; ++i)
+                                AddWaypoint(i, FlyPathWPs[i][0]+irand(-10,10),    FlyPathWPs[i][1]+irand(-10,10),    FlyPathWPs[i][2]);
+                            Start(false, true);
+                            SetDespawnAtEnd(false);
+                        }
                     }
-                    go = true;
-                    Start(false);
-                    SetDespawnAtEnd(false);
                 }
             }
-
             if (IsOverrun && !UpdateVictim())
             {
                 if (faction == 0)//alliance
                 {
                     if (StrikeTimer <= diff)
                     {
-                        me->CastSpell(Position{ DummyTarget[0], DummyTarget[1], DummyTarget[2] }, SPELL_GARGOYLE_STRIKE, false);
-                        StrikeTimer = 2000 + rand32() % 1000;
+                        me->CastSpell(DummyTarget[0],DummyTarget[1],DummyTarget[2],SPELL_GARGOYLE_STRIKE,false);
+                        StrikeTimer = 2000+rand()%1000;
                     } else StrikeTimer -= diff;
                     }
             }
-
             if (!UpdateVictim())
                 return;
-
-            if (!me->IsWithinDist(me->GetVictim(), 20) || forcemove)
+            if (!me->IsWithinDist(me->getVictim(), 20) || forcemove)
             {
+                forcemove = false;
                 if (forcemove)
                 {
-                    forcemove = false;
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                        me->Attack(target, false);
+                    Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0);
+                    if (pTarget)
+                        me->Attack(pTarget,false);
                 }
                 if (MoveTimer <= diff)
                 {
-                    float x, y, z;
-                    me->EnsureVictim()->GetPosition(x, y, z);
-                    me->GetMotionMaster()->MovePoint(0, x, y, z + Zpos);
-                    Zpos -= 1.0f;
-                    if (Zpos <= 0)
-                        Zpos = 0;
+                    float x,y,z;
+                    me->getVictim()->GetPosition(x,y,z);
+                    me->GetMotionMaster()->MovePoint(0,x,y,z+Zpos);
+                    Zpos-=1.0f;
+                    if (Zpos <= 0)Zpos=0;
                     MoveTimer = 2000;
-                }
-                else
-                    MoveTimer -= diff;
+                } else MoveTimer-=diff;
             }
-
             if (StrikeTimer <= diff)
             {
-                if (me->IsWithinDist(me->GetVictim(), 20))
+                if (me->IsWithinDist(me->getVictim(), 20))
                 {
-                    DoCastVictim(SPELL_GARGOYLE_STRIKE);
+                    DoCast(me->getVictim(), SPELL_GARGOYLE_STRIKE);
                     me->StopMoving();
                     me->GetMotionMaster()->Clear();
-                    StrikeTimer = 2000 + rand32() % 1000;
-                }
-                else
-                    StrikeTimer = 0;
-            }
-            else
-                StrikeTimer -= diff;
+                    StrikeTimer = 2000+rand()%1000;
+                } else StrikeTimer=0;
+            } else StrikeTimer -= diff;
         }
     };
+
 };
+
+#define SPELL_EXPLODING_SHOT 7896
 
 class alliance_rifleman : public CreatureScript
 {
 public:
     alliance_rifleman() : CreatureScript("alliance_rifleman") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetHyjalAI<alliance_riflemanAI>(creature);
+        return new alliance_riflemanAI(pCreature);
     }
 
-    struct alliance_riflemanAI : public ScriptedAI
+    struct alliance_riflemanAI : public Scripted_NoMovementAI
     {
-        alliance_riflemanAI(Creature* creature) : ScriptedAI(creature)
+        alliance_riflemanAI(Creature *c) : Scripted_NoMovementAI(c)
         {
-            Initialize();
-            SetCombatMovement(false);
-        }
-
-        void Initialize()
-        {
-            ExplodeTimer = 5000 + rand32() % 5000;
+            Reset();
         }
 
         uint32 ExplodeTimer;
 
-        void JustDied(Unit* /*killer*/) override
+        void JustDied(Unit* /*who*/)
         {
         }
 
-        void Reset() override
+        void Reset()
         {
-            Initialize();
+            ExplodeTimer = 5000+rand()%5000;
         }
 
-        void MoveInLineOfSight(Unit* who) override
-
+        void MoveInLineOfSight(Unit *who)
         {
-            if (!who || me->GetVictim())
+            if (!who || me->getVictim())
                 return;
 
-            if (me->IsValidAttackTarget(who))
+            if (who->isTargetableForAttack() && me->IsHostileTo(who))
             {
                 //float attackRadius = me->GetAttackDistance(who);
                 if (me->IsWithinDistInMap(who, 30))
@@ -1493,26 +1445,25 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void EnterCombat(Unit * /*who*/)
         {
         }
 
-        void UpdateAI(uint32 diff) override
+        void UpdateAI(const uint32 diff)
         {
             //Check if we have a target
             if (!UpdateVictim())
                 return;
             if (ExplodeTimer <= diff)
             {
-                if (!me->IsWithinDistInMap(me->GetVictim(), 30))
+                if (!me->IsWithinDistInMap(me->getVictim(), 30))
                 {
                     EnterEvadeMode();
                     return;
                 }
-                CastSpellExtraArgs args;
-                args.AddSpellMod(SPELLVALUE_BASE_POINT0, 500 + rand32() % 700);
-                me->CastSpell(me->GetVictim(), SPELL_EXPLODING_SHOT, args);
-                ExplodeTimer = 5000 + rand32() % 5000;
+                int dmg = 500+rand()%700;
+                me->CastCustomSpell(me->getVictim(), SPELL_EXPLODING_SHOT, &dmg, 0, 0, false);
+                ExplodeTimer = 5000+rand()%5000;
             } else ExplodeTimer -= diff;
             DoMeleeAttackIfReady();
         }
@@ -1522,14 +1473,14 @@ public:
 
 void AddSC_hyjal_trash()
 {
-    new npc_giant_infernal();
-    new npc_abomination();
-    new npc_ghoul();
-    new npc_necromancer();
-    new npc_banshee();
-    new npc_crypt_fiend();
-    new npc_fel_stalker();
-    new npc_frost_wyrm();
-    new npc_gargoyle();
+    new mob_giant_infernal();
+    new mob_abomination();
+    new mob_ghoul();
+    new mob_necromancer();
+    new mob_banshee();
+    new mob_crypt_fiend();
+    new mob_fel_stalker();
+    new mob_frost_wyrm();
+    new mob_gargoyle();
     new alliance_rifleman();
 }

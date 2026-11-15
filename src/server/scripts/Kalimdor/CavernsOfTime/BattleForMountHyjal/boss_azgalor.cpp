@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,219 +15,293 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Combat timers requires to be revisited
- * The way he casts Doom is quite tricky, currently he casts it in solo, it's wrong
-   1. In case of player with pet if player is not current victim he will cast spell even if player is not in spell range
-   2. In case of solo if player is current victim he doesn't cast spell even if is attacked also by creatures
- */
-
-#include "ScriptMgr.h"
-#include "Containers.h"
+#include "ScriptPCH.h"
 #include "hyjal.h"
-#include "InstanceScript.h"
-#include "MotionMaster.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
+#include "hyjal_trash.h"
 
-enum AzgalorTexts
+#define SPELL_RAIN_OF_FIRE 31340
+#define SPELL_DOOM 31347
+#define SPELL_HOWL_OF_AZGALOR 31344
+#define SPELL_CLEAVE 31345
+#define SPELL_BERSERK 26662
+
+#define SAY_ONDEATH "Your time is almost... up"
+#define SOUND_ONDEATH 11002
+
+#define SAY_ONSLAY1 "Reesh, hokta!"
+#define SAY_ONSLAY2 "Don't fight it"
+#define SAY_ONSLAY3 "No one is going to save you"
+#define SOUND_ONSLAY1 11001
+#define SOUND_ONSLAY2 11048
+#define SOUND_ONSLAY3 11047
+
+#define SAY_DOOM1 "Just a taste... of what awaits you"
+#define SAY_DOOM2 "Suffer you despicable insect!"
+#define SOUND_DOOM1 11046
+#define SOUND_DOOM2 11000
+
+#define SAY_ONAGGRO "Abandon all hope! The legion has returned to finish what was begun so many years ago. This time there will be no escape!"
+#define SOUND_ONAGGRO 10999
+
+class boss_azgalor : public CreatureScript
 {
-    SAY_INTRO                   = 0,
-    SAY_DOOM                    = 1,
-    SAY_SLAY                    = 2,
-    SAY_DEATH                   = 3
-};
+public:
+    boss_azgalor() : CreatureScript("boss_azgalor") { }
 
-enum AzgalorSpells
-{
-    // Azgalor
-    SPELL_RAIN_OF_FIRE          = 31340,
-    SPELL_HOWL_OF_AZGALOR       = 31344,
-    SPELL_CLEAVE                = 31345,
-    SPELL_DOOM                  = 31347,
-    SPELL_BERSERK               = 26662,
-
-    // Lesser Doomguard
-    SPELL_THRASH                = 12787,
-    SPELL_CRIPPLE               = 31406,
-    SPELL_WAR_STOMP             = 31408
-};
-
-enum AzgalorEvents
-{
-    EVENT_RAIN_OF_FIRE          = 1,
-    EVENT_HOWL_OF_AZGALOR,
-    EVENT_CLEAVE,
-    EVENT_DOOM,
-    EVENT_BERSERK
-};
-
-// 17842 - Azgalor
-struct boss_azgalor : public BossAI
-{
-    boss_azgalor(Creature* creature) : BossAI(creature, DATA_AZGALOR) { }
-
-    void JustAppeared() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        Talk(SAY_INTRO);
-        me->GetMotionMaster()->MovePath(PATH_HORDE_BOSS, false);
+        return new boss_azgalorAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_azgalorAI : public hyjal_trashAI
     {
-        BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_RAIN_OF_FIRE, 20s, 25s);
-        events.ScheduleEvent(EVENT_HOWL_OF_AZGALOR, 30s, 40s);
-        events.ScheduleEvent(EVENT_CLEAVE, 5s, 10s);
-        events.ScheduleEvent(EVENT_DOOM, 45s, 60s);
-        events.ScheduleEvent(EVENT_BERSERK, 10min);
-    }
-
-    void OnSpellCast(SpellInfo const* spellInfo) override
-    {
-        if (spellInfo->Id == SPELL_DOOM)
-            Talk(SAY_DOOM);
-    }
-
-    // Do not reset SetActive, we want boss to be active all the time
-    void JustReachedHome() override { }
-
-    void KilledUnit(Unit* victim) override
-    {
-        if (victim->GetTypeId() == TYPEID_PLAYER)
-            Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        Talk(SAY_DEATH);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_azgalorAI(Creature *c) : hyjal_trashAI(c)
         {
-            switch (eventId)
-            {
-                case EVENT_RAIN_OF_FIRE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.0f, true))
-                        DoCast(target, SPELL_RAIN_OF_FIRE);
-                    events.Repeat(15s, 30s);
-                    break;
-                case EVENT_HOWL_OF_AZGALOR:
-                    DoCastSelf(SPELL_HOWL_OF_AZGALOR);
-                    events.Repeat(25s, 35s);
-                    break;
-                case EVENT_CLEAVE:
-                    DoCastVictim(SPELL_CLEAVE);
-                    events.Repeat(8s, 15s);
-                    break;
-                case EVENT_DOOM:
-                    DoCastSelf(SPELL_DOOM);
-                    events.Repeat(45s, 60s);
-                    break;
-                case EVENT_BERSERK:
-                    DoCastSelf(SPELL_BERSERK);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            pInstance = c->GetInstanceScript();
+            pGo = false;
+            pos = 0;
+            SpellEntry *TempSpell = GET_SPELL(SPELL_HOWL_OF_AZGALOR);
+            if (TempSpell)
+                TempSpell->EffectRadiusIndex[0] = 12;//100yards instead of 50000?!
         }
 
-        DoMeleeAttackIfReady();
-    }
-};
+        uint32 RainTimer;
+        uint32 DoomTimer;
+        uint32 HowlTimer;
+        uint32 CleaveTimer;
+        uint32 EnrageTimer;
+        bool enraged;
 
-// 17864 - Lesser Doomguard
-struct npc_lesser_doomguard : public ScriptedAI
-{
-    npc_lesser_doomguard(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
+        bool pGo;
+        uint32 pos;
 
-    void JustAppeared() override
-    {
-        DoZoneInCombat();
-
-        if (Creature* azgalor = _instance->GetCreature(DATA_AZGALOR))
-            azgalor->AI()->JustSummoned(me);
-    }
-
-    void Reset() override
-    {
-        _scheduler.CancelAll();
-        DoCastSelf(SPELL_THRASH);
-    }
-
-    void JustEngagedWith(Unit* /*who*/) override
-    {
-        _scheduler
-            .Schedule(4s, 10s, [this](TaskContext task)
-            {
-                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                    DoCast(target, SPELL_CRIPPLE);
-                task.Repeat(10s, 15s);
-            })
-            .Schedule(10s, 15s, [this](TaskContext task)
-            {
-                DoCastSelf(SPELL_WAR_STOMP);
-                task.Repeat(10s, 15s);
-            });
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        _scheduler.Update(diff, [this]
+        void Reset()
         {
-            DoMeleeAttackIfReady();
-        });
-    }
+            damageTaken = 0;
+            RainTimer = 20000;
+            DoomTimer = 50000;
+            HowlTimer = 30000;
+            CleaveTimer = 10000;
+            EnrageTimer = 600000;
+            enraged = false;
 
-private:
-    TaskScheduler _scheduler;
-    InstanceScript* _instance;
+            if (pInstance && IsEvent)
+                pInstance->SetData(DATA_AZGALOREVENT, NOT_STARTED);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            if (pInstance && IsEvent)
+                pInstance->SetData(DATA_AZGALOREVENT, IN_PROGRESS);
+            DoPlaySoundToSet(me, SOUND_ONAGGRO);
+            me->MonsterYell(SAY_ONAGGRO, LANG_UNIVERSAL, NULL);
+        }
+
+        void KilledUnit(Unit * /*victim*/)
+        {
+            switch (urand(0,2))
+            {
+                case 0:
+                    DoPlaySoundToSet(me, SOUND_ONSLAY1);
+                    me->MonsterYell(SAY_ONSLAY1, LANG_UNIVERSAL, NULL);
+                    break;
+                case 1:
+                    DoPlaySoundToSet(me, SOUND_ONSLAY2);
+                    me->MonsterYell(SAY_ONSLAY2, LANG_UNIVERSAL, NULL);
+                    break;
+                case 2:
+                    DoPlaySoundToSet(me, SOUND_ONSLAY3);
+                    me->MonsterYell(SAY_ONSLAY3, LANG_UNIVERSAL, NULL);
+                    break;
+            }
+        }
+
+        void WaypointReached(uint32 i)
+        {
+            pos = i;
+            if (i == 7 && pInstance)
+            {
+                Unit *pTarget = Unit::GetUnit((*me), pInstance->GetData64(DATA_THRALL));
+                if (pTarget && pTarget->isAlive())
+                    me->AddThreat(pTarget,0.0f);
+            }
+        }
+
+        void JustDied(Unit *victim)
+        {
+            hyjal_trashAI::JustDied(victim);
+            if (pInstance && IsEvent)
+                pInstance->SetData(DATA_AZGALOREVENT, DONE);
+            DoPlaySoundToSet(me, SOUND_ONDEATH);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (IsEvent)
+            {
+                //Must update npc_escortAI
+                npc_escortAI::UpdateAI(diff);
+                if (!pGo)
+                {
+                    pGo = true;
+                    if (pInstance)
+                    {
+                        AddWaypoint(0, 5492.91f,    -2404.61f,    1462.63f);
+                        AddWaypoint(1, 5531.76f,    -2460.87f,    1469.55f);
+                        AddWaypoint(2, 5554.58f,    -2514.66f,    1476.12f);
+                        AddWaypoint(3, 5554.16f,    -2567.23f,    1479.90f);
+                        AddWaypoint(4, 5540.67f,    -2625.99f,    1480.89f);
+                        AddWaypoint(5, 5508.16f,    -2659.2f,    1480.15f);
+                        AddWaypoint(6, 5489.62f,    -2704.05f,    1482.18f);
+                        AddWaypoint(7, 5457.04f,    -2726.26f,    1485.10f);
+                        Start(false, true);
+                        SetDespawnAtEnd(false);
+                    }
+                }
+            }
+
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            if (RainTimer <= diff)
+            {
+                DoCast(SelectTarget(SELECT_TARGET_RANDOM,0,30,true), SPELL_RAIN_OF_FIRE);
+                RainTimer = 20000+rand()%15000;
+            } else RainTimer -= diff;
+
+            if (DoomTimer <= diff)
+            {
+                DoCast(SelectTarget(SELECT_TARGET_RANDOM,1,100,true), SPELL_DOOM);//never on tank
+                DoomTimer = 45000+rand()%5000;
+            } else DoomTimer -= diff;
+
+            if (HowlTimer <= diff)
+            {
+                DoCast(me, SPELL_HOWL_OF_AZGALOR);
+                HowlTimer = 30000;
+            } else HowlTimer -= diff;
+
+            if (CleaveTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_CLEAVE);
+                CleaveTimer = 10000+rand()%5000;
+            } else CleaveTimer -= diff;
+
+            if (EnrageTimer < diff && !enraged)
+            {
+                me->InterruptNonMeleeSpells(false);
+                DoCast(me, SPELL_BERSERK, true);
+                enraged = true;
+                EnrageTimer = 600000;
+            } else EnrageTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
-// 31347 - Doom
-class spell_azgalor_doom : public SpellScript
+#define SPELL_THRASH 12787
+#define SPELL_CRIPPLE 31406
+#define SPELL_WARSTOMP 31408
+
+class mob_lesser_doomguard : public CreatureScript
 {
-    PrepareSpellScript(spell_azgalor_doom);
+public:
+    mob_lesser_doomguard() : CreatureScript("mob_lesser_doomguard") { }
 
-    bool Load() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetCaster()->IsUnit();
+        return new mob_lesser_doomguardAI (pCreature);
     }
 
-    void FilterTargets(std::list<WorldObject*>& targets)
+    struct mob_lesser_doomguardAI : public hyjal_trashAI
     {
-        targets.remove(GetCaster()->GetVictim());
-        Trinity::Containers::RandomResize(targets, 1);
-    }
+        mob_lesser_doomguardAI(Creature *c) : hyjal_trashAI(c)
+        {
+            pInstance = c->GetInstanceScript();
+            if (pInstance)
+                AzgalorGUID = pInstance->GetData64(DATA_AZGALOR);
+        }
 
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_azgalor_doom::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-    }
+        uint32 CrippleTimer;
+        uint32 WarstompTimer;
+        uint32 CheckTimer;
+        uint64 AzgalorGUID;
+        InstanceScript* pInstance;
+
+        void Reset()
+        {
+            CrippleTimer = 50000;
+            WarstompTimer = 10000;
+            DoCast(me, SPELL_THRASH);
+            CheckTimer = 5000;
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void KilledUnit(Unit * /*victim*/)
+        {
+        }
+
+        void WaypointReached(uint32 /*i*/)
+        {
+        }
+
+        void MoveInLineOfSight(Unit *who)
+        {
+            if (me->IsWithinDist(who, 50) && !me->isInCombat() && me->IsHostileTo(who))
+                AttackStart(who);
+        }
+
+        void JustDied(Unit * /*victim*/)
+        {
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (CheckTimer <= diff)
+            {
+                if (AzgalorGUID)
+                {
+                    Creature* boss = Unit::GetCreature((*me),AzgalorGUID);
+                    if (!boss || (boss && boss->isDead()))
+                    {
+                        me->setDeathState(JUST_DIED);
+                        me->RemoveCorpse();
+                        return;
+                    }
+                }
+                CheckTimer = 5000;
+            } else CheckTimer -= diff;
+
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            if (WarstompTimer <= diff)
+            {
+                DoCast(me, SPELL_WARSTOMP);
+                WarstompTimer = 10000+rand()%5000;
+            } else WarstompTimer -= diff;
+
+            if (CrippleTimer <= diff)
+            {
+                DoCast(SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true), SPELL_CRIPPLE);
+                CrippleTimer = 25000+rand()%5000;
+            } else CrippleTimer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_azgalor()
 {
-    RegisterHyjalCreatureAI(boss_azgalor);
-    RegisterHyjalCreatureAI(npc_lesser_doomguard);
-    RegisterSpellScript(spell_azgalor_doom);
+    new boss_azgalor();
+    new mob_lesser_doomguard();
 }

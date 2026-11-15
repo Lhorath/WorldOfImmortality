@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,72 +16,33 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef HALLS_OF_LIGHTNING_H_
-#define HALLS_OF_LIGHTNING_H_
+#ifndef DEF_HALLS_OF_LIGHTNING_H
+#define DEF_HALLS_OF_LIGHTNING_H
 
-#include "CreatureAIImpl.h"
-
-#define HoLScriptName "instance_halls_of_lightning"
-#define DataHeader    "HOL"
-
-uint32 const EncounterCount = 4;
-
-enum HOLDataTypes
+enum eTypes
 {
-    // Bosses
-    BOSS_GENERAL_BJARNGRIM  = 0,
-    BOSS_VOLKHAN            = 1,
-    BOSS_IONAR              = 2,
-    BOSS_LOKEN              = 3,
+    MAX_ENCOUNTER           = 4,
 
-    // Additional Data
-    /*General Bjarngrim*/
-    DATA_INVISIBLE_STALKER,
+    DATA_BJARNGRIM          = 1,
+    DATA_IONAR              = 2,
+    DATA_LOKEN              = 3,
+    DATA_VOLKHAN            = 4,
 
-    /*Volkhan*/
-    DATA_VOLKHAN_TEMPER_VISUAL,
-    DATA_VOLKHANS_ANVIL,
+    TYPE_BJARNGRIM          = 10,
+    TYPE_IONAR              = 11,
+    TYPE_LOKEN              = 12,
+    TYPE_VOLKHAN            = 13,
 
-    /*Loken*/
-    DATA_LOKEN_GLOBE
+    NPC_BJARNGRIM           = 28586,
+    NPC_VOLKHAN             = 28587,
+    NPC_IONAR               = 28546,
+    NPC_LOKEN               = 28923,
+
+    GO_BJARNGRIM_DOOR       = 191416,                       //_doors10
+    GO_VOLKHAN_DOOR         = 191325,                       //_doors07
+    GO_IONAR_DOOR           = 191326,                       //_doors05
+    GO_LOKEN_DOOR           = 191324,                       //_doors02
+    GO_LOKEN_THRONE         = 192654
 };
 
-enum HOLCreaturesIds
-{
-    // Bosses
-    NPC_GENERAL_BJARNGRIM       = 28586,
-    NPC_VOLKHAN                 = 28587,
-    NPC_IONAR                   = 28546,
-    NPC_LOKEN                   = 28923,
-
-    /*General Bjarngrim*/
-    NPC_INVISIBLE_STALKER       = 30298,
-
-    /*Volkhan*/
-    NPC_VOLKHANS_ANVIL          = 28823,
-    NPC_MOLTEN_GOLEM            = 28695
-};
-
-enum HOLGameObjectIds
-{
-    GO_BJARNGRIM_DOOR           = 191416,
-    GO_VOLKHAN_DOOR             = 191325,
-    GO_IONAR_DOOR               = 191326,
-    GO_LOKEN_DOOR               = 191324,
-
-    /*Volkhan*/
-    GO_VOLKHAN_TEMPER_VISUAL    = 190858,
-
-    /*Loken*/
-    GO_LOKEN_THRONE             = 192654
-};
-
-template <class AI, class T>
-inline AI* GetHallsOfLightningAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, HoLScriptName);
-}
-
-#define RegisterHallsOfLightningCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetHallsOfLightningAI)
-
-#endif // HALLS_OF_LIGHTNING_H_
+#endif

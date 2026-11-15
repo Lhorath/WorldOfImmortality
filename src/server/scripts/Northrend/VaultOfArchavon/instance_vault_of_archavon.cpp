@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,9 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "GameTime.h"
-#include "InstanceScript.h"
+#include "ScriptPCH.h"
 #include "vault_of_archavon.h"
 
 /* Vault of Archavon encounters:
@@ -27,97 +25,66 @@
 4 - Toravon the Ice Watcher event
 */
 
-ObjectData const creatureData[] =
-{
-    { NPC_ARCHAVON, DATA_ARCHAVON },
-    { NPC_EMALON,   DATA_EMALON   },
-    { NPC_KORALON,  DATA_KORALON  },
-    { NPC_TORAVON,  DATA_TORAVON  },
-    { 0,            0,            }
-};
-
-class instance_vault_of_archavon : public InstanceMapScript
+class instance_archavon : public InstanceMapScript
 {
     public:
-        instance_vault_of_archavon() : InstanceMapScript(VoAScriptName, 624) { }
+        instance_archavon() : InstanceMapScript("instance_archavon", 624) { }
 
-        struct instance_vault_of_archavon_InstanceMapScript : public InstanceScript
+        struct instance_archavon_InstanceMapScript : public InstanceScript
         {
-            instance_vault_of_archavon_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
+            instance_archavon_InstanceMapScript(Map* map) : InstanceScript(map)
             {
-                SetHeaders(DataHeader);
-                SetBossNumber(EncounterCount);
-                LoadObjectData(creatureData, nullptr);
-
-                ArchavonDeath   = 0;
-                EmalonDeath     = 0;
-                KoralonDeath    = 0;
+                SetBossNumber(MAX_ENCOUNTER);
             }
 
-            bool SetBossState(uint32 type, EncounterState state) override
+            void Initialize()
             {
-                if (!InstanceScript::SetBossState(type, state))
-                    return false;
+                EmalonGUID = 0;
+                ToravonGUID = 0;
+            }
 
-                if (state != DONE)
-                   return true;
-
-                switch (type)
+            void OnCreatureCreate(Creature* creature)
+            {
+                switch (creature->GetEntry())
                 {
-                    case DATA_ARCHAVON:
-                        ArchavonDeath = GameTime::GetGameTime();
+                    case CREATURE_EMALON:
+                        EmalonGUID = creature->GetGUID();
                         break;
+                    case CREATURE_TORAVON:
+                        ToravonGUID = creature->GetGUID();
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            uint64 GetData64(uint32 identifier)
+            {
+                switch (identifier)
+                {
                     case DATA_EMALON:
-                        EmalonDeath = GameTime::GetGameTime();
-                        break;
-                    case DATA_KORALON:
-                        KoralonDeath = GameTime::GetGameTime();
-                        break;
-                    default:
-                        return true;
-                }
-
-                // on every death of Archavon, Emalon and Koralon check our achievement
-                DoCastSpellOnPlayers(SPELL_EARTH_WIND_FIRE_ACHIEVEMENT_CHECK);
-
-                return true;
-            }
-
-            bool CheckAchievementCriteriaMeet(uint32 criteria_id, Player const* /*source*/, Unit const* /*target*/, uint32 /*miscvalue1*/) override
-            {
-                switch (criteria_id)
-                {
-                    case CRITERIA_EARTH_WIND_FIRE_10:
-                    case CRITERIA_EARTH_WIND_FIRE_25:
-                        if (ArchavonDeath && EmalonDeath && KoralonDeath)
-                        {
-                            // instance difficulty check is already done in db (achievement_criteria_data)
-                            // int() for Visual Studio, compile errors with abs(time_t)
-                            return (abs(int(ArchavonDeath-EmalonDeath)) < MINUTE && \
-                                abs(int(EmalonDeath-KoralonDeath)) < MINUTE && \
-                                abs(int(KoralonDeath-ArchavonDeath)) < MINUTE);
-                        }
-                        break;
+                        return EmalonGUID;
+                    case DATA_TORAVON:
+                        return ToravonGUID;
                     default:
                         break;
                 }
 
-                return false;
+                return 0;
             }
 
         private:
-            time_t ArchavonDeath;
-            time_t EmalonDeath;
-            time_t KoralonDeath;
+            uint64 EmalonGUID;
+            uint64 ToravonGUID;
         };
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
+        InstanceScript* GetInstanceScript(InstanceMap* map) const
         {
-            return new instance_vault_of_archavon_InstanceMapScript(map);
+            return new instance_archavon_InstanceMapScript(map);
         }
 };
 
-void AddSC_instance_vault_of_archavon()
+void AddSC_instance_archavon()
 {
-    new instance_vault_of_archavon();
+    new instance_archavon();
 }

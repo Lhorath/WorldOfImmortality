@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,55 +16,14 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SHADOW_LABYRINTH_H_
-#define SHADOW_LABYRINTH_H_
+#ifndef DEF_SHADOW_LABYRINTH_H
+#define DEF_SHADOW_LABYRINTH_H
 
-#include "CreatureAIImpl.h"
-#include "ObjectGuid.h"
+#define TYPE_HELLMAW 1
+#define TYPE_OVERSEER 2
+#define DATA_BLACKHEARTTHEINCITEREVENT 3
+#define DATA_GRANDMASTERVORPILEVENT 4
+#define DATA_MURMUREVENT 5
+#define DATA_GRANDMASTERVORPIL 6
+#endif
 
-#define SLScriptName "instance_shadow_labyrinth"
-#define DataHeader "SL"
-
-uint32 const EncounterCount = 4;
-
-enum SLDataTypes
-{
-    // Encounter States/Boss GUIDs
-    DATA_AMBASSADOR_HELLMAW             = 0,
-    DATA_BLACKHEART_THE_INCITER         = 1,
-    DATA_GRANDMASTER_VORPIL             = 2,
-    DATA_MURMUR                         = 3,
-
-    // Additional Data
-    DATA_FEL_OVERSEER                   = 4
-};
-
-enum SLCreatureIds
-{
-    NPC_AMBASSADOR_HELLMAW              = 18731,
-    NPC_BLACKHEART                      = 18667,
-    NPC_GRANDMASTER_VORPIL              = 18732,
-    NPC_FEL_OVERSEER                    = 18796
-};
-
-enum SLGameObjectIds
-{
-    GO_REFECTORY_DOOR                   = 183296, // door opened when blackheart the inciter dies
-    GO_SCREAMING_HALL_DOOR              = 183295  // door opened when grandmaster vorpil dies
-};
-
-enum SLMisc
-{
-    ACTION_AMBASSADOR_HELLMAW_INTRO     = 1,
-    ACTION_AMBASSADOR_HELLMAW_BANISH    = 2,
-};
-
-template <class AI, class T>
-inline AI* GetShadowLabyrinthAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, SLScriptName);
-}
-
-#define RegisterShadowLabyrinthCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetShadowLabyrinthAI)
-
-#endif // SHADOW_LABYRINTH_H_

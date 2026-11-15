@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,31 +19,48 @@
 #ifndef TRINITY_WAYPOINTMANAGER_H
 #define TRINITY_WAYPOINTMANAGER_H
 
-#include "Define.h"
-#include "WaypointDefines.h"
+#include <ace/Singleton.h>
+#include <ace/Null_Mutex.h>
 #include <vector>
-#include <unordered_map>
 
-class TC_GAME_API WaypointMgr
+struct WaypointData
 {
-    public:
-        static WaypointMgr* instance();
-
-        // Attempts to reload a single path from database
-        void ReloadPath(uint32 id);
-
-        // Loads all paths from database, should only run on startup
-        void Load();
-
-        // Returns the path from a given id
-        WaypointPath const* GetPath(uint32 id) const;
-
-    private:
-        WaypointMgr() { }
-
-        std::unordered_map<uint32, WaypointPath> _waypointStore;
+    uint32 id;
+    float x,y,z;
+    bool run;
+    uint32 delay;
+    uint32 event_id;
+    uint8 event_chance;
 };
 
-#define sWaypointMgr WaypointMgr::instance()
+typedef std::vector<WaypointData*> WaypointPath;
+
+class WaypointStore
+{
+    private :
+        uint32  records;
+        UNORDERED_MAP<uint32, WaypointPath*> waypoint_map;
+
+    public:
+        // Null Mutex is OK because WaypointMgr is initialized in the World thread before World is initialized
+        static WaypointStore* instance() { return ACE_Singleton<WaypointStore, ACE_Null_Mutex>::instance(); }
+
+        ~WaypointStore() { Free(); }
+        void UpdatePath(uint32 id);
+        void Load();
+        void Free();
+
+        WaypointPath* GetPath(uint32 id)
+        {
+            if (waypoint_map.find(id) != waypoint_map.end())
+                return waypoint_map[id];
+            else return 0;
+        }
+
+        inline uint32 GetRecordsCount() const { return records; }
+};
+
+#define sWaypointMgr WaypointStore::instance()
 
 #endif
+

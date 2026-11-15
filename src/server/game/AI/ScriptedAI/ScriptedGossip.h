@@ -1,23 +1,14 @@
-/*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+/* Copyright (C) 2008-2010 Trinity <http://www.trinitycore.org/>
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
+ * Thanks to the original authors: ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+ * This program is free software licensed under GPL version 2
+ * Please see the included DOCS/LICENSE.TXT for more information */
 
-#ifndef TRINITY_SCRIPTEDGOSSIP_H
-#define TRINITY_SCRIPTEDGOSSIP_H
+#ifndef SC_GOSSIP_H
+#define SC_GOSSIP_H
 
+#include "Player.h"
 #include "GossipDef.h"
 #include "QuestDef.h"
 
@@ -25,9 +16,66 @@
 #define GOSSIP_TEXT_BROWSE_GOODS        "I'd like to browse your goods."
 #define GOSSIP_TEXT_TRAIN               "Train me!"
 
+#define GOSSIP_TEXT_BANK                "The bank"
+#define GOSSIP_TEXT_IRONFORGE_BANK      "The bank of Ironforge"
+#define GOSSIP_TEXT_STORMWIND_BANK      "The bank of Stormwind"
+#define GOSSIP_TEXT_WINDRIDER           "The wind rider master"
+#define GOSSIP_TEXT_GRYPHON             "The gryphon master"
+#define GOSSIP_TEXT_BATHANDLER          "The bat handler"
+#define GOSSIP_TEXT_HIPPOGRYPH          "The hippogryph master"
+#define GOSSIP_TEXT_ZEPPLINMASTER       "The zeppelin master"
+#define GOSSIP_TEXT_DEEPRUNTRAM         "The Deeprun Tram"
+#define GOSSIP_TEXT_FERRY               "The Rut'theran Ferry"
+#define GOSSIP_TEXT_FLIGHTMASTER        "The flight master"
+#define GOSSIP_TEXT_AUCTIONHOUSE        "The auction house"
+#define GOSSIP_TEXT_GUILDMASTER         "The guild master"
+#define GOSSIP_TEXT_INN                 "The inn"
+#define GOSSIP_TEXT_MAILBOX             "The mailbox"
+#define GOSSIP_TEXT_STABLEMASTER        "The stable master"
+#define GOSSIP_TEXT_WEAPONMASTER        "The weapon master"
+#define GOSSIP_TEXT_OFFICERS            "The officers' lounge"
+#define GOSSIP_TEXT_BATTLEMASTER        "The battlemaster"
+#define GOSSIP_TEXT_BARBER              "Barber"
+#define GOSSIP_TEXT_CLASSTRAINER        "A class trainer"
+#define GOSSIP_TEXT_PROFTRAINER         "A profession trainer"
+#define GOSSIP_TEXT_LEXICON             "Lexicon of Power"
+
+#define GOSSIP_TEXT_ALTERACVALLEY       "Alterac Valley"
+#define GOSSIP_TEXT_ARATHIBASIN         "Arathi Basin"
+#define GOSSIP_TEXT_WARSONGULCH         "Warsong Gulch"
+#define GOSSIP_TEXT_ARENA               "Arena"
+#define GOSSIP_TEXT_EYEOFTHESTORM       "Eye of The Storm"
+#define GOSSIP_TEXT_STRANDOFANCIENT     "Strand of the Ancients"
+
+#define GOSSIP_TEXT_DEATH_KNIGHT        "Death Knight"
+#define GOSSIP_TEXT_DRUID               "Druid"
+#define GOSSIP_TEXT_HUNTER              "Hunter"
+#define GOSSIP_TEXT_PRIEST              "Priest"
+#define GOSSIP_TEXT_ROGUE               "Rogue"
+#define GOSSIP_TEXT_WARRIOR             "Warrior"
+#define GOSSIP_TEXT_PALADIN             "Paladin"
+#define GOSSIP_TEXT_SHAMAN              "Shaman"
+#define GOSSIP_TEXT_MAGE                "Mage"
+#define GOSSIP_TEXT_WARLOCK             "Warlock"
+
+#define GOSSIP_TEXT_ALCHEMY             "Alchemy"
+#define GOSSIP_TEXT_BLACKSMITHING       "Blacksmithing"
+#define GOSSIP_TEXT_COOKING             "Cooking"
+#define GOSSIP_TEXT_ENCHANTING          "Enchanting"
+#define GOSSIP_TEXT_ENGINEERING         "Engineering"
+#define GOSSIP_TEXT_FIRSTAID            "First Aid"
+#define GOSSIP_TEXT_HERBALISM           "Herbalism"
+#define GOSSIP_TEXT_INSCRIPTION         "Inscription"
+#define GOSSIP_TEXT_JEWELCRAFTING       "Jewelcrafting"
+#define GOSSIP_TEXT_LEATHERWORKING      "Leatherworking"
+#define GOSSIP_TEXT_TAILORING           "Tailoring"
+#define GOSSIP_TEXT_MINING              "Mining"
+#define GOSSIP_TEXT_FISHING             "Fishing"
+#define GOSSIP_TEXT_SKINNING            "Skinning"
+
 enum eTradeskill
 {
-    // Skill defines
+// Skill defines
     TRADESKILL_ALCHEMY                  = 1,
     TRADESKILL_BLACKSMITHING            = 2,
     TRADESKILL_COOKING                  = 3,
@@ -52,7 +100,7 @@ enum eTradeskill
     TRADESKILL_LEVEL_MASTER             = 5,
     TRADESKILL_LEVEL_GRAND_MASTER       = 6,
 
-    // Gossip defines
+// Gossip defines
     GOSSIP_ACTION_TRADE                 = 1,
     GOSSIP_ACTION_TRAIN                 = 2,
     GOSSIP_ACTION_TAXI                  = 3,
@@ -79,20 +127,61 @@ enum eTradeskill
     GOSSIP_SENDER_SEC_STABLEMASTER      = 10
 };
 
-class Creature;
+extern uint32 GetSkillLevel(Player *player,uint32 skill);
 
-uint32 TC_GAME_API GetGossipSenderFor(Player* player, uint32 menuId);
-uint32 TC_GAME_API GetGossipActionFor(Player* player, uint32 gossipListId);
-void TC_GAME_API InitGossipMenuFor(Player* player, uint32 menuId);
-void TC_GAME_API ClearGossipMenuFor(Player* player);
-// Using provided text, not from DB
-void TC_GAME_API AddGossipItemFor(Player* player, GossipOptionIcon icon, std::string const& text, uint32 sender, uint32 action);
-// Using provided texts, not from DB
-void TC_GAME_API AddGossipItemFor(Player* player, GossipOptionIcon icon, std::string const& text, uint32 sender, uint32 action, std::string const& popupText, uint32 popupMoney, bool coded);
-// Uses gossip item info from DB
-void TC_GAME_API AddGossipItemFor(Player* player, uint32 gossipMenuID, uint32 gossipMenuItemID, uint32 sender, uint32 action);
-void TC_GAME_API SendGossipMenuFor(Player* player, uint32 npcTextID, ObjectGuid const& guid);
-void TC_GAME_API SendGossipMenuFor(Player* player, uint32 npcTextID, Creature const* creature);
-void TC_GAME_API CloseGossipMenuFor(Player* player);
+// Defined fuctions to use with player.
 
+// This fuction add's a menu item,
+// a - Icon Id
+// b - Text
+// c - Sender(this is to identify the current Menu with this item)
+// d - Action (identifys this Menu Item)
+// e - Text to be displayed in pop up box
+// f - Money value in pop up box
+#define ADD_GOSSIP_ITEM(a,b,c,d)   PlayerTalkClass->GetGossipMenu().AddMenuItem(a,b,c,d,"",0)
+#define ADD_GOSSIP_ITEM_EXTENDED(a,b,c,d,e,f,g)   PlayerTalkClass->GetGossipMenu().AddMenuItem(a,b,c,d,e,f,g)
+
+// This fuction Sends the current menu to show to client, a - NPCTEXTID(uint32) , b - npc guid(uint64)
+#define SEND_GOSSIP_MENU(a,b)      PlayerTalkClass->SendGossipMenu(a,b)
+
+// This fuction shows POI(point of interest) to client.
+// a - position X
+// b - position Y
+// c - Icon Id
+// d - Flags
+// e - Data
+// f - Location Name
+#define SEND_POI(a,b,c,d,e,f)      PlayerTalkClass->SendPointOfInterest(a,b,c,d,e,f)
+
+// Closes the Menu
+#define CLOSE_GOSSIP_MENU()        PlayerTalkClass->CloseGossip()
+
+// Fuction to tell to client the details
+// a - quest object
+// b - npc guid(uint64)
+// c - Activate accept(bool)
+#define SEND_QUEST_DETAILS(a,b,c)  PlayerTalkClass->SendQuestDetails(a,b,c)
+
+// Fuction to tell to client the requested items to complete quest
+// a - quest object
+// b - npc guid(uint64)
+// c - Iscompletable(bool)
+// d - close at cancel(bool) - in case single incomplite ques
+#define SEND_REQUESTEDITEMS(a,b,c,d) PlayerTalkClass->SendRequestedItems(a,b,c,d)
+
+// Fuctions to send NPC lists, a - is always the npc guid(uint64)
+#define SEND_VENDORLIST(a)         GetSession()->SendListInventory(a)
+#define SEND_TRAINERLIST(a)        GetSession()->SendTrainerList(a)
+
+// Ressurect's the player if is dead.
+#define SEND_SPRESURRECT()         GetSession()->SendSpiritResurrect()
+
+// Get the player's honor rank.
+#define GET_HONORRANK()            GetHonorRank()
+// -----------------------------------
+
+// defined fuctions to use with Creature
+
+#define QUEST_DIALOG_STATUS(a,b,c)   GetSession()->getDialogStatus(a,b,c)
 #endif
+

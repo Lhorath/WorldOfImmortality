@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,84 +15,149 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 #include "violet_hold.h"
 
-enum LavanthorSpells
+enum Spells
 {
-    SPELL_CAUTERIZING_FLAMES     = 59466, // Only in heroic
-    SPELL_FIREBOLT               = 54235,
-    SPELL_FLAME_BREATH           = 54282,
-    SPELL_LAVA_BURN              = 54249
+  SPELL_CAUTERIZING_FLAMES                      = 59466, //Only in heroic
+  SPELL_FIREBOLT                                = 54235,
+  H_SPELL_FIREBOLT                              = 59468,
+  SPELL_FLAME_BREATH                            = 54282,
+  H_SPELL_FLAME_BREATH                          = 59469,
+  SPELL_LAVA_BURN                               = 54249,
+  H_SPELL_LAVA_BURN                             = 59594
 };
 
-// 29312 - Lavanthor
-// 32237 - Lava Hound
-struct boss_lavanthor : public BossAI
+class boss_lavanthor : public CreatureScript
 {
-    boss_lavanthor(Creature* creature) : BossAI(creature, DATA_LAVANTHOR) { }
+public:
+    boss_lavanthor() : CreatureScript("boss_lavanthor") { }
 
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::Reset();
+        return new boss_lavanthorAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_lavanthorAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
-    }
-
-    void JustReachedHome() override
-    {
-        BossAI::JustReachedHome();
-        instance->SetData(DATA_HANDLE_CELLS, DATA_LAVANTHOR);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        scheduler.Update(diff,
-            std::bind(&BossAI::DoMeleeAttackIfReady, this));
-    }
-
-    void ScheduleTasks() override
-    {
-        scheduler.Schedule(1s, [this](TaskContext task)
+        boss_lavanthorAI(Creature *c) : ScriptedAI(c)
         {
-            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 40.0f, true))
-                DoCast(target, SPELL_FIREBOLT);
-            task.Repeat(5s, 13s);
-        });
-
-        scheduler.Schedule(5s, [this](TaskContext task)
-        {
-            DoCastVictim(SPELL_FLAME_BREATH);
-            task.Repeat(10s, 15s);
-        });
-
-        scheduler.Schedule(10s, [this](TaskContext task)
-        {
-            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 50.0f))
-                DoCast(target, SPELL_LAVA_BURN);
-            task.Repeat(15s, 23s);
-        });
-
-        if (IsHeroic())
-        {
-            scheduler.Schedule(Seconds(3), [this](TaskContext task)
-            {
-                DoCastAOE(SPELL_CAUTERIZING_FLAMES);
-                task.Repeat(10s, 16s);
-            });
+            pInstance = c->GetInstanceScript();
         }
-    }
+
+        uint32 uiFireboltTimer;
+        uint32 uiFlameBreathTimer;
+        uint32 uiLavaBurnTimer;
+        uint32 uiCauterizingFlamesTimer;
+
+        InstanceScript* pInstance;
+
+        void Reset()
+        {
+            uiFireboltTimer = 1000;
+            uiFlameBreathTimer = 5000;
+            uiLavaBurnTimer = 10000;
+            uiCauterizingFlamesTimer = 3000;
+            if (pInstance)
+            {
+                if (pInstance->GetData(DATA_WAVE_COUNT) == 6)
+                    pInstance->SetData(DATA_1ST_BOSS_EVENT, NOT_STARTED);
+                else if (pInstance->GetData(DATA_WAVE_COUNT) == 12)
+                    pInstance->SetData(DATA_2ND_BOSS_EVENT, NOT_STARTED);
+            }
+        }
+
+        void EnterCombat(Unit* /*who*/)
+        {
+            if (pInstance)
+            {
+            if (GameObject *pDoor = pInstance->instance->GetGameObject(pInstance->GetData64(DATA_LAVANTHOR_CELL)))
+                    if (pDoor->GetGoState() == GO_STATE_READY)
+                    {
+                        EnterEvadeMode();
+                        return;
+                    }
+                if (pInstance->GetData(DATA_WAVE_COUNT) == 6)
+                    pInstance->SetData(DATA_1ST_BOSS_EVENT, IN_PROGRESS);
+                else if (pInstance->GetData(DATA_WAVE_COUNT) == 12)
+                    pInstance->SetData(DATA_2ND_BOSS_EVENT, IN_PROGRESS);
+            }
+        }
+
+        void AttackStart(Unit* pWho)
+        {
+            if (me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE) || me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE))
+                return;
+
+            if (me->Attack(pWho, true))
+            {
+                me->AddThreat(pWho, 0.0f);
+                me->SetInCombatWith(pWho);
+                pWho->SetInCombatWith(me);
+                DoStartMovement(pWho);
+            }
+        }
+
+        void MoveInLineOfSight(Unit* /*who*/) {}
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            if (uiFireboltTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FIREBOLT);
+                uiFireboltTimer = urand(5000,13000);
+            } else uiFireboltTimer -= diff;
+
+            if (uiFlameBreathTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_FLAME_BREATH);
+                uiFlameBreathTimer = urand(10000,15000);
+            } else uiFlameBreathTimer -= diff;
+
+            if (uiLavaBurnTimer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_LAVA_BURN);
+                uiLavaBurnTimer = urand(15000,23000);
+            }
+
+            if (IsHeroic())
+            {
+                if (uiCauterizingFlamesTimer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_CAUTERIZING_FLAMES);
+                    uiCauterizingFlamesTimer = urand(10000,16000);
+                } else uiCauterizingFlamesTimer -= diff;
+            }
+
+            DoMeleeAttackIfReady();
+        }
+
+        void JustDied(Unit* /*killer*/)
+        {
+            if (pInstance)
+            {
+                if (pInstance->GetData(DATA_WAVE_COUNT) == 6)
+                {
+                    pInstance->SetData(DATA_1ST_BOSS_EVENT, DONE);
+                    pInstance->SetData(DATA_WAVE_COUNT, 7);
+                }
+                else if (pInstance->GetData(DATA_WAVE_COUNT) == 12)
+                {
+                    pInstance->SetData(DATA_2ND_BOSS_EVENT, DONE);
+                    pInstance->SetData(DATA_WAVE_COUNT, 13);
+                }
+            }
+        }
+    };
+
 };
 
 void AddSC_boss_lavanthor()
 {
-    RegisterVioletHoldCreatureAI(boss_lavanthor);
+    new boss_lavanthor();
 }

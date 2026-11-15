@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,58 +16,66 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "scarlet_monastery.h"
-#include "ScriptedCreature.h"
-#include "ScriptMgr.h"
+/* ScriptData
+SDName: Boss_Houndmaster_Loksey
+SD%Complete: 100
+SDComment:
+SDCategory: Scarlet Monastery
+EndScriptData */
 
-enum HoundmasterLokseyYells
+#include "ScriptPCH.h"
+
+enum eEnums
 {
-    SAY_AGGRO = 0,
+    SAY_AGGRO                       = -1189021,
+    SPELL_SUMMONSCARLETHOUND        = 17164,
+    SPELL_BLOODLUST                 = 6742
 };
 
-enum HoundmasterLokseySpells
+class boss_houndmaster_loksey : public CreatureScript
 {
-    SPELL_SUMMON_SCARLET_HOUND = 17164,
-    SPELL_BLOODLUST = 6742
-};
+public:
+    boss_houndmaster_loksey() : CreatureScript("boss_houndmaster_loksey") { }
 
-enum HoundmasterLokseyEvents
-{
-    EVENT_BLOODLUST = 1
-};
-
-struct boss_houndmaster_loksey : public BossAI
-{
-    boss_houndmaster_loksey(Creature* creature) : BossAI(creature, DATA_HOUNDMASTER_LOKSEY) { }
-
-    void JustEngagedWith(Unit* who) override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::JustEngagedWith(who);
-        Talk(SAY_AGGRO);
-        DoCast(SPELL_SUMMON_SCARLET_HOUND);
-        events.ScheduleEvent(EVENT_BLOODLUST, 20s);
+        return new boss_houndmaster_lokseyAI (pCreature);
     }
 
-    void ExecuteEvent(uint32 eventId) override
+    struct boss_houndmaster_lokseyAI : public ScriptedAI
     {
-        switch (eventId)
+        boss_houndmaster_lokseyAI(Creature *c) : ScriptedAI(c) {}
+
+        uint32 BloodLust_Timer;
+
+        void Reset()
         {
-            case EVENT_BLOODLUST:
-                if (me->HealthBelowPct(60))
-                {
-                    DoCastSelf(SPELL_BLOODLUST);
-                    events.Repeat(60s);
-                }
-                else
-                    events.Repeat(1s);
-                break;
-            default:
-                break;
+            BloodLust_Timer = 20000;
         }
-    }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            DoScriptText(SAY_AGGRO, me);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (!UpdateVictim())
+                return;
+
+            if (BloodLust_Timer <= diff)
+            {
+                DoCast(me, SPELL_BLOODLUST);
+                BloodLust_Timer = 20000;
+            } else BloodLust_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_houndmaster_loksey()
 {
-    RegisterScarletMonasteryCreatureAI(boss_houndmaster_loksey);
+    new boss_houndmaster_loksey();
 }

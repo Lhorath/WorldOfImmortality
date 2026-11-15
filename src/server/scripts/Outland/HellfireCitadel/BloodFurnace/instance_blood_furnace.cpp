@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,223 +16,214 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
+/* ScriptData
+SDName: Instance_Blood_Furnace
+SD%Complete: 85
+SDComment:
+SDCategory: Hellfire Citadel, Blood Furnace
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "blood_furnace.h"
-#include "Creature.h"
-#include "CreatureAI.h"
-#include "GameObject.h"
-#include "InstanceScript.h"
-#include "Map.h"
-#include <algorithm>
 
-static constexpr DoorData doorData[] =
-{
-    { GO_PRISON_DOOR_01,     DATA_KELIDAN,   DOOR_TYPE_PASSAGE },
-    { GO_PRISON_DOOR_02,     DATA_THE_MAKER, DOOR_TYPE_ROOM    },
-    { GO_PRISON_DOOR_03,     DATA_THE_MAKER, DOOR_TYPE_PASSAGE },
-    { GO_PRISON_DOOR_05,     DATA_BROGGOK,   DOOR_TYPE_ROOM    },
-    { GO_SUMMON_DOOR,        DATA_KELIDAN,   DOOR_TYPE_PASSAGE },
-    { GO_PRISON_CELL_DOOR_4, DATA_THE_MAKER, DOOR_TYPE_PASSAGE },
-    { 0,                     0,              DOOR_TYPE_ROOM    } // END
-};
-
-static constexpr ObjectData creatureData[] =
-{
-    { NPC_THE_MAKER,           DATA_THE_MAKER },
-    { NPC_BROGGOK,             DATA_BROGGOK   },
-    { NPC_KELIDAN,             DATA_KELIDAN   },
-    { 0,                       0              } // END
-};
-
-static constexpr ObjectData gameObjectData[] =
-{
-    { GO_BROGGOK_LEVER,          DATA_BROGGOK_LEVER      },
-    { GO_PRISON_DOOR_04,         DATA_PRISON_DOOR_04     },
-    { GO_PRISON_DOOR_05,         DATA_PRISON_DOOR_05     },
-    { GO_PRISON_CELL_DOOR_5,     DATA_PRISON_CELL_DOOR_5 },
-    { GO_PRISON_CELL_DOOR_6,     DATA_PRISON_CELL_DOOR_6 },
-    { GO_PRISON_CELL_DOOR_7,     DATA_PRISON_CELL_DOOR_7 },
-    { GO_PRISON_CELL_DOOR_8,     DATA_PRISON_CELL_DOOR_8 },
-    { 0,                         0                       } // END
-};
-
-struct PrisonersWave
-{
-    std::string_view StringId;
-    uint32 CellOrDoorToOpen;
-    int32 BossActionIdOnClear;
-};
-
-static constexpr std::array<PrisonersWave, 4> PrisonersWaves =
-{{
-    { "BroggokPrisonerCell1", DATA_PRISON_CELL_DOOR_6, 0 },
-    { "BroggokPrisonerCell2", DATA_PRISON_CELL_DOOR_7, 0 },
-    { "BroggokPrisonerCell3", DATA_PRISON_CELL_DOOR_8, 0 },
-    { "BroggokPrisonerCell4", DATA_PRISON_DOOR_04, ACTION_RELEASE_BROGGOK }
-}};
-
-static constexpr std::array<uint32, 4> PrisonCellDoorsData =
-{
-    DATA_PRISON_CELL_DOOR_5,
-    DATA_PRISON_CELL_DOOR_6,
-    DATA_PRISON_CELL_DOOR_7,
-    DATA_PRISON_CELL_DOOR_8
-};
-
-static constexpr std::array<uint32, 4> PrisonersSpawnGroupsData =
-{
-    SPAWN_GROUP_PRISONERS_1,
-    SPAWN_GROUP_PRISONERS_2,
-    SPAWN_GROUP_PRISONERS_3,
-    SPAWN_GROUP_PRISONERS_4
-};
+#define ENTRY_SEWER1                 181823
+#define ENTRY_SEWER2                 181766
+#define MAX_ENCOUNTER                   3
 
 class instance_blood_furnace : public InstanceMapScript
 {
     public:
-        instance_blood_furnace() : InstanceMapScript(BFScriptName, 542) { }
+        instance_blood_furnace()
+            : InstanceMapScript("instance_blood_furnace", 542)
+        {
+        }
 
         struct instance_blood_furnace_InstanceMapScript : public InstanceScript
         {
-            instance_blood_furnace_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
-            {
-                SetHeaders(DataHeader);
-                SetBossNumber(EncounterCount);
-                LoadDoorData(doorData);
-                LoadObjectData(creatureData, gameObjectData);
+            instance_blood_furnace_InstanceMapScript(Map* pMap) : InstanceScript(pMap) {Initialize();};
 
-                PrisonersEventState = NOT_STARTED;
-                ShouldResetPrisoners = true;
+            uint64 The_MakerGUID;
+            uint64 BroggokGUID;
+            uint64 Kelidan_The_BreakerGUID;
+
+            uint64 Door1GUID;
+            uint64 Door2GUID;
+            uint64 Door3GUID;
+            uint64 Door4GUID;
+            uint64 Door5GUID;
+            uint64 Door6GUID;
+
+            uint64 PrisonCell1GUID;
+            uint64 PrisonCell2GUID;
+            uint64 PrisonCell3GUID;
+            uint64 PrisonCell4GUID;
+            uint64 PrisonCell5GUID;
+            uint64 PrisonCell6GUID;
+            uint64 PrisonCell7GUID;
+            uint64 PrisonCell8GUID;
+
+            uint32 m_auiEncounter[MAX_ENCOUNTER];
+            std::string str_data;
+
+            void Initialize()
+            {
+                memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
+
+                The_MakerGUID = 0;
+                BroggokGUID = 0;
+                Kelidan_The_BreakerGUID = 0;
+
+                Door1GUID = 0;
+                Door2GUID = 0;
+                Door3GUID = 0;
+                Door4GUID = 0;
+                Door5GUID = 0;
+                Door6GUID = 0;
+
+                PrisonCell1GUID = 0;
+                PrisonCell2GUID = 0;
+                PrisonCell3GUID = 0;
+                PrisonCell4GUID = 0;
+                PrisonCell5GUID = 0;
+                PrisonCell6GUID = 0;
+                PrisonCell7GUID = 0;
+                PrisonCell8GUID = 0;
             }
 
-            void OnPlayerEnter(Player* /*player*/) override
+            void OnCreatureCreate(Creature* creature)
             {
-                if (ShouldResetPrisoners)
+                switch(creature->GetEntry())
                 {
-                    for (uint32 group : PrisonersSpawnGroupsData)
-                        instance->SpawnGroupSpawn(group, true);
-
-                    ShouldResetPrisoners = false;
+                     case 17381: The_MakerGUID = creature->GetGUID(); break;
+                     case 17380: BroggokGUID = creature->GetGUID(); break;
+                     case 17377: Kelidan_The_BreakerGUID = creature->GetGUID(); break;
                 }
             }
 
-            void OnCreatureCreate(Creature* creature) override
+            void OnGameObjectCreate(GameObject* go)
             {
-                InstanceScript::OnCreatureCreate(creature);
 
-                auto prisonerWave = std::ranges::find_if(PrisonersWaves, [creature](std::string_view stringId) { return creature->HasStringId(stringId); }, &PrisonersWave::StringId);
-                if (prisonerWave != PrisonersWaves.end())
-                    WaveGuidList[std::ranges::distance(PrisonersWaves.begin(), prisonerWave)].insert(creature->GetGUID());
+             if (go->GetEntry() == 181766)                //Final exit door
+                 Door1GUID = go->GetGUID();
+             if (go->GetEntry() == 181811)               //The Maker Front door
+                 Door2GUID = go->GetGUID();
+             if (go->GetEntry() == 181812)                //The Maker Rear door
+                 Door3GUID = go->GetGUID();
+             if (go->GetEntry() == 181822)               //Broggok Front door
+                 Door4GUID = go->GetGUID();
+             if (go->GetEntry() == 181819)               //Broggok Rear door
+                 Door5GUID = go->GetGUID();
+             if (go->GetEntry() == 181823)               //Kelidan exit door
+                 Door6GUID = go->GetGUID();
+
+             if (go->GetEntry() == 181813)               //The Maker prison cell front right
+                 PrisonCell1GUID = go->GetGUID();
+             if (go->GetEntry() == 181814)               //The Maker prison cell back right
+                 PrisonCell2GUID = go->GetGUID();
+             if (go->GetEntry() == 181816)               //The Maker prison cell front left
+                 PrisonCell3GUID = go->GetGUID();
+             if (go->GetEntry() == 181815)               //The Maker prison cell back left
+                 PrisonCell4GUID = go->GetGUID();
+             if (go->GetEntry() == 181821)               //Broggok prison cell front right
+                 PrisonCell5GUID = go->GetGUID();
+             if (go->GetEntry() == 181818)               //Broggok prison cell back right
+                 PrisonCell6GUID = go->GetGUID();
+             if (go->GetEntry() == 181820)               //Broggok prison cell front left
+                 PrisonCell7GUID = go->GetGUID();
+             if (go->GetEntry() == 181817)               //Broggok prison cell back left
+                 PrisonCell8GUID = go->GetGUID();
             }
 
-            void OnUnitDeath(Unit* unit) override
+            uint64 GetData64(uint32 data)
             {
-                InstanceScript::OnUnitDeath(unit);
+                switch(data)
+                {
+                     case DATA_THE_MAKER:            return The_MakerGUID;
+                     case DATA_BROGGOK:              return BroggokGUID;
+                     case DATA_KELIDAN_THE_MAKER:    return Kelidan_The_BreakerGUID;
+                     case DATA_DOOR1:                return Door1GUID;
+                     case DATA_DOOR2:                return Door2GUID;
+                     case DATA_DOOR3:                return Door3GUID;
+                     case DATA_DOOR4:                return Door4GUID;
+                     case DATA_DOOR5:                return Door5GUID;
+                     case DATA_DOOR6:                return Door6GUID;
+                     case DATA_PRISON_CELL1:         return PrisonCell1GUID;
+                     case DATA_PRISON_CELL2:         return PrisonCell2GUID;
+                     case DATA_PRISON_CELL3:         return PrisonCell3GUID;
+                     case DATA_PRISON_CELL4:         return PrisonCell4GUID;
+                     case DATA_PRISON_CELL5:         return PrisonCell5GUID;
+                     case DATA_PRISON_CELL6:         return PrisonCell6GUID;
+                     case DATA_PRISON_CELL7:         return PrisonCell7GUID;
+                     case DATA_PRISON_CELL8:         return PrisonCell8GUID;
+                }
 
-                if (unit->GetTypeId() != TYPEID_UNIT)
+                return 0;
+            }
+
+            void SetData(uint32 /*type*/, uint32 data)
+            {
+                 switch(data)
+                 {
+                     case TYPE_THE_MAKER_EVENT:             m_auiEncounter[0] = data;     break;
+                     case TYPE_BROGGOK_EVENT:               m_auiEncounter[1] = data;     break;
+                     case TYPE_KELIDAN_THE_BREAKER_EVENT:   m_auiEncounter[2] = data;     break;
+                 }
+
+                if (data == DONE)
+                {
+                    OUT_SAVE_INST_DATA;
+
+                    std::ostringstream saveStream;
+                    saveStream << m_auiEncounter[0] << " " << m_auiEncounter[1] << " " << m_auiEncounter[2];
+
+                    str_data = saveStream.str();
+
+                    SaveToDB();
+                    OUT_SAVE_INST_DATA_COMPLETE;
+                }
+            }
+
+            uint32 GetData(uint32 data)
+            {
+                switch(data)
+                {
+                    case TYPE_THE_MAKER_EVENT:             return m_auiEncounter[0];
+                    case TYPE_BROGGOK_EVENT:               return m_auiEncounter[1];
+                    case TYPE_KELIDAN_THE_BREAKER_EVENT:   return m_auiEncounter[2];
+                }
+
+                return 0;
+            }
+
+            const char* Save()
+            {
+                return str_data.c_str();
+            }
+
+            void Load(const char* in)
+            {
+                if (!in)
+                {
+                    OUT_LOAD_INST_DATA_FAIL;
                     return;
-
-                auto prisonerWave = std::ranges::find_if(PrisonersWaves, [creature = unit->ToCreature()](std::string_view stringId) { return creature->HasStringId(stringId); }, &PrisonersWave::StringId);
-                if (prisonerWave != PrisonersWaves.end())
-                {
-                    std::ptrdiff_t waveIndex = std::ranges::distance(PrisonersWaves.begin(), prisonerWave);
-                    if (WaveGuidList[waveIndex].erase(unit->GetGUID()) && WaveGuidList[waveIndex].empty())
-                    {
-                        if (prisonerWave->CellOrDoorToOpen)
-                            if (GameObject* go = GetGameObject(prisonerWave->CellOrDoorToOpen))
-                                HandleGameObject(ObjectGuid::Empty, true, go);
-
-                        if (waveIndex + 1 < std::ranges::ssize(WaveGuidList))
-                            for (ObjectGuid guid : WaveGuidList[waveIndex + 1])
-                                if (Creature* creature = instance->GetCreature(guid))
-                                    creature->AI()->DoAction(ACTION_PRISONER_ENGAGE);
-
-                        if (prisonerWave->BossActionIdOnClear)
-                            if (Creature* broggok = GetCreature(DATA_BROGGOK))
-                                broggok->AI()->DoAction(prisonerWave->BossActionIdOnClear);
-                    }
                 }
+
+                OUT_LOAD_INST_DATA(in);
+
+                std::istringstream loadStream(in);
+                loadStream >> m_auiEncounter[0] >> m_auiEncounter[1] >> m_auiEncounter[2];
+
+                for (uint8 i = 0; i < MAX_ENCOUNTER; ++i)
+                    if (m_auiEncounter[i] == IN_PROGRESS || m_auiEncounter[i] == FAIL)
+                        m_auiEncounter[i] = NOT_STARTED;
+
+                OUT_LOAD_INST_DATA_COMPLETE;
             }
-
-            void OnGameObjectCreate(GameObject* go) override
-            {
-                InstanceScript::OnGameObjectCreate(go);
-
-                if (go->GetEntry() == GO_PRISON_DOOR_04)
-                    if (GetBossState(DATA_BROGGOK) == DONE)
-                        HandleGameObject(ObjectGuid::Empty, true, go);
-            }
-
-            void SetData(uint32 type, uint32 data) override
-            {
-                // This have to be done without boss state since encounter starts when Broggok is engaged, not when prisoners event starts
-                if (type == DATA_PRISONERS_EVENT)
-                {
-                    // Do not set data to current - don't trigger events more than once
-                    if (PrisonersEventState == data)
-                        return;
-
-                    PrisonersEventState = data;
-
-                    switch (data)
-                    {
-                        case IN_PROGRESS:
-                        {
-                            if (Creature* broggok = GetCreature(DATA_BROGGOK))
-                                broggok->AI()->DoAction(ACTION_PERFORM_INTRO);
-
-                            if (GameObject* go = GetGameObject(DATA_PRISON_DOOR_05))
-                                HandleGameObject(ObjectGuid::Empty, false, go);
-
-                            if (GameObject* go = GetGameObject(DATA_PRISON_CELL_DOOR_5))
-                                HandleGameObject(ObjectGuid::Empty, true, go);
-
-                            for (ObjectGuid guid : WaveGuidList[0])
-                                if (Creature* creature = instance->GetCreature(guid))
-                                    creature->AI()->DoAction(ACTION_PRISONER_ENGAGE);
-
-                            break;
-                        }
-                        case FAIL:
-                        {
-                            if (GameObject* lever = GetGameObject(DATA_BROGGOK_LEVER))
-                                lever->ActivateObject(GameObjectActions::MakeActive);
-
-                            if (Creature* broggok = GetCreature(DATA_BROGGOK))
-                                broggok->AI()->DoAction(ACTION_DESPAWN_TRIGGER);
-
-                            if (GameObject* go = GetGameObject(DATA_PRISON_DOOR_05))
-                                HandleGameObject(ObjectGuid::Empty, true, go);
-
-                            for (uint32 prisonCellId : PrisonCellDoorsData)
-                                if (GameObject* go = GetGameObject(prisonCellId))
-                                    HandleGameObject(ObjectGuid::Empty, false, go);
-
-                            for (uint32 group : PrisonersSpawnGroupsData)
-                                instance->SpawnGroupSpawn(group, true);
-
-                            break;
-                        }
-                        default:
-                            break;
-                    }
-                }
-            }
-
-            void ReadSaveDataMore(std::istringstream& /*data*/) override
-            {
-                ShouldResetPrisoners = GetBossState(DATA_BROGGOK) != DONE;
-            }
-
-        protected:
-            GuidSet WaveGuidList[4];
-            uint8 PrisonersEventState;
-            bool ShouldResetPrisoners;
         };
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
+        InstanceScript* GetInstanceScript(InstanceMap* pMap) const
         {
-            return new instance_blood_furnace_InstanceMapScript(map);
+            return new instance_blood_furnace_InstanceMapScript(pMap);
         }
 };
 
@@ -239,3 +231,4 @@ void AddSC_instance_blood_furnace()
 {
     new instance_blood_furnace();
 }
+

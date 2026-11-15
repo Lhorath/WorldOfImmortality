@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,22 +20,34 @@
 #define _MAPREFERENCE_H
 
 #include "Reference.h"
-
-class Map;
-class Player;
+#include "Map.h"
 
 class MapReference : public Reference<Map, Player>
 {
     protected:
-        void targetObjectBuildLink() override;
-        void targetObjectDestroyLink() override;
-        void sourceObjectDestroyLink() override;
+        void targetObjectBuildLink()
+        {
+            // called from link()
+            getTarget()->m_mapRefManager.insertFirst(this);
+            getTarget()->m_mapRefManager.incSize();
+        }
+        void targetObjectDestroyLink()
+        {
+            // called from unlink()
+            if (isValid()) getTarget()->m_mapRefManager.decSize();
+        }
+        void sourceObjectDestroyLink()
+        {
+            // called from invalidate()
+            getTarget()->m_mapRefManager.decSize();
+        }
     public:
-        MapReference() : Reference<Map, Player>() { }
+        MapReference() : Reference<Map, Player>() {}
         ~MapReference() { unlink(); }
-        MapReference* next() { return (MapReference*)Reference<Map, Player>::next(); }
-        MapReference const* next() const { return (MapReference const*)Reference<Map, Player>::next(); }
-        MapReference* nockeck_prev() { return (MapReference*)Reference<Map, Player>::nocheck_prev(); }
-        MapReference const* nocheck_prev() const { return (MapReference const*)Reference<Map, Player>::nocheck_prev(); }
+        MapReference *next() { return (MapReference*)Reference<Map, Player>::next(); }
+        MapReference const *next() const { return (MapReference const*)Reference<Map, Player>::next(); }
+        MapReference *nockeck_prev() { return (MapReference*)Reference<Map, Player>::nocheck_prev(); }
+        MapReference const *nocheck_prev() const { return (MapReference const*)Reference<Map, Player>::nocheck_prev(); }
 };
 #endif
+

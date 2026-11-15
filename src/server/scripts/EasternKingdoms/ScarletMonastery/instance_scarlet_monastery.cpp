@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,146 +16,143 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* ScriptData
+SDName: Instance_Scarlet_Monastery
+SD%Complete: 50
+SDComment:
+SDCategory: Scarlet Monastery
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "scarlet_monastery.h"
-#include "Creature.h"
-#include "CreatureAI.h"
-#include "EventMap.h"
-#include "GameObject.h"
-#include "InstanceScript.h"
-#include "Map.h"
-#include "ScriptMgr.h"
-#include "TemporarySummon.h"
 
-Position const BunnySpawnPosition = { 1776.27f, 1348.74f, 19.20f };
-Position const EarthBunnySpawnPosition = { 1765.28f, 1347.46f, 18.55f, 6.17f };
-Position const HeadlessHorsemanSpawnPosition = { 1765.00f, 1347.00f, 15.00f };
-Position const HeadlessHorsemanHeadSpawnPosition = { 1788.54f, 1348.05f, 18.88f }; // Guessed
+#define ENTRY_PUMPKIN_SHRINE    186267
+#define ENTRY_HORSEMAN          23682
+#define ENTRY_HEAD              23775
+#define ENTRY_PUMPKIN           23694
 
-ObjectData const creatureData[] =
-{
-    { NPC_HEADLESS_HORSEMAN_HEAD, DATA_HORSEMAN_HEAD     },
-    { NPC_HEADLESS_HORSEMAN,      DATA_HEADLESS_HORSEMAN },
-    { NPC_FLAME_BUNNY,            DATA_FLAME_BUNNY       },
-    { NPC_EARTH_BUNNY,            DATA_EARTH_BUNNY       },
-    { NPC_SIR_THOMAS,             DATA_THOMAS            },
-    { NPC_MOGRAINE,               DATA_MOGRAINE          },
-    { NPC_VORREL,                 DATA_VORREL            },
-    { NPC_WHITEMANE,              DATA_WHITEMANE         },
-    { 0,                          0                      } // END
-};
-
-ObjectData const gameObjectData[] =
-{
-    { GO_PUMPKIN_SHRINE,        DATA_PUMPKIN_SHRINE        },
-    { GO_HIGH_INQUISITORS_DOOR, DATA_HIGH_INQUISITORS_DOOR },
-    { GO_LOOSELY_TURNED_SOIL,   DATA_LOOSELY_TURNED_SOIL   },
-    { 0,                        0                          } // END
-};
+#define MAX_ENCOUNTER 2
 
 class instance_scarlet_monastery : public InstanceMapScript
 {
-    public:
-        instance_scarlet_monastery() : InstanceMapScript(SMScriptName, 189) { }
+public:
+    instance_scarlet_monastery() : InstanceMapScript("instance_scarlet_monastery", 189) { }
 
-        struct instance_scarlet_monastery_InstanceMapScript : public InstanceScript
+    InstanceScript* GetInstanceScript(InstanceMap* pMap) const
+    {
+        return new instance_scarlet_monastery_InstanceMapScript(pMap);
+    }
+
+    struct instance_scarlet_monastery_InstanceMapScript : public InstanceScript
+    {
+        instance_scarlet_monastery_InstanceMapScript(Map* pMap) : InstanceScript(pMap) {Initialize();};
+
+        uint64 PumpkinShrineGUID;
+        uint64 HorsemanGUID;
+        uint64 HeadGUID;
+        std::set<uint64> HorsemanAdds;
+
+        uint64 MograineGUID;
+        uint64 WhitemaneGUID;
+        uint64 VorrelGUID;
+        uint64 DoorHighInquisitorGUID;
+
+        uint32 m_auiEncounter[MAX_ENCOUNTER];
+
+        void Initialize()
         {
-            instance_scarlet_monastery_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
-            {
-                SetHeaders(DataHeader);
-                SetBossNumber(EncounterCount);
-                LoadObjectData(creatureData, gameObjectData);
-                _horsemanState = NOT_STARTED;
-            }
+            memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
 
-            void HandleStartEvent()
-            {
-                _horsemanState = IN_PROGRESS;
-                for (uint32 data : {DATA_PUMPKIN_SHRINE, DATA_LOOSELY_TURNED_SOIL})
-                    if (GameObject* gob = GetGameObject(data))
-                        gob->SetFlag(GO_FLAG_NOT_SELECTABLE);
+            PumpkinShrineGUID  = 0;
+            HorsemanGUID = 0;
+            HeadGUID = 0;
+            HorsemanAdds.clear();
 
-                instance->SummonCreature(NPC_HEADLESS_HORSEMAN_HEAD, HeadlessHorsemanHeadSpawnPosition);
-                instance->SummonCreature(NPC_FLAME_BUNNY, BunnySpawnPosition);
-                instance->SummonCreature(NPC_EARTH_BUNNY, EarthBunnySpawnPosition);
-                _events.ScheduleEvent(EVENT_ACTIVE_EARTH_EXPLOSION, 1s + 500ms);
-                _events.ScheduleEvent(EVENT_SPAWN_HEADLESS_HORSEMAN, 3s);
-                _events.ScheduleEvent(EVENT_DESPAWN_OBJECTS, 10s);
-                if (Creature* thomas = GetCreature(DATA_THOMAS))
-                    thomas->DespawnOrUnsummon();
-            }
-
-            void SetData(uint32 type, uint32 data) override
-            {
-                switch (type)
-                {
-                    case DATA_START_HORSEMAN_EVENT:
-                        if (_horsemanState != IN_PROGRESS)
-                            HandleStartEvent();
-                        break;
-                    case DATA_HORSEMAN_EVENT_STATE:
-                        _horsemanState = data;
-                        break;
-                    case DATA_PREPARE_RESET:
-                        _horsemanState = NOT_STARTED;
-                        for (uint32 data : {DATA_FLAME_BUNNY, DATA_EARTH_BUNNY})
-                            if (Creature* bunny = GetCreature(data))
-                                bunny->DespawnOrUnsummon();
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            uint32 GetData(uint32 type) const override
-            {
-                switch (type)
-                {
-                    case DATA_HORSEMAN_EVENT_STATE:
-                        return _horsemanState;
-                    default:
-                        return 0;
-                }
-            }
-
-            void Update(uint32 diff) override
-            {
-                if (_events.Empty())
-                    return;
-
-                _events.Update(diff);
-
-                while (uint32 eventId = _events.ExecuteEvent())
-                {
-                    switch (eventId)
-                    {
-                        case EVENT_ACTIVE_EARTH_EXPLOSION:
-                            if (Creature* earthBunny = GetCreature(DATA_EARTH_BUNNY))
-                                earthBunny->CastSpell(earthBunny, SPELL_EARTH_EXPLOSION);
-                            break;
-                        case EVENT_SPAWN_HEADLESS_HORSEMAN:
-                            if (TempSummon* horseman = instance->SummonCreature(NPC_HEADLESS_HORSEMAN, HeadlessHorsemanSpawnPosition))
-                                horseman->AI()->DoAction(ACTION_HORSEMAN_EVENT_START);
-                            break;
-                        case EVENT_DESPAWN_OBJECTS:
-                            for (uint32 data : {DATA_PUMPKIN_SHRINE, DATA_LOOSELY_TURNED_SOIL})
-                                if (GameObject* gob = GetGameObject(data))
-                                    gob->RemoveFromWorld();
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-
-        private:
-            EventMap _events;
-            uint32 _horsemanState;
-        };
-
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
-        {
-            return new instance_scarlet_monastery_InstanceMapScript(map);
+            MograineGUID = 0;
+            WhitemaneGUID = 0;
+            VorrelGUID = 0;
+            DoorHighInquisitorGUID = 0;
         }
+
+        void OnGameObjectCreate(GameObject* go)
+        {
+            switch(go->GetEntry())
+            {
+            case ENTRY_PUMPKIN_SHRINE: PumpkinShrineGUID = go->GetGUID();break;
+            case 104600: DoorHighInquisitorGUID = go->GetGUID(); break;
+            }
+        }
+
+        void OnCreatureCreate(Creature* creature)
+        {
+            switch(creature->GetEntry())
+            {
+                case ENTRY_HORSEMAN:    HorsemanGUID = creature->GetGUID(); break;
+                case ENTRY_HEAD:        HeadGUID = creature->GetGUID(); break;
+                case ENTRY_PUMPKIN:     HorsemanAdds.insert(creature->GetGUID());break;
+                case 3976: MograineGUID = creature->GetGUID(); break;
+                case 3977: WhitemaneGUID = creature->GetGUID(); break;
+                case 3981: VorrelGUID = creature->GetGUID(); break;
+            }
+        }
+
+        void SetData(uint32 type, uint32 data)
+        {
+            switch(type)
+            {
+            case TYPE_MOGRAINE_AND_WHITE_EVENT:
+                if (data == IN_PROGRESS)
+                    DoUseDoorOrButton(DoorHighInquisitorGUID);
+                if (data == FAIL)
+                    DoUseDoorOrButton(DoorHighInquisitorGUID);
+
+                m_auiEncounter[0] = data;
+                break;
+            case GAMEOBJECT_PUMPKIN_SHRINE:
+                HandleGameObject(PumpkinShrineGUID, false);
+                break;
+            case DATA_HORSEMAN_EVENT:
+                m_auiEncounter[1] = data;
+                if (data == DONE)
+                {
+                    for (std::set<uint64>::const_iterator itr = HorsemanAdds.begin(); itr != HorsemanAdds.end(); ++itr)
+                    {
+                        Creature* add = instance->GetCreature(*itr);
+                        if (add && add->isAlive())
+                            add->Kill(add);
+                    }
+                    HorsemanAdds.clear();
+                    HandleGameObject(PumpkinShrineGUID, false);
+                }
+                break;
+            }
+        }
+
+        uint64 GetData64(uint32 type)
+        {
+            switch(type)
+            {
+                //case GAMEOBJECT_PUMPKIN_SHRINE:   return PumpkinShrineGUID;
+                //case DATA_HORSEMAN:               return HorsemanGUID;
+                //case DATA_HEAD:                   return HeadGUID;
+                case DATA_MOGRAINE:             return MograineGUID;
+                case DATA_WHITEMANE:            return WhitemaneGUID;
+                case DATA_VORREL:               return VorrelGUID;
+                case DATA_DOOR_WHITEMANE:       return DoorHighInquisitorGUID;
+            }
+            return 0;
+        }
+
+        uint32 GetData(uint32 type)
+        {
+            if (type == TYPE_MOGRAINE_AND_WHITE_EVENT)
+                return m_auiEncounter[0];
+            if (type == DATA_HORSEMAN_EVENT)
+                return m_auiEncounter[1];
+            return 0;
+        }
+    };
+
 };
 
 void AddSC_instance_scarlet_monastery()

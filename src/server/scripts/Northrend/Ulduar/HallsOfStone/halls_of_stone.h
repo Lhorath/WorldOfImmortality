@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,26 +15,20 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef HALLS_OF_STONE_H_
-#define HALLS_OF_STONE_H_
-
-#include "CreatureAIImpl.h"
-
-#define HoSScriptName "instance_halls_of_stone"
-#define DataHeader    "HOS"
-
-uint32 const EncounterCount = 4;
-
-enum HOSDataTypes
+#ifndef DEF_HALLS_OF_STONE_H
+#define DEF_HALLS_OF_STONE_H
+enum Data
 {
-    // Bosses
-    DATA_KRYSTALLUS             = 0,
-    DATA_MAIDEN_OF_GRIEF        = 1,
-    DATA_TRIBUNAL_OF_AGES       = 2,
-    DATA_SJONNIR_THE_IRONSHAPER = 3,
-
-    // Additional data
-    /*Tribunal of Ages*/
+    DATA_KRYSTALLUS_EVENT,
+    DATA_MAIDEN_OF_GRIEF_EVENT,
+    DATA_SJONNIR_EVENT,
+    DATA_BRANN_EVENT
+};
+enum Data64
+{
+    DATA_KRYSTALLUS,
+    DATA_MAIDEN_OF_GRIEF,
+    DATA_SJONNIR,
     DATA_KADDRAK,
     DATA_MARNAK,
     DATA_ABEDNEUM,
@@ -43,40 +37,29 @@ enum HOSDataTypes
     DATA_GO_MARNAK,
     DATA_GO_ABEDNEUM,
     DATA_GO_SKY_FLOOR,
-    DATA_GO_TRIBUNAL_CHEST
+    DATA_SJONNIR_DOOR,
+    DATA_MAIDEN_DOOR
 };
-
-enum HOSCreatureIds
+enum Creatures
 {
-    NPC_MAIDEN_OF_GRIEF         = 27975,
-    NPC_KRYSTALLUS              = 27977,
-    NPC_SJONNIR_THE_IRONSHAPER  = 27978,
-    NPC_MARNAK                  = 30897,
-    NPC_KADDRAK                 = 30898,
-    NPC_ABEDNEUM                = 30899,
-    NPC_BRANN                   = 28070
+    CREATURE_MAIDEN                                        = 27975,
+    CREATURE_KRYSTALLUS                                    = 27977,
+    CREATURE_SJONNIR                                       = 27978,
+    CREATURE_MARNAK                                        = 30897,
+    CREATURE_KADDRAK                                       = 30898,
+    CREATURE_ABEDNEUM                                      = 30899,
+    CREATURE_BRANN                                         = 28070
 };
-
-enum HOSGameObjectIds
+enum GameObjects
 {
-    GO_ABEDNEUM                 = 191669,
-    GO_MARNAK                   = 191670,
-    GO_KADDRAK                  = 191671,
-    GO_MAIDEN_DOOR              = 191292,
-    GO_BRANN_DOOR               = 191295,
-    GO_SJONNIR_DOOR             = 191296,
-    GO_TRIBUNAL_CONSOLE         = 193907,
-    GO_TRIBUNAL_CHEST           = 190586,
-    GO_TRIBUNAL_CHEST_HERO      = 193996,
-    GO_TRIBUNAL_SKY_FLOOR       = 191527
+    GO_ABEDNEUM                                            = 191669,
+    GO_MARNAK                                              = 192170,
+    GO_KADDRAK                                             = 192171,
+    GO_MAIDEN_DOOR                                         = 191292,
+    GO_BRANN_DOOR                                          = 191295,
+    GO_SJONNIR_DOOR                                        = 191296,
+    GO_TRIBUNAL_CONSOLE                                    = 193907,
+    GO_TRIBUNAL_CHEST                                      = 190586,
+    GO_TRIBUNAL_CHEST_HERO                                 = 193996
 };
-
-template <class AI, class T>
-inline AI* GetHallsOfStoneAI(T* obj)
-{
-    return GetInstanceAI<AI>(obj, HoSScriptName);
-}
-
-#define RegisterHallsOfStoneCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetHallsOfStoneAI)
-
-#endif // HALLS_OF_STONE_H_
+#endif

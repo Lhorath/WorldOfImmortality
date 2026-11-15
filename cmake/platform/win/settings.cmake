@@ -1,15 +1,28 @@
-target_compile_definitions(trinity-compile-option-interface
-  INTERFACE
-    _WIN32_WINNT=0x0A00                     # Windows 10
-    NTDDI_VERSION=0x0A000007                # 19H1 (1903)
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
-    TRINITY_REQUIRED_WINDOWS_BUILD=18362)
+# Platform-specfic options
+option(USE_MYSQL_SOURCES "Use included MySQL-sources to build libraries" 1)
 
-# set up output paths for executable binaries (.exe-files, and .dll-files on DLL-capable platforms)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+# Package overloads
+set(ACE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dep/acelite)
+set(ACE_LIBRARY "ace")
+set(BZIP2_LIBRARIES "bzip2")
+set(ZLIB_LIBRARIES "zlib")
 
-# add WindowsSettings.manifest to all executables
-target_sources(trinity-core-interface
-  INTERFACE
-    $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:${CMAKE_SOURCE_DIR}/cmake/platform/win/WindowsSettings.manifest>)
+if( USE_MYSQL_SOURCES )
+  set(MYSQL_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dep/mysqllite/include)
+  set(MYSQL_LIBRARY "libmysql")
+  set( MYSQL_FOUND 1 )
+  message(STATUS "Using supplied MySQL sources")
+endif()
+
+# check the CMake preload parameters (commented out by default)
+
+# overload CMAKE_INSTALL_PREFIX if not being set properly
+#if( WIN32 )
+#  if( NOT CYGWIN )
+#    if( NOT CMAKE_INSTALL_PREFIX )
+#      set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/bin")
+#    endif()
+#  endif()
+#endif()
+
+include(${CMAKE_SOURCE_DIR}/cmake/compiler/msvc/settings.cmake)

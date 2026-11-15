@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,274 +16,151 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "Containers.h"
-#include "Player.h"
-#include "ScriptedCreature.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
+/* ScriptData
+SDName: Boss_Moam
+SD%Complete: 90
+SDComment: TODO: Adjust timer, correct Stone phase buff
+SDCategory: Ruins of Ahn'Qiraj
+EndScriptData */
+
+#include "ScriptPCH.h"
 #include "ruins_of_ahnqiraj.h"
 
-enum MoamTexts
+enum Emotes
 {
-    EMOTE_AGGRO                 = 0,
-    EMOTE_MANA_FULL             = 1,
-    EMOTE_ENERGIZE              = 2
+    EMOTE_AGGRO             = -1509000,
+    EMOTE_MANA_FULL         = -1509001
 };
 
-enum MoamSpells
+enum Spells
 {
-    // Combat
-    SPELL_TRAMPLE               = 15550,
-    SPELL_DRAIN_MANA            = 25676,
-    SPELL_ARCANE_ERUPTION       = 25672,
-    SPELL_SUMMON_MANA_FIENDS    = 25684,
-    SPELL_ENERGIZE              = 25685,
-
-    // Misc
-    SPELL_ZERO_MANA_FULL_HEALTH = 23777,
-    SPELL_DROP_OBSIDIAN         = 27630,
-
-    // Scripts
-    SPELL_SUMMON_MANA_FIEND_1   = 25681,
-    SPELL_SUMMON_MANA_FIEND_2   = 25682,
-    SPELL_SUMMON_MANA_FIEND_3   = 25683,
-    SPELL_DRAIN_MANA_EFFECT     = 25671,
-    SPELL_DRAIN_MANA_VISUAL     = 26639
+    SPELL_TRAMPLE           = 15550,
+    SPELL_DRAINMANA         = 27256,    //Doesn't exist ?
+    SPELL_ARCANEERUPTION    = 25672,
+    SPELL_SUMMONMANA        = 25681,    //Summon Mana fiend. It only summons one so exec it three times
+    SPELL_GRDRSLEEP         = 24360     //Greater Dreamless Sleep
 };
 
-enum MoamEvents
+enum Creatures
 {
-    EVENT_TRAMPLE               = 1,
-    EVENT_DRAIN_MANA,
-    EVENT_STONE_PHASE,
-    EVENT_ARCANE_ERUPTION
+    CREATURE_MANA_FIEND     = 15527
 };
 
-enum MoamMisc
+enum CombatPhase
 {
-    MAX_MANA_FIENDS             = 3
+    NORMAL,
+    STONE
 };
 
-// 15340 - Moam
-struct boss_moam : public BossAI
+class boss_moam : public CreatureScript
 {
-    boss_moam(Creature* creature) : BossAI(creature, DATA_MOAM), _deadManaFiendCount(0) { }
+public:
+    boss_moam() : CreatureScript("boss_moam") { }
 
-    void JustAppeared() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        DoCastSelf(SPELL_ZERO_MANA_FULL_HEALTH);
+        return new boss_moamAI (pCreature);
     }
 
-    void Reset() override
+    struct boss_moamAI : public ScriptedAI
     {
-        _Reset();
-        _deadManaFiendCount = 0;
-    }
-
-    void JustEngagedWith(Unit* who) override
-    {
-        BossAI::JustEngagedWith(who);
-
-        Talk(EMOTE_AGGRO);
-
-        events.ScheduleEvent(EVENT_TRAMPLE, 10s, 25s);
-        events.ScheduleEvent(EVENT_DRAIN_MANA, 6s);
-        events.ScheduleEvent(EVENT_STONE_PHASE, 90s);
-        events.ScheduleEvent(EVENT_ARCANE_ERUPTION, 1s);
-    }
-
-    void SummonedCreatureDies(Creature* /*summon*/, Unit* /*killer*/) override
-    {
-        _deadManaFiendCount++;
-
-        if (_deadManaFiendCount == MAX_MANA_FIENDS)
+        boss_moamAI(Creature *c) : ScriptedAI(c)
         {
-            me->RemoveAurasDueToSpell(SPELL_ENERGIZE);
-            _deadManaFiendCount = 0;
+            pInstance = c->GetInstanceScript();
         }
-    }
 
-    void OnSpellCast(SpellInfo const* spell) override
-    {
-        switch (spell->Id)
+        uint32 uiTrampleTimer;
+        uint32 uiDrainManaTimer;
+        uint32 uiPhaseTimer;
+        CombatPhase Phase;
+
+        InstanceScript *pInstance;
+
+        void Reset()
         {
-            case SPELL_ARCANE_ERUPTION:
-                // Is there a spell for that? Maybe Zero Mana/Full Health but with a check to prevent setting full health if creature is in combat?
-                me->SetPower(POWER_MANA, 0);
-                Talk(EMOTE_MANA_FULL);
-                break;
-            case SPELL_SUMMON_MANA_FIENDS:
-                DoCastSelf(SPELL_ENERGIZE);
-                Talk(EMOTE_ENERGIZE);
-                break;
-            default:
-                break;
+            uiTrampleTimer = urand(3000,7000);
+            uiDrainManaTimer = urand(3000,7000);
+            uiPhaseTimer = 90000;
+            Phase = NORMAL;
+            me->SetPower(POWER_MANA,0);
+
+            if (pInstance)
+                pInstance->SetData(DATA_MOAM_EVENT, NOT_STARTED);
         }
-    }
 
-    void JustReachedHome() override
-    {
-        _JustReachedHome();
-        DoCastSelf(SPELL_ZERO_MANA_FULL_HEALTH);
-    }
-
-    void JustDied(Unit* /*killer*/) override
-    {
-        _JustDied();
-        DoCastSelf(SPELL_DROP_OBSIDIAN, true);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        void EnterCombat(Unit * /*who*/)
         {
-            switch (eventId)
+            DoScriptText(EMOTE_AGGRO, me);
+
+            if (pInstance)
+                pInstance->SetData(DATA_MOAM_EVENT, IN_PROGRESS);
+        }
+
+        void JustDied(Unit * /*killer*/)
+        {
+            if (pInstance)
+                pInstance->SetData(DATA_MOAM_EVENT, DONE);
+        }
+
+        void DrainMana()
+        {
+            for (uint8 i=0;i<6;++i)
             {
-                case EVENT_TRAMPLE:
-                    DoCastSelf(SPELL_TRAMPLE);
-                    events.Repeat(10s, 15s);
-                    break;
-                case EVENT_DRAIN_MANA:
-                    DoCastSelf(SPELL_DRAIN_MANA);
-                    events.Repeat(6s);
-                    break;
-                case EVENT_STONE_PHASE:
-                    _deadManaFiendCount = 0;
-                    DoCastSelf(SPELL_SUMMON_MANA_FIENDS);
-                    events.Repeat(130s);
-                    break;
-                case EVENT_ARCANE_ERUPTION:
-                    if (me->GetPower(POWER_MANA) == me->GetMaxPower(POWER_MANA))
-                        DoCastSelf(SPELL_ARCANE_ERUPTION);
-                    events.Repeat(1s);
-                    break;
-                default:
-                    break;
+                if (Unit* pTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                {
+                    pTarget->ModifyPower(POWER_MANA, -500);
+                    me->ModifyPower(POWER_MANA, 1000);
+                }
             }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
         }
 
-        DoMeleeAttackIfReady();
-    }
-
-private:
-    uint8 _deadManaFiendCount;
-};
-
-// 25684 - Summon Mana Fiends
-class spell_moam_summon_mana_fiends : public SpellScript
-{
-    PrepareSpellScript(spell_moam_summon_mana_fiends);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo(
+        void UpdateAI(const uint32 diff)
         {
-            SPELL_SUMMON_MANA_FIEND_1,
-            SPELL_SUMMON_MANA_FIEND_2,
-            SPELL_SUMMON_MANA_FIEND_3
-        });
-    }
+            if (Phase == NORMAL)
+            {
+                if (!UpdateVictim())
+                    return;
 
-    void HandleScript(SpellEffIndex /*effIndex*/)
-    {
-        Unit* caster = GetCaster();
-        caster->CastSpell(caster, SPELL_SUMMON_MANA_FIEND_1, true);
-        caster->CastSpell(caster, SPELL_SUMMON_MANA_FIEND_2, true);
-        caster->CastSpell(caster, SPELL_SUMMON_MANA_FIEND_3, true);
-    }
+                //If we are 100%MANA cast Arcane Erruption
+                if (me->GetPower(POWER_MANA) == me->GetMaxPower(POWER_MANA))
+                {
+                    DoCast(me->getVictim(), SPELL_ARCANEERUPTION);
+                    DoScriptText(EMOTE_MANA_FULL, me);
+                    me->SetPower(POWER_MANA,0);
+                }
 
-    void Register() override
-    {
-        OnEffectHit += SpellEffectFn(spell_moam_summon_mana_fiends::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
-};
+                //Trample Spell
+                if (uiTrampleTimer <= diff)
+                {
+                    DoCast(me->getVictim(), SPELL_TRAMPLE);
+                    uiTrampleTimer = urand(3000,7000);
+                } else uiTrampleTimer -= diff;
 
-// 25685 - Energize
-class spell_moam_energize : public AuraScript
-{
-    PrepareAuraScript(spell_moam_energize);
+                //Drain Mana
+                if (uiDrainManaTimer <= diff)
+                {
+                    DrainMana();
+                    uiDrainManaTimer = urand(3000,7000);
+                } else uiDrainManaTimer -= diff;
 
-    void OnPeriodic(AuraEffect const* /*aurEff*/)
-    {
-        if (GetTarget()->GetPower(POWER_MANA) == GetTarget()->GetMaxPower(POWER_MANA))
-            Remove();
-    }
+                DoMeleeAttackIfReady();
 
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_moam_energize::OnPeriodic, EFFECT_1, SPELL_AURA_PERIODIC_ENERGIZE);
-    }
-};
+                //After 90secs change phase
+                if (uiPhaseTimer <= diff)
+                {
+                    Phase = STONE;
+                    DoCast(me, SPELL_SUMMONMANA);
+                    DoCast(me, SPELL_SUMMONMANA);
+                    DoCast(me, SPELL_SUMMONMANA);
+                    DoCast(me, SPELL_GRDRSLEEP);
+                } else uiPhaseTimer -= diff;
+            }
+        }
+    };
 
-// 25676 - Drain Mana
-class spell_moam_drain_mana : public SpellScript
-{
-    PrepareSpellScript(spell_moam_drain_mana);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_DRAIN_MANA_EFFECT });
-    }
-
-    void FilterTargets(std::list<WorldObject*>& targets)
-    {
-        Trinity::Containers::RandomResize(targets, [](WorldObject* target)
-        {
-            return target->IsPlayer() && target->ToPlayer()->GetPowerType() == POWER_MANA;
-        }, 6);
-    }
-
-    void HandleScript(SpellEffIndex /*effIndex*/)
-    {
-        GetCaster()->CastSpell(GetHitUnit(), SPELL_DRAIN_MANA_EFFECT, true);
-    }
-
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_moam_drain_mana::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
-        OnEffectHitTarget += SpellEffectFn(spell_moam_drain_mana::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
-};
-
-// 25671 - Drain Mana
-// 25755 - Drain Mana
-class spell_moam_drain_mana_effect : public SpellScript
-{
-    PrepareSpellScript(spell_moam_drain_mana_effect);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_DRAIN_MANA_VISUAL });
-    }
-
-    void HandleScript(SpellEffIndex /*effIndex*/)
-    {
-        GetHitUnit()->CastSpell(GetCaster(), SPELL_DRAIN_MANA_VISUAL, true);
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_moam_drain_mana_effect::HandleScript, EFFECT_1, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
 };
 
 void AddSC_boss_moam()
 {
-    RegisterAQ20CreatureAI(boss_moam);
-    RegisterSpellScript(spell_moam_summon_mana_fiends);
-    RegisterSpellScript(spell_moam_energize);
-    RegisterSpellScript(spell_moam_drain_mana);
-    RegisterSpellScript(spell_moam_drain_mana_effect);
+    new boss_moam();
 }

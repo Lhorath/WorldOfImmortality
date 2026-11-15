@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -21,18 +21,20 @@
 #include "hyjal.h"
 #include "ScriptedEscortAI.h"
 
-struct hyjal_trashAI : public EscortAI
+#define MINRAIDDAMAGE  700000//minimal damage before trash can drop loot and reputation, resets if faction leader dies
+
+struct hyjal_trashAI : public npc_escortAI
 {
-    hyjal_trashAI(Creature* creature);
+    hyjal_trashAI(Creature *c);
 
-    void UpdateAI(uint32 diff) override;
+    void UpdateAI(const uint32 diff);
 
-    void JustDied(Unit* /*killer*/) override;
+    void JustDied(Unit* /*killer*/);
 
-    void DamageTaken(Unit* done_by, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override;
+    void DamageTaken(Unit *done_by, uint32 &damage);
 
     public:
-        InstanceScript* instance;
+        InstanceScript* pInstance;
         bool IsEvent;
         uint32 Delay;
         uint32 LastOverronPos;

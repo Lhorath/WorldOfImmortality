@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,897 +16,974 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ScriptMgr.h"
-#include "GameObject.h"
-#include "InstanceScript.h"
-#include "Map.h"
-#include "MotionMaster.h"
-#include "ObjectAccessor.h"
-#include "Player.h"
-#include "ScriptedCreature.h"
-#include "ScriptedGossip.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
-#include "TemporarySummon.h"
+/* ScriptData
+SDName: Trial Of the crusader
+SD%Complete: ??%
+SDComment: event script based on /dev/rsa
+SDCategory: trial_of_the_crusader
+EndScriptData */
+
+//Known Bugs:
+// - Need better implementation of Gossip and correct gossip text and option
+// - Misses Dalaran Teleport at the end.
+
+#include "ScriptPCH.h"
 #include "trial_of_the_crusader.h"
-#include "Weather.h"
 
-enum Yells
+enum eYells
 {
-    // Highlord Tirion Fordring
-    TIRION_SAY_WELCOME              = 0,
-    TIRION_SAY_GORMOK               = 1,
-    TIRION_SAY_JORMUNGARS           = 2,
-    TIRION_SAY_ICEHOWL              = 3,
-    TIRION_SAY_BEASTS_DONE          = 4,
-    TIRION_SAY_BEASTS_WIPE          = 5,
-    TIRION_SAY_WILFRED              = 6,
-    TIRION_SAY_KILL_JARAXXUS        = 7,
-    TIRION_SAY_LAMENT               = 8,
-    TIRION_SAY_CALM_DOWN            = 9,
-    TIRION_SAY_CHAMPIONS            = 10,
-    TIRION_SAY_ALLOW_COMBAT         = 11,
-    TIRION_SAY_TRAGIC_VICTORY       = 12,
-    TIRION_SAY_WORK_TOGETHER        = 13,
-    TIRION_SAY_GAME_BEGIN           = 14,
-    TIRION_SAY_UNITED               = 15,
-    TIRION_SAY_ARTHAS               = 16,
-
-    // Varian Wrynn
-    VARIAN_SAY_BEASTS               = 0,
-    VARIAN_SAY_COME_PIGS            = 1,
-    VARIAN_SAY_DEMAND_JUSTICE       = 2,
-    VARIAN_SAY_FIGHT_GLORY          = 3,
-    VARIAN_SAY_FACTION_DEAD         = 4,
-    VARIAN_SAY_VALKYR_DEAD          = 5,
-    VARIAN_SAY_KILLED               = 6,
-
-    // Garrosh
-    GARROSH_SAY_BEASTS              = 0,
-    GARROSH_SAY_ALLIANCE_DOGS       = 1,
-    GARROSH_SAY_DEMAND_JUSTICE      = 2,
-    GARROSH_SAY_NO_MERCY            = 3,
-    GARROSH_SAY_FACTION_DEAD        = 4,
-    GARROSH_SAY_VALKYR_DEAD         = 5,
-    GARROSH_SAY_KILLED              = 6,
-
-    // Wilfred Fizzlebang
-    WILFRED_SAY_INTRO               = 0,
-    WILFRED_SAY_OBLIVION            = 1,
-    WILFRED_SAY_MASTER              = 2,
-    WILFRED_SAY_DEAD                = 3,
-
-    // The Lich King Voice
-    LK_VOICE_SAY_CHALLENGE          = 4,
-    LK_VOICE_SAY_SOULS_WILL_BE_MINE = 5,
-
-    //  The Lich King
-    LK_SAY_EMPIRE                   = 0,
-
-    // Highlord Tirion Fordring (Anu'barak)
-    SAY_STAGE_4_06                  = 0,
-    SAY_STAGE_4_07                  = 1
+    SAY_STAGE_0_01            = -1649070,
+    SAY_STAGE_0_02            = -1649071,
+    SAY_STAGE_0_03a           = -1649072,
+    SAY_STAGE_0_03h           = -1649073,
+    SAY_STAGE_0_04            = -1649074,
+    SAY_STAGE_0_05            = -1649075,
+    SAY_STAGE_0_06            = -1649076,
+    SAY_STAGE_0_WIPE          = -1649077,
+    SAY_STAGE_1_01            = -1649080,
+    SAY_STAGE_1_02            = -1649081,
+    SAY_STAGE_1_03            = -1649082,
+    SAY_STAGE_1_04            = -1649083,
+    SAY_STAGE_1_05            = -1649030, //INTRO Jaraxxus
+    SAY_STAGE_1_06            = -1649084,
+    SAY_STAGE_1_07            = -1649086,
+    SAY_STAGE_1_08            = -1649087,
+    SAY_STAGE_1_09            = -1649088,
+    SAY_STAGE_1_10            = -1649089,
+    SAY_STAGE_1_11            = -1649090,
+    SAY_STAGE_2_01            = -1649091,
+    SAY_STAGE_2_02a           = -1649092,
+    SAY_STAGE_2_02h           = -1649093,
+    SAY_STAGE_2_03            = -1649094,
+    SAY_STAGE_2_04a           = -1649095,
+    SAY_STAGE_2_04h           = -1649096,
+    SAY_STAGE_2_05a           = -1649097,
+    SAY_STAGE_2_05h           = -1649098,
+    SAY_STAGE_2_06            = -1649099,
+    SAY_STAGE_3_01            = -1649100,
+    SAY_STAGE_3_02            = -1649101,
+    SAY_STAGE_3_03a           = -1649102,
+    SAY_STAGE_3_03h           = -1649103,
+    SAY_STAGE_4_01            = -1649104,
+    SAY_STAGE_4_02            = -1649105,
+    SAY_STAGE_4_03            = -1649106,
+    SAY_STAGE_4_04            = -1649107,
+    SAY_STAGE_4_05            = -1649108,
+    SAY_STAGE_4_06            = -1649109,
+    SAY_STAGE_4_07            = -1649110,
 };
 
-enum TrialMisc
+struct _Messages
 {
-    SPLINE_INITIAL_MOVEMENT    = 1,
-    POINT_SUMMON               = 1,
-    POINT_MIDDLE               = 2,
-    GROUP_VALKYR               = 1,
-    GOSSIPID_FAIL              = 1,
-    POINT_BARRETT_DESPAWN      = 1,
-    AREA_TRIAL_OF_THE_CRUSADER = 4722
+    eAnnouncerMessages msgnum;
+    uint32 id;
+    bool state;
+    uint32 encounter;
 };
 
-enum TrialEvents
+static _Messages _GossipMessage[]=
 {
-    EVENT_GORMOK_INTRO = 1,
-    EVENT_GORMOK_EXCLAMATION,
-    EVENT_SPAWM_GORMOK,
-    EVENT_EXCLAMATION,
-    EVENT_SUMMON_BARRET,
-    EVENT_START_CALL_WILFRED,
-    EVENT_KILL_JARAXXUS,
-    EVENT_EMOTE_SHEATHE,
-    EVENT_TIRION_LAMENT,
-    EVENT_TIRION_CALM_DOWN,
-    EVENT_ALLOW_COMBAT,
-    EVENT_TRAGIC_VICTORY,
-    EVENT_SUMMON_WILFRED,
-    EVENT_START_MOVE,
-    EVENT_OBLIVION,
-    EVENT_SUMMON_JARAXXUS,
-    EVENT_SET_TARGET,
-    EVENT_LAST_TALK,
-    EVENT_SUMMON_VALKYR,
-    EVENT_OPEN_GATE,
-    EVENT_SAY_ARTHAS,
-    EVENT_ALLIANCE_DOGS,
-    EVENT_COME_PIGS,
-    EVENT_DEMAND_JUSTICE,
-    EVENT_NO_MERCY,
-    EVENT_VALKYR_DEAD,
-    EVENT_LICH_KING_SAY_CHALLENGE,
-    EVENT_LICH_KING_SAY_SOULS,
-    EVENT_SUMMON_LICH_KING,
-    EVENT_BREAK_PLATFORM,
-    EVENT_EMOTE_TALK,
-    EVENT_REMOVE_EMOTE_TALK,
-    EVENT_EMOTE_EXCLAMATION,
-    EVENT_EMOTE_KNEEL,
-    EVENT_SUMMON_CHAMPIONS,
-    EVENT_START_CHAMPIONS,
-    EVENT_START_TALK
+    {MSG_BEASTS, GOSSIP_ACTION_INFO_DEF+1, false, TYPE_BEASTS},
+    {MSG_JARAXXUS, GOSSIP_ACTION_INFO_DEF+2, false, TYPE_JARAXXUS},
+    {MSG_CRUSADERS, GOSSIP_ACTION_INFO_DEF+3, false, TYPE_CRUSADERS},
+    {MSG_VALKIRIES, GOSSIP_ACTION_INFO_DEF+4, false, TYPE_VALKIRIES},
+    {MSG_LICH_KING, GOSSIP_ACTION_INFO_DEF+5, false, TYPE_ANUBARAK},
+    {MSG_ANUBARAK, GOSSIP_ACTION_INFO_DEF+6, true, TYPE_ANUBARAK}
 };
 
-enum TocMenuIds
+enum
 {
-    MENUID_NORTHREND_BEASTS  = 10600,
-    MENUID_JARAXXUS          = 10610,
-    MENUID_FACTION_CHAMPIONS = 10687,
-    MENUID_VALKYR            = 10688,
-    MENUID_LK                = 10693
+    NUM_MESSAGES = 6,
 };
 
-Position const BarretSpawnPosition       = { 559.1528f, 90.55729f, 395.2734f, 5.078908f };
-Position const WilfredSpawnPosition      = { 563.6007f, 208.5278f, 395.2696f, 4.729842f };
-Position const JaraxxusSpawnPosition     = { 563.8264f, 140.6563f, 393.9861f, 4.694936f };
-Position const PortalTargetSpawnPosition = { 563.6597f, 139.7569f, 399.2507f, 4.712389f };
-Position const PurpleGroundSpawnPosition = { 563.6858f, 139.4323f, 393.9862f, 4.694936f };
-Position const ArthasPortalSpawnPosition = { 563.6996f, 175.9826f, 394.5042f, 4.694936f };
-Position const LichKingSpawnPosition     = { 563.5712f, 174.8351f, 394.4954f, 4.712389f };
-Position const CorpseTeleportPosition    = { 631.9390f, 136.5040f, 142.5540f, 0.803332f };
-
-Position const NorthrendBeastsSpawnPositions[] =
+class npc_announcer_toc10 : public CreatureScript
 {
-    { 563.9358f, 229.8299f, 394.8061f, 4.694936f }, // Gormok \ Icehowl
-    { 564.2802f, 233.1322f, 394.7897f, 1.621917f }, // Dreadscale
-};
+    public:
 
-Position const AnubarakLoc[] =
-{
-    { 783.9305f, 132.9722f, 142.6711f, 3.141593f }, // 0 - Anub'arak Spawn Location (sniffed)
-    { 695.240051f, 137.834824f, 142.200000f, 0 },  // 1 - Anub'arak move point location
-    { 694.886353f, 102.484665f, 142.119614f, 0 },  // 3 - Nerub Spawn
-    { 694.500671f, 185.363968f, 142.117905f, 0 },  // 5 - Nerub Spawn
-    { 731.987244f, 83.3824690f, 142.119614f, 0 },  // 2 - Nerub Spawn
-    { 740.184509f, 193.443390f, 142.117584f, 0 }   // 4 - Nerub Spawn
-};
+        npc_announcer_toc10() : CreatureScript("npc_announcer_toc10") { }
 
-Position const EndSpawnLoc[] =
-{
-    { 648.9167f, 131.0208f, 141.6161f, 0.f }, // 0 - Highlord Tirion Fordring
-    { 649.1614f, 142.0399f, 141.3057f, 0.f }, // 1 - Argent Mage
-    { 644.6250f, 149.2743f, 140.6015f, 5.f }  // 2 - Portal to Dalaran
-};
-
-// ToDo: Remove it in nexts rewrites
-Position const ToCCommonLoc[] =
-{
-    { 559.257996f, 90.266197f, 395.122986f, 0.0f },  //  0 Barrent
-    { 563.672974f, 139.57100f, 393.837006f, 0.0f },    //  1 Center
-    { 563.833008f, 187.244995f, 394.50000f, 0.0f },      //  2 Backdoor
-    { 577.347839f, 195.338888f, 395.14000f, 0.0f },     //  3 - Right
-    { 550.955933f, 195.338888f, 395.14000f, 0.0f },     //  4 - Left
-    { 563.833008f, 195.244995f, 394.585561f, 0.0f }, //  5 - Center
-    { 573.500000f, 180.500000f, 395.14f, 0.0f },               //  6 Move 0 Right
-    { 553.5f, 180.5f, 400.5521f, 0 },               //  7 Move 0 Left
-    { 573.0f, 170.0f, 400.5521f, 0 },               //  8 Move 1 Right
-    { 549.5139f, 170.1389f, 394.7965f, 5.009095f }, //  9 Move 1 Left
-    { 563.8f, 216.1f, 395.1f, 0 },                // 10 Behind the door
-
-    { 575.042358f, 195.260727f, 395.137146f, 0 }, // 5
-    { 552.248901f, 195.331955f, 395.132658f, 0 }, // 6
-    { 573.342285f, 195.515823f, 395.135956f, 0 }, // 7
-    { 554.239929f, 195.825577f, 395.137909f, 0 }, // 8
-    { 571.042358f, 195.260727f, 395.137146f, 0 }, // 9
-    { 556.720581f, 195.015472f, 395.132658f, 0 }, // 10
-    { 569.534119f, 195.214478f, 395.139526f, 0 }, // 11
-    { 569.231201f, 195.941071f, 395.139526f, 0 }, // 12
-    { 558.811610f, 195.985779f, 394.671661f, 0 }, // 13
-    { 567.641724f, 195.351501f, 394.659943f, 0 }, // 14
-    { 560.633972f, 195.391708f, 395.137543f, 0 }, // 15
-    { 565.816956f, 195.477921f, 395.136810f, 0 }  // 16
-};
-
-class ArthasPortalEvent : public BasicEvent
-{
-public:
-    ArthasPortalEvent(Unit* owner) : BasicEvent(), _owner(owner) { }
-
-    bool Execute(uint64 /*eventTime*/, uint32 /*diff*/) override
-    {
-        _owner->CastSpell(_owner, SPELL_ARTHAS_PORTAL, true);
-        _owner->GetMap()->SetZoneWeather(AREA_TRIAL_OF_THE_CRUSADER, WEATHER_STATE_MEDIUM_SNOW, 0.75f);
-        return true;
-    }
-
-private:
-    Unit* _owner;
-};
-
-struct npc_barrett_toc : public ScriptedAI
-{
-    npc_barrett_toc(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void SendActionToTirion(uint32 action)
-    {
-        if (Creature* fordring = _instance->GetCreature(DATA_FORDRING))
-            fordring->AI()->DoAction(action);
-        me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-        me->GetMotionMaster()->MoveAlongSplineChain(POINT_BARRETT_DESPAWN, SPLINE_INITIAL_MOVEMENT, false);
-    }
-
-    bool OnGossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
-    {
-        switch (menuId)
+        struct npc_announcer_toc10AI : public ScriptedAI
         {
-            case MENUID_NORTHREND_BEASTS:
-                if (gossipListId == GOSSIPID_FAIL)
-                    SendActionToTirion(ACTION_START_GORMOK_FAIL);
-                else
-                    SendActionToTirion(ACTION_START_GORMOK);
-                break;
-            case MENUID_JARAXXUS:
-                if (gossipListId == GOSSIPID_FAIL)
+            npc_announcer_toc10AI(Creature* pCreature) : ScriptedAI(pCreature)
+            {
+                m_pInstance = (InstanceScript*)pCreature->GetInstanceScript();
+            }
+
+            InstanceScript* m_pInstance;
+
+            void Reset()
+            {
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                if (Creature *pAlly = GetClosestCreatureWithEntry(me, NPC_THRALL, 300.0f))
+                    pAlly->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                if (Creature *pAlly = GetClosestCreatureWithEntry(me, NPC_PROUDMOORE, 300.0f))
+                    pAlly->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            }
+
+            void AttackStart(Unit* /*pWho*/) {}
+        };
+
+        bool OnGossipHello(Player* player, Creature* creature)
+        {
+            InstanceScript* instanceScript = creature->GetInstanceScript();
+            if (!instanceScript)
+                return true;
+
+            char const* _message = "We are ready!";
+
+            if (player->isInCombat() || instanceScript->IsEncounterInProgress() || instanceScript->GetData(TYPE_EVENT))
+                return true;
+
+            uint8 i = 0;
+            for (; i < NUM_MESSAGES; ++i)
+            {
+                if ((!_GossipMessage[i].state && instanceScript->GetData(_GossipMessage[i].encounter) != DONE)
+                    || (_GossipMessage[i].state && instanceScript->GetData(_GossipMessage[i].encounter) == DONE))
                 {
-                    if (Creature* jaraxxus = _instance->GetCreature(DATA_JARAXXUS))
-                        jaraxxus->AI()->DoAction(ACTION_JARAXXUS_ENGAGE);
-                    me->GetMotionMaster()->MoveAlongSplineChain(POINT_BARRETT_DESPAWN, SPLINE_INITIAL_MOVEMENT, false);
-                    CloseGossipMenuFor(player);
-                    return true;
+                    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, _message, GOSSIP_SENDER_MAIN, _GossipMessage[i].id);
+                    break;
                 }
-                else
-                    SendActionToTirion(ACTION_START_JARAXXUS_EVENT);
-                break;
-            case MENUID_FACTION_CHAMPIONS:
-                if (gossipListId == GOSSIPID_FAIL)
-                    SendActionToTirion(ACTION_START_CHAMPIONS_ENGAGE);
-                else
-                    SendActionToTirion(ACTION_START_CHAMPIONS);
-                break;
-            case MENUID_VALKYR:
-                if (gossipListId == GOSSIPID_FAIL)
-                    SendActionToTirion(ACTION_START_VALKYR_ENGAGE);
-                else
-                    SendActionToTirion(ACTION_START_VALKYR);
-                break;
-            case MENUID_LK:
-                SendActionToTirion(ACTION_START_LK_EVENT);
-                break;
-            default:
-                return false;
-        }
-
-        CloseGossipMenuFor(player);
-        return true;
-    }
-
-    void MovementInform(uint32 type, uint32 pointId) override
-    {
-        if (type != SPLINE_CHAIN_MOTION_TYPE)
-            return;
-
-        if (pointId == POINT_BARRETT_DESPAWN)
-            me->DespawnOrUnsummon();
-    }
-
-private:
-    InstanceScript* _instance;
-};
-
-struct boss_lich_king_toc : public ScriptedAI
-{
-    boss_lich_king_toc(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void Reset() override
-    {
-        me->SetReactState(REACT_PASSIVE);
-        _instance->SetBossState(DATA_LICH_KING, IN_PROGRESS);
-        _events.ScheduleEvent(EVENT_START_MOVE, 1s);
-    }
-
-    void MovementInform(uint32 type, uint32 pointId) override
-    {
-        if (type != SPLINE_CHAIN_MOTION_TYPE)
-            return;
-
-        if (pointId == POINT_MIDDLE)
-            _events.ScheduleEvent(EVENT_START_TALK, 4s);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _events.Update(diff);
-
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
-            {
-                case EVENT_START_MOVE:
-                    me->GetMotionMaster()->MoveAlongSplineChain(POINT_MIDDLE, SPLINE_INITIAL_MOVEMENT, true);
-                    break;
-                case EVENT_BREAK_PLATFORM:
-                    DoCastSelf(SPELL_LK_FROST_NOVA, true);
-                    DoCastSelf(SPELL_CORPSE_TELEPORT, true);
-                    DoCastSelf(SPELL_DESTROY_FLOOR_KNOCKUP, true);
-                    if (Creature* fordring = _instance->GetCreature(DATA_FORDRING))
-                        fordring->AI()->DoAction(ACTION_LK_EVENT_FINISHED);
-                    if (GameObject* floor = _instance->GetGameObject(DATA_COLISEUM_FLOOR))
-                        floor->SetDestructibleState(GO_DESTRUCTIBLE_DAMAGED);
-                    _instance->SetBossState(DATA_LICH_KING, DONE);
-                    break;
-                case EVENT_EMOTE_TALK:
-                    me->SetEmoteState(EMOTE_STATE_TALK);
-                    me->GetMap()->SetZoneWeather(AREA_TRIAL_OF_THE_CRUSADER, WEATHER_STATE_FOG, 0.0f);
-                    _events.ScheduleEvent(EVENT_EMOTE_EXCLAMATION, 10s);
-                    break;
-                case EVENT_EMOTE_EXCLAMATION:
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
-                    _events.ScheduleEvent(EVENT_EMOTE_KNEEL, 3s);
-                    break;
-                case EVENT_EMOTE_KNEEL:
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_KNEEL);
-                    break;
-                case EVENT_START_TALK:
-                    Talk(LK_SAY_EMPIRE);
-                    _events.ScheduleEvent(EVENT_EMOTE_TALK, 4s);
-                    _events.ScheduleEvent(EVENT_BREAK_PLATFORM, 18s);
-                    break;
-                default:
-                    break;
             }
-        }
-    }
 
-private:
-    InstanceScript* _instance;
-    EventMap _events;
+            player->SEND_GOSSIP_MENU(_GossipMessage[i].msgnum, creature->GetGUID());
+            return true;
+        }
+
+        bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action)
+        {
+            player->PlayerTalkClass->ClearMenus();
+            player->CLOSE_GOSSIP_MENU();
+            InstanceScript* instanceScript = creature->GetInstanceScript();
+            if (!instanceScript)
+                return true;
+
+            switch (action)
+            {
+                case GOSSIP_ACTION_INFO_DEF+1:
+                    if (instanceScript->GetData(TYPE_BEASTS) != DONE)
+                    {
+                        instanceScript->SetData(TYPE_EVENT, 110);
+                        instanceScript->SetData(TYPE_NORTHREND_BEASTS, NOT_STARTED);
+                        instanceScript->SetData(TYPE_BEASTS, NOT_STARTED);
+                    }
+                    break;
+                case GOSSIP_ACTION_INFO_DEF+2:
+                    if (Creature* jaraxxus = Unit::GetCreature(*player, instanceScript->GetData64(NPC_JARAXXUS)))
+                    {
+                        jaraxxus->RemoveAurasDueToSpell(SPELL_JARAXXUS_CHAINS);
+                        jaraxxus->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                        jaraxxus->SetReactState(REACT_AGGRESSIVE);
+                        jaraxxus->SetInCombatWithZone();
+                    }
+                    else if (instanceScript->GetData(TYPE_JARAXXUS) != DONE)
+                    {
+                        instanceScript->SetData(TYPE_EVENT, 1010);
+                        instanceScript->SetData(TYPE_JARAXXUS, NOT_STARTED);
+                    }
+                    break;
+                case GOSSIP_ACTION_INFO_DEF+3:
+                    if (instanceScript->GetData(TYPE_CRUSADERS) != DONE)
+                    {
+                        if (player->GetTeam() == ALLIANCE)
+                            instanceScript->SetData(TYPE_EVENT, 3000);
+                        else
+                            instanceScript->SetData(TYPE_EVENT, 3001);
+                        instanceScript->SetData(TYPE_CRUSADERS, NOT_STARTED);
+                    }
+                    break;
+                case GOSSIP_ACTION_INFO_DEF+4:
+                    if (instanceScript->GetData(TYPE_VALKIRIES) != DONE)
+                    {
+                        instanceScript->SetData(TYPE_EVENT, 4000);
+                        instanceScript->SetData(TYPE_VALKIRIES, NOT_STARTED);
+                    }
+                    break;
+                case GOSSIP_ACTION_INFO_DEF+5:
+                {
+                    if (instanceScript->GetData(TYPE_LICH_KING) != DONE && !player->isGameMaster())
+                        return true;
+
+                    if (GameObject* floor = GameObject::GetGameObject(*player, instanceScript->GetData64(GO_ARGENT_COLISEUM_FLOOR)))
+                        floor->TakenDamage(1000000);
+
+                    creature->CastSpell(creature, 69016, false);
+
+                    Creature* anubArak = Unit::GetCreature(*creature, instanceScript->GetData64(NPC_ANUBARAK));
+                    if (!anubArak || !anubArak->isAlive())
+                        anubArak = creature->SummonCreature(NPC_ANUBARAK, AnubarakLoc[0].GetPositionX(), AnubarakLoc[0].GetPositionY(), AnubarakLoc[0].GetPositionZ(), 3, TEMPSUMMON_CORPSE_TIMED_DESPAWN, DESPAWN_TIME);
+
+                    instanceScript->SetData(TYPE_ANUBARAK, NOT_STARTED);
+
+                    if (creature->IsVisible())
+                        creature->SetVisible(false);
+                    break;
+                }
+            }
+            creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+            return true;
+        }
+
+        CreatureAI* GetAI(Creature* creature) const
+        {
+            return new npc_announcer_toc10AI(creature);
+        }
 };
 
-struct npc_tirion_toc : public ScriptedAI
+class boss_lich_king_toc : public CreatureScript
 {
-    npc_tirion_toc(Creature* creature) : ScriptedAI(creature), _instance (creature->GetInstanceScript()), _factionLeaderData(0), _summons(me),
-    _jormungarsSummoned(false), _icehowlSummoned(false) { }
+    public:
 
-    void Reset() override
-    {
-        _events.Reset();
-        _factionLeaderData = _instance->GetData(DATA_TEAM) == ALLIANCE ? DATA_VARIAN : DATA_GARROSH;
-        _jormungarsSummoned = false;
-        _icehowlSummoned = false;
-        HandleBarrettSummon();
-    }
+        boss_lich_king_toc() : CreatureScript("boss_lich_king_toc") { }
 
-    void JustSummoned(Creature* summoned) override
-    {
-        _summons.Summon(summoned);
-    }
-
-    void HandleBarrettSummon()
-    {
-        if (IsHeroic() && _instance->GetBossState(DATA_NORTHREND_BEASTS) != DONE)
-            me->SummonCreature(NPC_BARRETT_BEASTS_HC, BarretSpawnPosition);
-        else if (_instance->GetBossState(DATA_NORTHREND_BEASTS) != DONE)
-            me->SummonCreature(NPC_BARRETT_BEASTS, BarretSpawnPosition);
-        else if (_instance->GetBossState(DATA_JARAXXUS) != DONE)
+        struct boss_lich_king_tocAI : public ScriptedAI
         {
-            me->SummonCreature(NPC_BARRETT_JARAXXUS, BarretSpawnPosition);
-            if (_instance->GetBossState(DATA_JARAXXUS) == FAIL)
-                DoAction(ACTION_SUMMON_JARAXXUS);
-        }
-        else if (_instance->GetBossState(DATA_FACTION_CRUSADERS) != DONE)
-            me->SummonCreature(NPC_BARRETT_FACTION, BarretSpawnPosition);
-        else if (_instance->GetBossState(DATA_TWIN_VALKIRIES) != DONE)
-            me->SummonCreature(NPC_BARRETT_VALKYR, BarretSpawnPosition);
-        else if (_instance->GetBossState(DATA_LICH_KING) != DONE)
-            me->SummonCreature(NPC_BARRETT_LK, BarretSpawnPosition);
-    }
+            boss_lich_king_tocAI(Creature *pCreature) : ScriptedAI(pCreature)
+            {
+                m_pInstance = (InstanceScript*)pCreature->GetInstanceScript();
+            }
 
-    void DoAction(int32 action) override
-    {
-        switch (action)
-        {
-            case ACTION_START_GORMOK:
-                Talk(TIRION_SAY_WELCOME);
-                _events.ScheduleEvent(EVENT_GORMOK_INTRO, 24s);
-                break;
-            case ACTION_START_GORMOK_FAIL:
-                _events.ScheduleEvent(EVENT_GORMOK_INTRO, 1ms);
-                break;
-            case ACTION_START_JORMUNGARS:
-                if (_jormungarsSummoned)
+            InstanceScript* m_pInstance;
+            uint32 m_uiUpdateTimer;
+
+            void Reset()
+            {
+                m_uiUpdateTimer = 0;
+                me->SetReactState(REACT_PASSIVE);
+                if (Creature* pSummoned = me->SummonCreature(NPC_TRIGGER, ToCCommonLoc[2].GetPositionX(), ToCCommonLoc[2].GetPositionY(), ToCCommonLoc[2].GetPositionZ(), 5, TEMPSUMMON_TIMED_DESPAWN, 60000))
+                {
+                    pSummoned->CastSpell(pSummoned, 51807, false);
+                    pSummoned->SetDisplayId(11686);
+                }
+                if (m_pInstance) m_pInstance->SetData(TYPE_LICH_KING, IN_PROGRESS);
+                me->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
+            }
+
+            void MovementInform(uint32 uiType, uint32 uiId)
+            {
+                if (uiType != POINT_MOTION_TYPE)
                     return;
-                _jormungarsSummoned = true;
-                Talk(TIRION_SAY_JORMUNGARS);
-                _instance->DoUseDoorOrButton(_instance->GetGuidData(DATA_MAIN_GATE));
-                me->SummonCreature(NPC_DREADSCALE, NorthrendBeastsSpawnPositions[1]);
-                _events.ScheduleEvent(EVENT_EXCLAMATION, 7s);
-                break;
-            case ACTION_START_ICEHOWL:
-                if (_icehowlSummoned)
-                    return;
-                _icehowlSummoned = true;
-                Talk(TIRION_SAY_ICEHOWL);
-                _instance->DoUseDoorOrButton(_instance->GetGuidData(DATA_MAIN_GATE));
-                me->SummonCreature(NPC_ICEHOWL, NorthrendBeastsSpawnPositions[0], TEMPSUMMON_DEAD_DESPAWN);
-                _events.ScheduleEvent(EVENT_EXCLAMATION, 6s);
-                break;
-            case ACTION_NORTHREND_BEASTS_WIPE:
-                _jormungarsSummoned = false;
-                _icehowlSummoned = false;
-                Talk(TIRION_SAY_BEASTS_WIPE);
-                _events.ScheduleEvent(EVENT_SUMMON_BARRET, 13s);
-                break;
-            case ACTION_NORTHREND_BEASTS_DEFEATED:
-                Talk(TIRION_SAY_BEASTS_DONE);
-                _events.ScheduleEvent(EVENT_EXCLAMATION, 2s);
-                _events.ScheduleEvent(EVENT_SUMMON_BARRET, 6s);
-                break;
-            case ACTION_START_JARAXXUS_EVENT:
-                _events.ScheduleEvent(EVENT_START_CALL_WILFRED, 1s);
-                break;
-            case ACTION_JARAXXUS_DEFEATED:
-                _events.ScheduleEvent(EVENT_TIRION_LAMENT, 7s);
-                break;
-            case ACTION_JARAXXUS_WIPE:
-                _events.ScheduleEvent(EVENT_SUMMON_BARRET, 30s);
-                break;
-            case ACTION_START_CHAMPIONS:
-            {
-                Talk(TIRION_SAY_CHAMPIONS);
-                uint32 data = _instance->GetData(DATA_TEAM) == ALLIANCE ? DATA_GARROSH : DATA_VARIAN;
-                if (Creature* otherFactionLeader = _instance->GetCreature(data))
-                    otherFactionLeader->AI()->DoAction(ACTION_START_CHAMPIONS);
-                _events.ScheduleEvent(EVENT_ALLOW_COMBAT, 26s);
-                break;
+                switch (uiId)
+                {
+                    case 0:
+                        m_pInstance->SetData(TYPE_EVENT, 5030);
+                        break;
+                    case 1:
+                        m_pInstance->SetData(TYPE_EVENT, 5050);
+                        break;
+                }
             }
-            case ACTION_FACTION_WIPE:
-                _events.ScheduleEvent(EVENT_SUMMON_BARRET, 4s);
-                break;
-            case ACTION_START_CHAMPIONS_ENGAGE:
+
+            void UpdateAI(const uint32 uiDiff)
             {
-                uint32 data = _instance->GetData(DATA_TEAM) == ALLIANCE ? DATA_GARROSH : DATA_VARIAN;
-                if (Creature* otherFactionLeader = _instance->GetCreature(data))
-                    otherFactionLeader->AI()->DoAction(ACTION_START_CHAMPIONS_ENGAGE);
-                _events.ScheduleEvent(EVENT_SUMMON_CHAMPIONS, 3s);
-                break;
+                if (!m_pInstance) return;
+                if (m_pInstance->GetData(TYPE_EVENT_NPC) != NPC_LICH_KING_1) return;
+
+                m_uiUpdateTimer = m_pInstance->GetData(TYPE_EVENT_TIMER);
+                if (m_uiUpdateTimer <= uiDiff)
+                {
+                    switch (m_pInstance->GetData(TYPE_EVENT))
+                    {
+                        case 5010:
+                            DoScriptText(SAY_STAGE_4_02, me);
+                            m_uiUpdateTimer = 3000;
+                            me->GetMotionMaster()->MovePoint(0, LichKingLoc[0]);
+                            m_pInstance->SetData(TYPE_EVENT, 5020);
+                            break;
+                        case 5030:
+                            DoScriptText(SAY_STAGE_4_04, me);
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_TALK);
+                            m_uiUpdateTimer = 10000;
+                            m_pInstance->SetData(TYPE_EVENT, 5040);
+                            break;
+                        case 5040:
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_NONE);
+                            me->GetMotionMaster()->MovePoint(1, LichKingLoc[1]);
+                            m_uiUpdateTimer = 1000;
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            break;
+                        case 5050:
+                            me->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 5060);
+                            break;
+                        case 5060:
+                            DoScriptText(SAY_STAGE_4_05, me);
+                            me->HandleEmoteCommand(EMOTE_ONESHOT_KNEEL);
+                            m_uiUpdateTimer = 2500;
+                            m_pInstance->SetData(TYPE_EVENT, 5070);
+                            break;
+                        case 5070:
+                            me->CastSpell(me, 68198, false);
+                            m_uiUpdateTimer = 1500;
+                            m_pInstance->SetData(TYPE_EVENT, 5080);
+                            break;
+                        case 5080:
+                            if (GameObject* pGoFloor = m_pInstance->instance->GetGameObject(m_pInstance->GetData64(GO_ARGENT_COLISEUM_FLOOR)))
+                                pGoFloor->TakenDamage(1000000);
+                            me->CastSpell(me, 69016, false);
+                            if (m_pInstance) m_pInstance->SetData(TYPE_LICH_KING, DONE);
+                            Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_ANUBARAK));
+                            if (!pTemp || !pTemp->isAlive())
+                                pTemp = me->SummonCreature(NPC_ANUBARAK, AnubarakLoc[0].GetPositionX(), AnubarakLoc[0].GetPositionY(), AnubarakLoc[0].GetPositionZ(), 3, TEMPSUMMON_CORPSE_TIMED_DESPAWN, DESPAWN_TIME);
+                            me->DespawnOrUnsummon();
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            m_uiUpdateTimer = 20000;
+                            break;
+                    }
+                } else m_uiUpdateTimer -= uiDiff;
+                m_pInstance->SetData(TYPE_EVENT_TIMER, m_uiUpdateTimer);
             }
-            case ACTION_CHAMPIONS_DEFEATED:
-                _events.ScheduleEvent(EVENT_TRAGIC_VICTORY, 7s);
-                break;
-            case ACTION_SUMMON_JARAXXUS:
-                me->SummonCreature(NPC_JARAXXUS, JaraxxusSpawnPosition);
-                break;
-            case ACTION_KILL_JARAXXUS:
-                _events.ScheduleEvent(EVENT_KILL_JARAXXUS, 6s);
-                break;
-            case ACTION_START_VALKYR:
-                Talk(TIRION_SAY_WORK_TOGETHER);
-                _events.ScheduleEvent(EVENT_SUMMON_VALKYR, 17s);
-                break;
-            case ACTION_VALKYR_WIPE:
-                _events.ScheduleEvent(EVENT_SUMMON_BARRET, 6s);
-                _summons.DespawnEntry(NPC_LIGHT_ESSENCE);
-                _summons.DespawnEntry(NPC_DARK_ESSENCE);
-                break;
-            case ACTION_VALKYR_DEFEATED:
-                _events.ScheduleEvent(EVENT_SUMMON_BARRET, 4s);
-                if (Creature* factionLeader = _instance->GetCreature(_factionLeaderData))
-                    factionLeader->AI()->DoAction(ACTION_VALKYR_DEFEATED);
-                _summons.DespawnEntry(NPC_LIGHT_ESSENCE);
-                _summons.DespawnEntry(NPC_DARK_ESSENCE);
-                break;
-            case ACTION_START_VALKYR_ENGAGE:
-                Talk(TIRION_SAY_GAME_BEGIN);
-                _events.ScheduleEvent(EVENT_SUMMON_VALKYR, 5s);
-                break;
-            case ACTION_START_LK_EVENT:
-                Talk(TIRION_SAY_UNITED);
-                me->GetMap()->SetZoneWeather(AREA_TRIAL_OF_THE_CRUSADER, WEATHER_STATE_LIGHT_SNOW, 0.5f);
-                _events.ScheduleEvent(EVENT_LICH_KING_SAY_CHALLENGE, 19s);
-                _events.ScheduleEvent(EVENT_SAY_ARTHAS, 26s);
-                break;
-            case ACTION_LK_EVENT_FINISHED:
-                _events.ScheduleEvent(EVENT_LICH_KING_SAY_SOULS, 2s);
-                break;
-            default:
-                break;
-        }
-    }
+        };
 
-    void EnterEvadeMode(EvadeReason /*why*/) override
-    {
-        // Needed when using hotswap
-        _summons.DespawnAll();
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _events.Update(diff);
-
-        while (uint32 eventId = _events.ExecuteEvent())
+        CreatureAI* GetAI(Creature* pCreature) const
         {
-            switch(eventId)
-            {
-                case EVENT_GORMOK_INTRO:
-                    Talk(TIRION_SAY_GORMOK);
-                    if (Creature* factionLeader = _instance->GetCreature(_factionLeaderData))
-                        factionLeader->AI()->DoAction(ACTION_START_GORMOK);
-                    _events.ScheduleEvent(EVENT_GORMOK_EXCLAMATION, 6s);
-                    break;
-                case EVENT_GORMOK_EXCLAMATION:
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
-                    _events.ScheduleEvent(EVENT_SPAWM_GORMOK, 6s);
-                    break;
-                case EVENT_SPAWM_GORMOK:
-                    _instance->DoUseDoorOrButton(_instance->GetGuidData(DATA_MAIN_GATE));
-                    me->SummonCreature(NPC_GORMOK, NorthrendBeastsSpawnPositions[0], TEMPSUMMON_CORPSE_TIMED_DESPAWN, 12s);
-                    break;
-                case EVENT_EXCLAMATION:
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
-                    break;
-                case EVENT_SUMMON_BARRET:
-                    HandleBarrettSummon();
-                    break;
-                case EVENT_START_CALL_WILFRED:
-                    Talk(TIRION_SAY_WILFRED);
-                    _events.ScheduleEvent(EVENT_SUMMON_WILFRED, 7s);
-                    break;
-                case EVENT_SUMMON_WILFRED:
-                    _instance->DoUseDoorOrButton(_instance->GetGuidData(DATA_MAIN_GATE));
-                    me->SummonCreature(NPC_FIZZLEBANG, WilfredSpawnPosition, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 16s);
-                    break;
-                case EVENT_KILL_JARAXXUS:
-                    Talk(TIRION_SAY_KILL_JARAXXUS);
-                    _events.ScheduleEvent(EVENT_EMOTE_SHEATHE, 2s);
-                    break;
-                case EVENT_EMOTE_SHEATHE:
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_TALK_NO_SHEATHE);
-                    break;
-                case EVENT_TIRION_LAMENT:
-                    Talk(TIRION_SAY_LAMENT);
-                    if (Creature* varian = _instance->GetCreature(DATA_VARIAN))
-                        varian->AI()->DoAction(ACTION_JARAXXUS_DEFEATED);
-                    if (Creature* garrosh = _instance->GetCreature(DATA_GARROSH))
-                        garrosh->AI()->DoAction(ACTION_JARAXXUS_DEFEATED);
-                    _events.ScheduleEvent(EVENT_TIRION_CALM_DOWN, 33s);
-                    break;
-                case EVENT_TIRION_CALM_DOWN:
-                    Talk(TIRION_SAY_CALM_DOWN);
-                    _events.ScheduleEvent(EVENT_SUMMON_BARRET, 20s);
-                    break;
-                case EVENT_ALLOW_COMBAT:
-                    Talk(TIRION_SAY_ALLOW_COMBAT);
-                    _events.ScheduleEvent(EVENT_SUMMON_CHAMPIONS, 7s);
-                    break;
-                case EVENT_TRAGIC_VICTORY:
-                    Talk(TIRION_SAY_TRAGIC_VICTORY);
-                    _events.ScheduleEvent(EVENT_SUMMON_BARRET, 24s);
-                    break;
-                case EVENT_SUMMON_VALKYR:
-                    me->SummonCreatureGroup(GROUP_VALKYR);
-                    _events.ScheduleEvent(EVENT_OPEN_GATE, 3s);
-                    break;
-                case EVENT_OPEN_GATE:
-                    _instance->DoUseDoorOrButton(_instance->GetGuidData(DATA_MAIN_GATE));
-                    break;
-                case EVENT_SAY_ARTHAS:
-                    Talk(TIRION_SAY_ARTHAS);
-                    break;
-                case EVENT_LICH_KING_SAY_CHALLENGE:
-                    if (Creature* lkVoice = _instance->GetCreature(DATA_LICH_KING_VOICE))
-                        lkVoice->AI()->Talk(LK_VOICE_SAY_CHALLENGE);
-                    if (Creature* arthasPortal = me->SummonCreature(NPC_ARTHAS_PORTAL, ArthasPortalSpawnPosition, TEMPSUMMON_TIMED_DESPAWN, 34s))
-                        arthasPortal->m_Events.AddEventAtOffset(new ArthasPortalEvent(arthasPortal), 3s);
-                    _events.ScheduleEvent(EVENT_SUMMON_LICH_KING, 5s);
-                    break;
-                case EVENT_LICH_KING_SAY_SOULS:
-                    if (Creature* lkVoice = _instance->GetCreature(DATA_LICH_KING_VOICE))
-                        lkVoice->AI()->Talk(LK_VOICE_SAY_SOULS_WILL_BE_MINE);
-                    break;
-                case EVENT_SUMMON_LICH_KING:
-                    me->SummonCreature(NPC_LICH_KING, LichKingSpawnPosition, TEMPSUMMON_TIMED_DESPAWN, 30s);
-                    break;
-                case EVENT_SUMMON_CHAMPIONS:
-                    if (Creature* factitonController = me->SummonCreature(NPC_CHAMPIONS_CONTROLLER, ToCCommonLoc[1]))
-                        factitonController->AI()->SetData(0, _instance->GetData(DATA_TEAM)); // will be changed to DoAction soon
-                    _events.ScheduleEvent(EVENT_START_CHAMPIONS, 3s);
-                    break;
-                case EVENT_START_CHAMPIONS:
-                    if (Creature* factitonController = _instance->GetCreature(DATA_FACTION_CRUSADERS))
-                        factitonController->AI()->SetData(1, NOT_STARTED); // will be changed to DoAction soon
-                    break;
-                default:
-                    break;
-            }
+            return new boss_lich_king_tocAI(pCreature);
         }
-    }
-
-private:
-    InstanceScript* _instance;
-    EventMap _events;
-    uint32 _factionLeaderData;
-    SummonList _summons;
-    bool _jormungarsSummoned;
-    bool _icehowlSummoned;
 };
 
-struct npc_open_portal_target_toc : public ScriptedAI
+class npc_fizzlebang_toc : public CreatureScript
 {
-    npc_open_portal_target_toc(Creature* creature) : ScriptedAI(creature) { }
+    public:
 
-    void Reset() override
-    {
-        me->SetReactState(REACT_PASSIVE);
-        _scheduler.CancelAll();
-        me->SetDisableGravity(true);
-    }
+        npc_fizzlebang_toc() : CreatureScript("npc_fizzlebang_toc") { }
 
-    void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
-    {
-        if (spellInfo->Id == SPELL_OPEN_PORTAL)
+        struct npc_fizzlebang_tocAI : public ScriptedAI
         {
-            _scheduler.Schedule(2s, [this](TaskContext /*wilfredPortal*/)
+            npc_fizzlebang_tocAI(Creature* pCreature) : ScriptedAI(pCreature), Summons(me)
             {
-                DoCastSelf(SPELL_WILFRED_PORTAL);
-                me->DespawnOrUnsummon(9s);
-            });
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _scheduler.Update(diff);
-    }
-
-private:
-    TaskScheduler _scheduler;
-};
-
-struct npc_fizzlebang_toc : public ScriptedAI
-{
-    npc_fizzlebang_toc(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void Reset() override
-    {
-        me->SetReactState(REACT_PASSIVE);
-        _events.Reset();
-        _events.ScheduleEvent(EVENT_START_MOVE, 1s);
-    }
-
-    void MovementInform(uint32 type, uint32 pointId) override
-    {
-        if (type == SPLINE_CHAIN_MOTION_TYPE && pointId == POINT_SUMMON)
-        {
-            _instance->DoUseDoorOrButton(_instance->GetGuidData(DATA_MAIN_GATE));
-            Talk(WILFRED_SAY_INTRO);
-            _events.ScheduleEvent(EVENT_EMOTE_TALK, 2s);
-            _events.ScheduleEvent(EVENT_REMOVE_EMOTE_TALK, 9s);
-            _events.ScheduleEvent(EVENT_OBLIVION, 11s);
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _events.Update(diff);
-
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
-            {
-                case EVENT_START_MOVE:
-                    me->GetMotionMaster()->MoveAlongSplineChain(POINT_SUMMON, SPLINE_INITIAL_MOVEMENT, true);
-                    break;
-                case EVENT_OBLIVION:
-                    me->SummonCreature(NPC_WILFRED_PORTAL, PortalTargetSpawnPosition);
-                    me->SummonCreature(NPC_PURPLE_GROUND, PurpleGroundSpawnPosition, TEMPSUMMON_TIMED_DESPAWN, 16s);
-                    Talk(WILFRED_SAY_OBLIVION);
-                    DoCastSelf(SPELL_OPEN_PORTAL);
-                    _events.ScheduleEvent(EVENT_SUMMON_JARAXXUS, 11s);
-                    break;
-                case EVENT_SUMMON_JARAXXUS:
-                    if (Creature* fordring = _instance->GetCreature(DATA_FORDRING))
-                        fordring->AI()->DoAction(ACTION_SUMMON_JARAXXUS);
-                    Talk(WILFRED_SAY_MASTER);
-                    _events.ScheduleEvent(EVENT_EMOTE_TALK, 2s);
-                    _events.ScheduleEvent(EVENT_REMOVE_EMOTE_TALK, 7s);
-                    _events.ScheduleEvent(EVENT_SET_TARGET, 4s);
-                    break;
-                case EVENT_SET_TARGET:
-                    if (Creature* jaraxxus = _instance->GetCreature(DATA_JARAXXUS))
-                        me->SetTarget(jaraxxus->GetGUID());
-                    _events.ScheduleEvent(EVENT_EMOTE_SHEATHE, 6s);
-                    break;
-                case EVENT_EMOTE_SHEATHE:
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_TALK_NO_SHEATHE);
-                    _events.ScheduleEvent(EVENT_LAST_TALK, 9s);
-                    break;
-                case EVENT_LAST_TALK:
-                    Talk(WILFRED_SAY_DEAD);
-                    if (Creature* fordring = _instance->GetCreature(DATA_FORDRING))
-                        fordring->AI()->DoAction(ACTION_KILL_JARAXXUS);
-                    break;
-                case EVENT_EMOTE_TALK:
-                    me->SetEmoteState(EMOTE_STATE_TALK);
-                    break;
-                case EVENT_REMOVE_EMOTE_TALK:
-                    me->SetEmoteState(EMOTE_ONESHOT_NONE);
-                    break;
-                default:
-                    break;
+                m_pInstance = (InstanceScript*)me->GetInstanceScript();
             }
-        }
-    }
 
-private:
-    InstanceScript* _instance;
-    EventMap _events;
-};
+            InstanceScript* m_pInstance;
+            SummonList Summons;
+            uint32 m_uiUpdateTimer;
+            uint64 m_uiPortalGUID;
+            uint64 m_uiTriggerGUID;
 
-struct npc_garrosh_toc : public ScriptedAI
-{
-    npc_garrosh_toc(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void DoAction(int32 action) override
-    {
-        switch (action)
-        {
-            case ACTION_START_GORMOK:
-                _events.ScheduleEvent(EVENT_GORMOK_INTRO, 12s);
-                break;
-            case ACTION_JARAXXUS_DEFEATED:
-                _events.ScheduleEvent(EVENT_ALLIANCE_DOGS, 14s);
-                break;
-            case ACTION_START_CHAMPIONS:
-                _events.ScheduleEvent(EVENT_DEMAND_JUSTICE, 8s);
-                break;
-            case ACTION_SAY_KILLED_PLAYER:
-                Talk(GARROSH_SAY_KILLED);
-                break;
-            case ACTION_CHAMPIONS_DEFEATED:
-                Talk(GARROSH_SAY_FACTION_DEAD);
-                break;
-            case ACTION_VALKYR_DEFEATED:
-                _events.ScheduleEvent(EVENT_VALKYR_DEAD, 5s);
-                break;
-            case ACTION_START_CHAMPIONS_ENGAGE:
-                _events.ScheduleEvent(EVENT_NO_MERCY, 6s);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _events.Update(diff);
-
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
+            void JustDied(Unit* pKiller)
             {
-                case EVENT_GORMOK_INTRO:
-                    Talk(GARROSH_SAY_BEASTS);
-                    break;
-                case EVENT_ALLIANCE_DOGS:
-                    Talk(GARROSH_SAY_ALLIANCE_DOGS);
-                    break;
-                case EVENT_DEMAND_JUSTICE:
-                    Talk(GARROSH_SAY_DEMAND_JUSTICE);
-                    _events.ScheduleEvent(EVENT_NO_MERCY, 21s);
-                    break;
-                case EVENT_NO_MERCY:
-                    Talk(GARROSH_SAY_NO_MERCY);
-                    break;
-                case EVENT_VALKYR_DEAD:
-                    Talk(GARROSH_SAY_VALKYR_DEAD);
-                    break;
-                default:
-                    break;
+                DoScriptText(SAY_STAGE_1_06, me, pKiller);
+                m_pInstance->SetData(TYPE_EVENT, 1180);
+                if (Creature* pTemp = Unit::GetCreature(*me, m_pInstance->GetData64(NPC_JARAXXUS)))
+                {
+                    pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    pTemp->SetReactState(REACT_AGGRESSIVE);
+                    pTemp->SetInCombatWithZone();
+                }
             }
-        }
-    }
 
-private:
-    InstanceScript* _instance;
-    EventMap _events;
-};
-
-struct npc_varian_toc : public ScriptedAI
-{
-    npc_varian_toc(Creature* creature) : ScriptedAI(creature), _instance(creature->GetInstanceScript()) { }
-
-    void DoAction(int32 action) override
-    {
-        switch (action)
-        {
-            case ACTION_START_GORMOK:
-                _events.ScheduleEvent(EVENT_GORMOK_INTRO, 11s);
-                break;
-            case ACTION_JARAXXUS_DEFEATED:
-                _events.ScheduleEvent(EVENT_COME_PIGS, 24s);
-                break;
-            case ACTION_START_CHAMPIONS:
-                _events.ScheduleEvent(EVENT_DEMAND_JUSTICE, 9s);
-                break;
-            case ACTION_SAY_KILLED_PLAYER:
-                Talk(VARIAN_SAY_KILLED);
-                break;
-            case ACTION_CHAMPIONS_DEFEATED:
-                Talk(VARIAN_SAY_FACTION_DEAD);
-                break;
-            case ACTION_VALKYR_DEFEATED:
-                _events.ScheduleEvent(EVENT_VALKYR_DEAD, 6s);
-                break;
-            case ACTION_START_CHAMPIONS_ENGAGE:
-                _events.ScheduleEvent(EVENT_NO_MERCY, 6s);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        _events.Update(diff);
-
-        while (uint32 eventId = _events.ExecuteEvent())
-        {
-            switch (eventId)
+            void Reset()
             {
-                case EVENT_GORMOK_INTRO:
-                    Talk(VARIAN_SAY_BEASTS);
-                    break;
-                case EVENT_COME_PIGS:
-                    Talk(VARIAN_SAY_COME_PIGS);
-                    break;
-                case EVENT_DEMAND_JUSTICE:
-                    Talk(VARIAN_SAY_DEMAND_JUSTICE);
-                    _events.ScheduleEvent(EVENT_NO_MERCY, 20s);
-                    break;
-                case EVENT_NO_MERCY:
-                    Talk(VARIAN_SAY_FIGHT_GLORY);
-                    break;
-                case EVENT_VALKYR_DEAD:
-                    Talk(VARIAN_SAY_VALKYR_DEAD);
-                    break;
-                default:
-                    break;
+                me->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
+                m_uiPortalGUID = 0;
+                me->GetMotionMaster()->MovePoint(1, ToCCommonLoc[10].GetPositionX(), ToCCommonLoc[10].GetPositionY()-60, ToCCommonLoc[10].GetPositionZ());
             }
-        }
-    }
 
-private:
-    InstanceScript* _instance;
-    EventMap _events;
+            void MovementInform(uint32 uiType, uint32 uiId)
+            {
+                if (uiType != POINT_MOTION_TYPE) return;
+
+                switch (uiId)
+                {
+                    case 1:
+                        me->RemoveUnitMovementFlag(MOVEMENTFLAG_WALKING);
+                        if (m_pInstance)
+                        {
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            m_pInstance->SetData(TYPE_EVENT, 1120);
+                            m_pInstance->SetData(TYPE_EVENT_TIMER, 1000);
+                        }
+                        break;
+                }
+            }
+
+            void JustSummoned(Creature* pSummoned)
+            {
+                Summons.Summon(pSummoned);
+            }
+
+            void UpdateAI(const uint32 uiDiff)
+            {
+                if (!m_pInstance) return;
+
+                if (m_pInstance->GetData(TYPE_EVENT_NPC) != NPC_FIZZLEBANG) return;
+
+                m_uiUpdateTimer = m_pInstance->GetData(TYPE_EVENT_TIMER);
+                if (m_uiUpdateTimer <= uiDiff)
+                {
+                    switch (m_pInstance->GetData(TYPE_EVENT))
+                    {
+                        case 1110:
+                            m_pInstance->SetData(TYPE_EVENT, 1120);
+                            m_uiUpdateTimer = 4000;
+                            break;
+                        case 1120:
+                            DoScriptText(SAY_STAGE_1_02, me);
+                            m_pInstance->SetData(TYPE_EVENT, 1130);
+                            m_uiUpdateTimer = 12000;
+                            break;
+                        case 1130:
+                            me->GetMotionMaster()->MovementExpired();
+                            DoScriptText(SAY_STAGE_1_03, me);
+                            me->HandleEmoteCommand(EMOTE_ONESHOT_SPELLCAST_OMNI);
+                            if (Unit* pTrigger =  me->SummonCreature(NPC_TRIGGER, ToCCommonLoc[1].GetPositionX(), ToCCommonLoc[1].GetPositionY(), ToCCommonLoc[1].GetPositionZ(), 4.69494f, TEMPSUMMON_MANUAL_DESPAWN))
+                            {
+                                m_uiTriggerGUID = pTrigger->GetGUID();
+                                pTrigger->SetFloatValue(OBJECT_FIELD_SCALE_X, 2.0f);
+                                pTrigger->SetDisplayId(22862);
+                                pTrigger->CastSpell(pTrigger, SPELL_WILFRED_PORTAL, false);
+                            }
+                            m_pInstance->SetData(TYPE_EVENT, 1132);
+                            m_uiUpdateTimer = 4000;
+                            break;
+                        case 1132:
+                            me->GetMotionMaster()->MovementExpired();
+                            m_pInstance->SetData(TYPE_EVENT, 1134);
+                            m_uiUpdateTimer = 4000;
+                            break;
+                        case 1134:
+                            me->HandleEmoteCommand(EMOTE_ONESHOT_SPELLCAST_OMNI);
+                            if (Creature* pPortal = me->SummonCreature(NPC_WILFRED_PORTAL, ToCCommonLoc[1].GetPositionX(), ToCCommonLoc[1].GetPositionY(), ToCCommonLoc[1].GetPositionZ(), 4.71239f, TEMPSUMMON_MANUAL_DESPAWN))
+                            {
+                                pPortal->SetReactState(REACT_PASSIVE);
+                                pPortal->SetFloatValue(OBJECT_FIELD_SCALE_X, 2.0f);
+                                pPortal->CastSpell(pPortal, SPELL_WILFRED_PORTAL, false);
+                                m_uiPortalGUID = pPortal->GetGUID();
+                            }
+                            m_uiUpdateTimer = 4000;
+                            m_pInstance->SetData(TYPE_EVENT, 1135);
+                            break;
+                        case 1135:
+                            m_pInstance->SetData(TYPE_EVENT, 1140);
+                            m_uiUpdateTimer = 3000;
+                            break;
+                        case 1140:
+                            DoScriptText(SAY_STAGE_1_04, me);
+                            if (Creature* pTemp = me->SummonCreature(NPC_JARAXXUS, ToCCommonLoc[1].GetPositionX(), ToCCommonLoc[1].GetPositionY(), ToCCommonLoc[1].GetPositionZ(), 5.0f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, DESPAWN_TIME))
+                            {
+                                pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                                pTemp->SetReactState(REACT_PASSIVE);
+                                pTemp->GetMotionMaster()->MovePoint(0, ToCCommonLoc[1].GetPositionX(), ToCCommonLoc[1].GetPositionY()-10, ToCCommonLoc[1].GetPositionZ());
+                            }
+                            m_pInstance->SetData(TYPE_EVENT, 1142);
+                            m_uiUpdateTimer = 5000;
+                            break;
+                        case 1142:
+                            if (Creature* pTemp = Unit::GetCreature(*me, m_pInstance->GetData64(NPC_JARAXXUS)))
+                                pTemp->SetUInt64Value(UNIT_FIELD_TARGET, me->GetGUID());
+                            if (Creature* pTrigger = Unit::GetCreature(*me, m_uiTriggerGUID))
+                                pTrigger->DespawnOrUnsummon();
+                            if (Creature* pPortal = Unit::GetCreature(*me, m_uiPortalGUID))
+                                pPortal->DespawnOrUnsummon();
+                            m_pInstance->SetData(TYPE_EVENT, 1144);
+                            m_uiUpdateTimer = 10000;
+                            break;
+                        case 1144:
+                            if (Creature* pTemp = Unit::GetCreature(*me, m_pInstance->GetData64(NPC_JARAXXUS)))
+                                DoScriptText(SAY_STAGE_1_05, pTemp);
+                            m_pInstance->SetData(TYPE_EVENT, 1150);
+                            m_uiUpdateTimer = 5000;
+                            break;
+                        case 1150:
+                            if (Creature* pTemp = Unit::GetCreature(*me, m_pInstance->GetData64(NPC_JARAXXUS)))
+                            {
+                                //1-shot Fizzlebang
+                                pTemp->CastSpell(me, 67888, false);
+                                me->SetInCombatWith(pTemp);
+                                pTemp->AddThreat(me, 1000.0f);
+                                pTemp->AI()->AttackStart(me);
+                            }
+                            m_pInstance->SetData(TYPE_EVENT, 1160);
+                            m_uiUpdateTimer = 3000;
+                            break;
+                    }
+                } else m_uiUpdateTimer -= uiDiff;
+                m_pInstance->SetData(TYPE_EVENT_TIMER, m_uiUpdateTimer);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* pCreature) const
+        {
+            return new npc_fizzlebang_tocAI(pCreature);
+        }
 };
 
-// 69016 - Corpse Teleport
-class spell_lich_king_teleport_corpse : public SpellScript
+class npc_tirion_toc : public CreatureScript
 {
-    PrepareSpellScript(spell_lich_king_teleport_corpse);
+    public:
 
-    void HandleTeleport(SpellEffIndex /*effIndex*/)
-    {
-        GetHitUnit()->NearTeleportTo(CorpseTeleportPosition);
-    }
+        npc_tirion_toc() : CreatureScript("npc_tirion_toc") { }
 
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_lich_king_teleport_corpse::HandleTeleport, EFFECT_0, SPELL_EFFECT_DUMMY);
-    }
+        struct npc_tirion_tocAI : public ScriptedAI
+        {
+            npc_tirion_tocAI(Creature* pCreature) : ScriptedAI(pCreature)
+            {
+                m_pInstance = (InstanceScript*)me->GetInstanceScript();
+            }
+
+            InstanceScript* m_pInstance;
+            uint32 m_uiUpdateTimer;
+
+            void Reset() {}
+
+            void AttackStart(Unit* /*pWho*/) {}
+
+            void UpdateAI(const uint32 uiDiff)
+            {
+                if (!m_pInstance) return;
+                if (m_pInstance->GetData(TYPE_EVENT_NPC) != NPC_TIRION) return;
+
+                m_uiUpdateTimer = m_pInstance->GetData(TYPE_EVENT_TIMER);
+                if (m_uiUpdateTimer <= uiDiff)
+                {
+                    switch (m_pInstance->GetData(TYPE_EVENT))
+                    {
+                        case 110:
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_TALK);
+                            DoScriptText(SAY_STAGE_0_01, me);
+                            m_uiUpdateTimer = 22000;
+                            m_pInstance->SetData(TYPE_EVENT, 120);
+                            break;
+                        case 140:
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_TALK);
+                            DoScriptText(SAY_STAGE_0_02, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 150);
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            break;
+                        case 150:
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+                            if (m_pInstance->GetData(TYPE_BEASTS) != DONE)
+                            {
+                                me->SummonCreature(NPC_GORMOK, ToCCommonLoc[10].GetPositionX(), ToCCommonLoc[10].GetPositionY(), ToCCommonLoc[10].GetPositionZ(), 5, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30*IN_MILLISECONDS);
+                                if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_GORMOK)))
+                                {
+                                    pTemp->GetMotionMaster()->MovePoint(0, ToCCommonLoc[5].GetPositionX(), ToCCommonLoc[5].GetPositionY(), ToCCommonLoc[5].GetPositionZ());
+                                    pTemp->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
+                                    pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                                    pTemp->SetReactState(REACT_PASSIVE);
+                                }
+                            }
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 155);
+                            break;
+                        case 155:
+                            if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_GORMOK)))
+                            {
+                                pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                                pTemp->SetReactState(REACT_AGGRESSIVE);
+                                pTemp->SetInCombatWithZone();
+                            }
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            m_pInstance->SetData(TYPE_BEASTS, IN_PROGRESS);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 160);
+                            break;
+                        case 200:
+                            DoScriptText(SAY_STAGE_0_04, me);
+                            m_uiUpdateTimer = 8000;
+                            m_pInstance->SetData(TYPE_EVENT, 205);
+                            break;
+                        case 205:
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 210);
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            break;
+                        case 210:
+                            if (m_pInstance->GetData(TYPE_BEASTS) != DONE)
+                            {
+                                me->SummonCreature(NPC_DREADSCALE, ToCCommonLoc[3].GetPositionX(), ToCCommonLoc[3].GetPositionY(), ToCCommonLoc[3].GetPositionZ(), 5, TEMPSUMMON_MANUAL_DESPAWN);
+                                me->SummonCreature(NPC_ACIDMAW, ToCCommonLoc[4].GetPositionX(), ToCCommonLoc[4].GetPositionY(), ToCCommonLoc[4].GetPositionZ(), 5, TEMPSUMMON_MANUAL_DESPAWN);
+                                if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_DREADSCALE)))
+                                {
+                                    pTemp->GetMotionMaster()->MovePoint(0, ToCCommonLoc[8].GetPositionX(), ToCCommonLoc[8].GetPositionY(), ToCCommonLoc[8].GetPositionZ());
+                                    pTemp->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
+                                    pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                                    pTemp->SetReactState(REACT_PASSIVE);
+                                }
+                                if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_ACIDMAW)))
+                                {
+                                    pTemp->GetMotionMaster()->MovePoint(0, ToCCommonLoc[9].GetPositionX(), ToCCommonLoc[9].GetPositionY(), ToCCommonLoc[9].GetPositionZ());
+                                    pTemp->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
+                                    pTemp->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                                    pTemp->SetReactState(REACT_PASSIVE);
+                                }
+                            }
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 220);
+                            break;
+                        case 220:
+                            if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_DREADSCALE)))
+                            {
+                                pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                                pTemp->SetReactState(REACT_AGGRESSIVE);
+                                pTemp->SetInCombatWithZone();
+                            }
+                            if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_ACIDMAW)))
+                            {
+                                pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                                pTemp->SetReactState(REACT_AGGRESSIVE);
+                                pTemp->SetInCombatWithZone();
+                            }
+                            m_pInstance->SetData(TYPE_EVENT, 230);
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            break;
+                        case 300:
+                            DoScriptText(SAY_STAGE_0_05, me);
+                            m_uiUpdateTimer = 8000;
+                            m_pInstance->SetData(TYPE_EVENT, 305);
+                            break;
+                        case 305:
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 310);
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            break;
+                        case 310:
+                            if (m_pInstance->GetData(TYPE_BEASTS) != DONE)
+                            {
+                                me->SummonCreature(NPC_ICEHOWL, ToCCommonLoc[10].GetPositionX(), ToCCommonLoc[10].GetPositionY(), ToCCommonLoc[10].GetPositionZ(), 5, TEMPSUMMON_DEAD_DESPAWN);
+                                if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_ICEHOWL)))
+                                {
+                                    pTemp->GetMotionMaster()->MovePoint(0, ToCCommonLoc[5].GetPositionX(), ToCCommonLoc[5].GetPositionY(), ToCCommonLoc[5].GetPositionZ());
+                                    pTemp->SetInCombatWithZone();
+                                }
+                            }
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 315);
+                            break;
+                        case 315:
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            m_pInstance->SetData(TYPE_EVENT, 320);
+                            break;
+                        case 400:
+                            DoScriptText(SAY_STAGE_0_06, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            break;
+                        case 666:
+                            DoScriptText(SAY_STAGE_0_WIPE, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            break;
+                        case 1010:
+                            DoScriptText(SAY_STAGE_1_01, me);
+                            m_uiUpdateTimer = 7000;
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            me->SummonCreature(NPC_FIZZLEBANG, ToCCommonLoc[10].GetPositionX(), ToCCommonLoc[10].GetPositionY(), ToCCommonLoc[10].GetPositionZ(), 2, TEMPSUMMON_CORPSE_TIMED_DESPAWN, DESPAWN_TIME);
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            break;
+                        case 1180:
+                            DoScriptText(SAY_STAGE_1_07, me);
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            break;
+                        case 2000:
+                            DoScriptText(SAY_STAGE_1_08, me);
+                            m_uiUpdateTimer = 18000;
+                            m_pInstance->SetData(TYPE_EVENT, 2010);
+                            break;
+                        case 2030:
+                            DoScriptText(SAY_STAGE_1_11, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            break;
+                        case 3000:
+                            DoScriptText(SAY_STAGE_2_01, me);
+                            m_uiUpdateTimer = 12000;
+                            m_pInstance->SetData(TYPE_EVENT, 3050);
+                            break;
+                        case 3001:
+                            DoScriptText(SAY_STAGE_2_01, me);
+                            m_uiUpdateTimer = 12000;
+                            m_pInstance->SetData(TYPE_EVENT, 3051);
+                            break;
+                        case 3060:
+                            DoScriptText(SAY_STAGE_2_03, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 3070);
+                            break;
+                        case 3061:
+                            DoScriptText(SAY_STAGE_2_03, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 3071);
+                            break;
+                        //Summoning crusaders
+                        case 3091:
+                            me->SummonCreature(NPC_CHAMPIONS_CONTROLLER, ToCCommonLoc[1]);
+                            if (Creature* pChampionController = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_CHAMPIONS_CONTROLLER)))
+                                pChampionController->AI()->SetData(0, HORDE);
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 3092);
+                            break;
+                        //Summoning crusaders
+                        case 3090:
+                            me->SummonCreature(NPC_CHAMPIONS_CONTROLLER, ToCCommonLoc[1]);
+                            if (Creature* pChampionController = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_CHAMPIONS_CONTROLLER)))
+                                pChampionController->AI()->SetData(0, ALLIANCE);
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 3092);
+                            break;
+                        case 3092:
+                            if (Creature* pChampionController = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_CHAMPIONS_CONTROLLER)))
+                                pChampionController->AI()->SetData(1, NOT_STARTED);
+                            m_pInstance->SetData(TYPE_EVENT, 3095);
+                            break;
+                        //Crusaders battle end
+                        case 3100:
+                            DoScriptText(SAY_STAGE_2_06, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            break;
+                        case 4000:
+                            DoScriptText(SAY_STAGE_3_01, me);
+                            m_uiUpdateTimer = 13000;
+                            m_pInstance->SetData(TYPE_EVENT, 4010);
+                            break;
+                        case 4010:
+                            DoScriptText(SAY_STAGE_3_02, me);
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 4015);
+                            break;
+                        case 4015:
+                            me->SummonCreature(NPC_LIGHTBANE, ToCCommonLoc[3].GetPositionX(), ToCCommonLoc[3].GetPositionY(), ToCCommonLoc[3].GetPositionZ(), 5, TEMPSUMMON_CORPSE_TIMED_DESPAWN, DESPAWN_TIME);
+                            if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_LIGHTBANE)))
+                            {
+                                pTemp->GetMotionMaster()->MovePoint(0, ToCCommonLoc[6].GetPositionX(), ToCCommonLoc[6].GetPositionY(), ToCCommonLoc[6].GetPositionZ());
+                                pTemp->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
+                                me->SetReactState(REACT_PASSIVE);
+                            }
+                            me->SummonCreature(NPC_DARKBANE, ToCCommonLoc[4].GetPositionX(), ToCCommonLoc[4].GetPositionY(), ToCCommonLoc[4].GetPositionZ(), 5, TEMPSUMMON_CORPSE_TIMED_DESPAWN, DESPAWN_TIME);
+                            if (Creature* pTemp = Unit::GetCreature((*me), m_pInstance->GetData64(NPC_DARKBANE)))
+                            {
+                                pTemp->GetMotionMaster()->MovePoint(0, ToCCommonLoc[7].GetPositionX(), ToCCommonLoc[7].GetPositionY(), ToCCommonLoc[7].GetPositionZ());
+                                pTemp->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
+                                me->SetReactState(REACT_PASSIVE);
+                            }
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 4016);
+                            break;
+                        case 4016:
+                            m_pInstance->SetData(TYPE_EVENT, 4017);
+                            m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_MAIN_GATE_DOOR));
+                            break;
+                        case 4040:
+                            m_uiUpdateTimer = 60000;
+                            m_pInstance->SetData(TYPE_EVENT, 5000);
+                            break;
+                        case 5000:
+                            DoScriptText(SAY_STAGE_4_01, me);
+                            m_uiUpdateTimer = 10000;
+                            m_pInstance->SetData(TYPE_EVENT, 5005);
+                            break;
+                        case 5005:
+                            m_uiUpdateTimer = 8000;
+                            m_pInstance->SetData(TYPE_EVENT, 5010);
+                            me->SummonCreature(NPC_LICH_KING_1, ToCCommonLoc[2].GetPositionX(), ToCCommonLoc[2].GetPositionY(), ToCCommonLoc[2].GetPositionZ(), 5);
+                            break;
+                        case 5020:
+                            DoScriptText(SAY_STAGE_4_03, me);
+                            m_uiUpdateTimer = 1000;
+                            m_pInstance->SetData(TYPE_EVENT, 0);
+                            break;
+                        case 6000:
+                            me->NearTeleportTo(AnubarakLoc[0].GetPositionX(), AnubarakLoc[0].GetPositionY(), AnubarakLoc[0].GetPositionZ(), 4.0f);
+                            m_uiUpdateTimer = 20000;
+                            m_pInstance->SetData(TYPE_EVENT, 6005);
+                            break;
+                        case 6005:
+                            DoScriptText(SAY_STAGE_4_06, me);
+                            m_uiUpdateTimer = 20000;
+                            m_pInstance->SetData(TYPE_EVENT, 6010);
+                            break;
+                        case 6010:
+                            if (IsHeroic())
+                            {
+                                DoScriptText(SAY_STAGE_4_07, me);
+                                m_uiUpdateTimer = 60000;
+                                m_pInstance->SetData(TYPE_ANUBARAK, SPECIAL);
+                                m_pInstance->SetData(TYPE_EVENT, 6020);
+                            } else m_pInstance->SetData(TYPE_EVENT, 6030);
+                            break;
+                        case 6020:
+                            me->DespawnOrUnsummon();
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 6030);
+                            break;
+                    }
+                } else m_uiUpdateTimer -= uiDiff;
+                m_pInstance->SetData(TYPE_EVENT_TIMER, m_uiUpdateTimer);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* pCreature) const
+        {
+            return new npc_tirion_tocAI(pCreature);
+        }
+};
+
+class npc_garrosh_toc : public CreatureScript
+{
+    public:
+
+        npc_garrosh_toc() : CreatureScript("npc_garrosh_toc") { }
+
+        struct npc_garrosh_tocAI : public ScriptedAI
+        {
+            npc_garrosh_tocAI(Creature* pCreature) : ScriptedAI(pCreature)
+            {
+                m_pInstance = (InstanceScript*)me->GetInstanceScript();
+            }
+
+            InstanceScript* m_pInstance;
+            uint32 m_uiUpdateTimer;
+
+            void Reset() {}
+
+            void AttackStart(Unit* /*pWho*/) {}
+
+            void UpdateAI(const uint32 uiDiff)
+            {
+                if (!m_pInstance) return;
+                if (m_pInstance->GetData(TYPE_EVENT_NPC) != NPC_GARROSH) return;
+
+                m_uiUpdateTimer = m_pInstance->GetData(TYPE_EVENT_TIMER);
+                if (m_uiUpdateTimer <= uiDiff)
+                {
+                    switch (m_pInstance->GetData(TYPE_EVENT))
+                    {
+                        case 130:
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_TALK);
+                            DoScriptText(SAY_STAGE_0_03h, me);
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 132);
+                            break;
+                        case 132:
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 140);
+                            break;
+                        case 2010:
+                            DoScriptText(SAY_STAGE_1_09, me);
+                            m_uiUpdateTimer = 9000;
+                            m_pInstance->SetData(TYPE_EVENT, 2020);
+                            break;
+                        case 3050:
+                            DoScriptText(SAY_STAGE_2_02h, me);
+                            m_uiUpdateTimer = 15000;
+                            m_pInstance->SetData(TYPE_EVENT, 3060);
+                            break;
+                        case 3070:
+                            DoScriptText(SAY_STAGE_2_04h, me);
+                            m_uiUpdateTimer = 6000;
+                            m_pInstance->SetData(TYPE_EVENT, 3080);
+                            break;
+                        case 3081:
+                            DoScriptText(SAY_STAGE_2_05h, me);
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 3091);
+                            break;
+                        case 4030:
+                            DoScriptText(SAY_STAGE_3_03h, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 4040);
+                            break;
+                    }
+                } else m_uiUpdateTimer -= uiDiff;
+                m_pInstance->SetData(TYPE_EVENT_TIMER, m_uiUpdateTimer);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* pCreature) const
+        {
+            return new npc_garrosh_tocAI(pCreature);
+        }
+};
+
+class npc_varian_toc : public CreatureScript
+{
+    public:
+
+        npc_varian_toc() : CreatureScript("npc_varian_toc") { }
+
+        struct npc_varian_tocAI : public ScriptedAI
+        {
+            npc_varian_tocAI(Creature* pCreature) : ScriptedAI(pCreature)
+            {
+                m_pInstance = (InstanceScript*)me->GetInstanceScript();
+            }
+
+            InstanceScript* m_pInstance;
+            uint32 m_uiUpdateTimer;
+
+            void Reset() {}
+
+            void AttackStart(Unit* /*pWho*/) {}
+
+            void UpdateAI(const uint32 uiDiff)
+            {
+                if (!m_pInstance) return;
+                if (m_pInstance->GetData(TYPE_EVENT_NPC) != NPC_VARIAN) return;
+
+                m_uiUpdateTimer = m_pInstance->GetData(TYPE_EVENT_TIMER);
+                if (m_uiUpdateTimer <= uiDiff)
+                {
+                    switch (m_pInstance->GetData(TYPE_EVENT))
+                    {
+                        case 120:
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_ONESHOT_TALK);
+                            DoScriptText(SAY_STAGE_0_03a, me);
+                            m_uiUpdateTimer = 2000;
+                            m_pInstance->SetData(TYPE_EVENT, 122);
+                            break;
+                        case 122:
+                            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, EMOTE_STATE_NONE);
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 130);
+                            break;
+                        case 2020:
+                            DoScriptText(SAY_STAGE_1_10, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 2030);
+                            break;
+                        case 3051:
+                            DoScriptText(SAY_STAGE_2_02a, me);
+                            m_uiUpdateTimer = 10000;
+                            m_pInstance->SetData(TYPE_EVENT, 3061);
+                            break;
+                        case 3071:
+                            DoScriptText(SAY_STAGE_2_04a, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 3081);
+                            break;
+                        case 3080:
+                            DoScriptText(SAY_STAGE_2_05a, me);
+                            m_uiUpdateTimer = 3000;
+                            m_pInstance->SetData(TYPE_EVENT, 3090);
+                            break;
+                        case 4020:
+                            DoScriptText(SAY_STAGE_3_03a, me);
+                            m_uiUpdateTimer = 5000;
+                            m_pInstance->SetData(TYPE_EVENT, 4040);
+                            break;
+                    }
+                } else m_uiUpdateTimer -= uiDiff;
+                m_pInstance->SetData(TYPE_EVENT_TIMER, m_uiUpdateTimer);
+            }
+        };
+
+        CreatureAI* GetAI(Creature* pCreature) const
+        {
+            return new npc_varian_tocAI(pCreature);
+        }
 };
 
 void AddSC_trial_of_the_crusader()
 {
-    RegisterTrialOfTheCrusaderCreatureAI(npc_barrett_toc);
-    RegisterTrialOfTheCrusaderCreatureAI(boss_lich_king_toc);
-    RegisterTrialOfTheCrusaderCreatureAI(npc_tirion_toc);
-    RegisterTrialOfTheCrusaderCreatureAI(npc_open_portal_target_toc);
-    RegisterTrialOfTheCrusaderCreatureAI(npc_fizzlebang_toc);
-    RegisterTrialOfTheCrusaderCreatureAI(npc_garrosh_toc);
-    RegisterTrialOfTheCrusaderCreatureAI(npc_varian_toc);
-    RegisterSpellScript(spell_lich_king_teleport_corpse);
+    new npc_announcer_toc10();
+    new boss_lich_king_toc();
+    new npc_fizzlebang_toc();
+    new npc_tirion_toc();
+    new npc_garrosh_toc();
+    new npc_varian_toc();
 }

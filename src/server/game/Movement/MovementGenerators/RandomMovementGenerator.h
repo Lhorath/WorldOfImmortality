@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,38 +20,34 @@
 #define TRINITY_RANDOMMOTIONGENERATOR_H
 
 #include "MovementGenerator.h"
-#include "Position.h"
-#include "Timer.h"
-
-class PathGenerator;
+#include "DestinationHolder.h"
+#include "Traveller.h"
 
 template<class T>
-class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovementGenerator<T>>
+class RandomMovementGenerator
+: public MovementGeneratorMedium< T, RandomMovementGenerator<T> >
 {
     public:
-        explicit RandomMovementGenerator(float distance = 0.0f);
+        // Wander dist is related on db spawn dist. So what if we wanna set eandom movement on summoned creature?!
+        RandomMovementGenerator(float spawn_dist = 0.0f) : i_nextMoveTime(0), wander_distance(spawn_dist) {}
 
-        MovementGeneratorType GetMovementGeneratorType() const override;
-
-        void Pause(uint32 timer = 0) override;
-        void Resume(uint32 overrideTimer = 0) override;
-
-        bool DoInitialize(T*);
-        bool DoReset(T*);
-        bool DoUpdate(T*, uint32);
-        void DoDeactivate(T*);
-        void DoFinalize(T*, bool, bool);
-
-        void UnitSpeedChanged() override { RandomMovementGenerator<T>::AddFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING); }
-
+        void _setRandomLocation(T &);
+        void Initialize(T &);
+        void Finalize(T &);
+        void Reset(T &);
+        bool Update(T &, const uint32 &);
+        bool GetDestination(float &x, float &y, float &z) const;
+        void UpdateMapPosition(uint32 mapid, float &x ,float &y, float &z)
+        {
+            i_destinationHolder.GetLocationNow(mapid, x,y,z);
+        }
+        MovementGeneratorType GetMovementGeneratorType() { return RANDOM_MOTION_TYPE; }
     private:
-        void SetRandomLocation(T*);
+        TimeTrackerSmall i_nextMoveTime;
 
-        std::unique_ptr<PathGenerator> _path;
-        TimeTracker _timer;
-        Position _reference;
-        float _wanderDistance;
-        uint8 _wanderSteps;
+        DestinationHolder< Traveller<T> > i_destinationHolder;
+        float wander_distance;
+        uint32 i_nextMove;
 };
-
 #endif
+

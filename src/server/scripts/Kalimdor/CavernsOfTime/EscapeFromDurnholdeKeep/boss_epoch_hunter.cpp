@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,115 +16,127 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* Missing spawns pre-event, missing speech to be coordinated with rest of escort event  */
+/* ScriptData
+SDName: Boss_Epoch_Hunter
+SD%Complete: 60
+SDComment: Missing spawns pre-event, missing speech to be coordinated with rest of escort event.
+SDCategory: Caverns of Time, Old Hillsbrad Foothills
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "InstanceScript.h"
+#include "ScriptPCH.h"
 #include "old_hillsbrad.h"
-#include "ScriptedCreature.h"
 
-enum EpochHunterTexts
+#define SAY_ENTER1                  -1560013
+#define SAY_ENTER2                  -1560014
+#define SAY_ENTER3                  -1560015
+#define SAY_AGGRO1                  -1560016
+#define SAY_AGGRO2                  -1560017
+#define SAY_SLAY1                   -1560018
+#define SAY_SLAY2                   -1560019
+#define SAY_BREATH1                 -1560020
+#define SAY_BREATH2                 -1560021
+#define SAY_DEATH                   -1560022
+
+#define SPELL_SAND_BREATH           31914
+#define SPELL_IMPENDING_DEATH       31916
+#define SPELL_MAGIC_DISRUPTION_AURA 33834
+#define SPELL_WING_BUFFET           31475
+
+class boss_epoch_hunter : public CreatureScript
 {
-    SAY_ENTER                   = 0,
-    SAY_AGGRO                   = 1,
-    SAY_SLAY                    = 2,
-    SAY_BREATH                  = 3,
-    SAY_DEATH                   = 4
-};
+public:
+    boss_epoch_hunter() : CreatureScript("boss_epoch_hunter") { }
 
-enum EpochHunterSpells
-{
-    SPELL_SAND_BREATH           = 31914,
-    SPELL_IMPENDING_DEATH       = 31916,
-    SPELL_MAGIC_DISRUPTION_AURA = 33834,
-    SPELL_WING_BUFFET           = 31475
-};
-
-enum EpochHunterEvents
-{
-    EVENT_SAND_BREATH           = 1,
-    EVENT_IMPENDING_DEATH,
-    EVENT_MAGIC_DISRUPTION_AURA,
-    EVENT_WING_BUFFET
-};
-
-// 18096 - Epoch Hunter
-struct boss_epoch_hunter : public BossAI
-{
-    boss_epoch_hunter(Creature* creature) : BossAI(creature, DATA_EPOCH_HUNTER) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        BossAI::Reset();
+        return new boss_epoch_hunterAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* who) override
+    struct boss_epoch_hunterAI : public ScriptedAI
     {
-        BossAI::JustEngagedWith(who);
-        Talk(SAY_AGGRO);
-        events.ScheduleEvent(EVENT_SAND_BREATH, 8s, 16s);
-        events.ScheduleEvent(EVENT_IMPENDING_DEATH, 25s, 30s);
-        events.ScheduleEvent(EVENT_MAGIC_DISRUPTION_AURA, 40s);
-        events.ScheduleEvent(EVENT_WING_BUFFET, 35s);
-    }
-
-    void KilledUnit(Unit* /*victim*/) override
-    {
-        Talk(SAY_SLAY);
-    }
-
-    void JustDied(Unit* killer) override
-    {
-        BossAI::JustDied(killer);
-        Talk(SAY_DEATH);
-
-        instance->SetData(TYPE_THRALL_EVENT, OH_ESCORT_FINISHED);
-    }
-
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = events.ExecuteEvent())
+        boss_epoch_hunterAI(Creature *c) : ScriptedAI(c)
         {
-            switch (eventId)
-            {
-                case EVENT_SAND_BREATH:
-                    DoCastVictim(SPELL_SAND_BREATH);
-                    Talk(SAY_BREATH);
-                    events.Repeat(10s, 20s);
-                    break;
-                case EVENT_IMPENDING_DEATH:
-                    DoCastVictim(SPELL_IMPENDING_DEATH);
-                    events.Repeat(25s, 30s);
-                    break;
-                case EVENT_MAGIC_DISRUPTION_AURA:
-                    DoCastSelf(SPELL_MAGIC_DISRUPTION_AURA);
-                    events.Repeat(15s);
-                    break;
-                case EVENT_WING_BUFFET:
-                    DoCastSelf(SPELL_WING_BUFFET);
-                    events.Repeat(25s, 35s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            pInstance = c->GetInstanceScript();
         }
 
-        DoMeleeAttackIfReady();
-    }
+        InstanceScript *pInstance;
+
+        uint32 SandBreath_Timer;
+        uint32 ImpendingDeath_Timer;
+        uint32 WingBuffet_Timer;
+        uint32 Mda_Timer;
+
+        void Reset()
+        {
+            SandBreath_Timer = 8000 + rand()%8000;
+            ImpendingDeath_Timer = 25000 + rand()%5000;
+            WingBuffet_Timer = 35000;
+            Mda_Timer = 40000;
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+            DoScriptText(RAND(SAY_AGGRO1,SAY_AGGRO2), me);
+        }
+
+        void KilledUnit(Unit * /*victim*/)
+        {
+            DoScriptText(RAND(SAY_SLAY1,SAY_SLAY2), me);
+        }
+
+        void JustDied(Unit * /*victim*/)
+        {
+            DoScriptText(SAY_DEATH, me);
+
+            if (pInstance && pInstance->GetData(TYPE_THRALL_EVENT) == IN_PROGRESS)
+                pInstance->SetData(TYPE_THRALL_PART4, DONE);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            //Sand Breath
+            if (SandBreath_Timer <= diff)
+            {
+                if (me->IsNonMeleeSpellCasted(false))
+                    me->InterruptNonMeleeSpells(false);
+
+                DoCast(me->getVictim(), SPELL_SAND_BREATH);
+
+                DoScriptText(RAND(SAY_BREATH1,SAY_BREATH2), me);
+
+                SandBreath_Timer = 10000 + rand()%10000;
+            } else SandBreath_Timer -= diff;
+
+            if (ImpendingDeath_Timer <= diff)
+            {
+                DoCast(me->getVictim(), SPELL_IMPENDING_DEATH);
+                ImpendingDeath_Timer = 25000+rand()%5000;
+            } else ImpendingDeath_Timer -= diff;
+
+            if (WingBuffet_Timer <= diff)
+            {
+                if (Unit *pTarget = SelectTarget(SELECT_TARGET_RANDOM,0))
+                    DoCast(pTarget, SPELL_WING_BUFFET);
+                WingBuffet_Timer = 25000+rand()%10000;
+            } else WingBuffet_Timer -= diff;
+
+            if (Mda_Timer <= diff)
+            {
+                DoCast(me, SPELL_MAGIC_DISRUPTION_AURA);
+                Mda_Timer = 15000;
+            } else Mda_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_epoch_hunter()
 {
-    RegisterOldHillsbradCreatureAI(boss_epoch_hunter);
+    new boss_epoch_hunter();
 }

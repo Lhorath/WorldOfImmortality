@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,103 +16,193 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
+/* ScriptData
+SDName: Boss_jandicebarov
+SD%Complete: 100
+SDComment:
+SDCategory: Scholomance
+EndScriptData */
 
-#include "ScriptMgr.h"
-#include "scholomance.h"
-#include "ScriptedCreature.h"
+#include "ScriptPCH.h"
 
-enum JandiceTexts
+#define SPELL_CURSEOFBLOOD          24673
+//#define SPELL_ILLUSION              17773
+
+//Spells of Illusion of Jandice Barov
+#define SPELL_CLEAVE                15584
+
+class boss_jandice_barov : public CreatureScript
 {
-    EMOTE_DROP_JOURNAL          = 0
-};
+public:
+    boss_jandice_barov() : CreatureScript("boss_jandice_barov") { }
 
-enum JandiceSpells
-{
-    SPELL_CURSE_OF_BLOOD        = 16098,
-    SPELL_BANISH                = 8994,
-    SPELL_SUMMON_ILLUSION       = 17773,
-    SPELL_SPREAD                = 17774,
-
-    SPELL_DROP_JOURNAL          = 26096
-};
-
-enum JandiceEvents
-{
-    EVENT_CURSE_OF_BLOOD        = 1,
-    EVENT_BANISH,
-    EVENT_SUMMON_ILLUSION
-};
-
-// 10503 - Jandice Barov
-struct boss_jandice_barov : public ScriptedAI
-{
-    boss_jandice_barov(Creature* creature) : ScriptedAI(creature) { }
-
-    void Reset() override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        _events.Reset();
+        return new boss_jandicebarovAI (pCreature);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    struct boss_jandicebarovAI : public ScriptedAI
     {
-        _events.ScheduleEvent(EVENT_CURSE_OF_BLOOD, 5s, 10s);
-        _events.ScheduleEvent(EVENT_BANISH, 10s, 15s);
-        _events.ScheduleEvent(EVENT_SUMMON_ILLUSION, 15s, 25s);
-    }
+        boss_jandicebarovAI(Creature *c) : ScriptedAI(c) {}
 
-    void JustDied(Unit* /*killer*/) override
-    {
-        DoCastSelf(SPELL_DROP_JOURNAL);
-        Talk(EMOTE_DROP_JOURNAL);
-    }
+        uint32 CurseOfBlood_Timer;
+        uint32 Illusion_Timer;
+        //uint32 Illusioncounter;
+        uint32 Invisible_Timer;
+        bool Invisible;
 
-    void UpdateAI(uint32 diff) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        _events.Update(diff);
-
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-
-        while (uint32 eventId = _events.ExecuteEvent())
+        void Reset()
         {
-            switch (eventId)
-            {
-                case EVENT_CURSE_OF_BLOOD:
-                    DoCastSelf(SPELL_CURSE_OF_BLOOD);
-                    _events.Repeat(25s, 30s);
-                    break;
-                case EVENT_BANISH:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                        DoCast(target, SPELL_BANISH);
-                    _events.Repeat(15s, 25s);
-                    break;
-                case EVENT_SUMMON_ILLUSION:
-                    DoCastSelf(SPELL_SUMMON_ILLUSION);
-                    DoCastSelf(SPELL_SPREAD);
-                    _events.Repeat(30s, 40s);
-                    break;
-                default:
-                    break;
-            }
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
+            CurseOfBlood_Timer = 15000;
+            Illusion_Timer = 30000;
+            Invisible_Timer = 3000;                             //Too much too low?
+            Invisible = false;
         }
 
-        DoMeleeAttackIfReady();
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void SummonIllusions(Unit* victim)
+        {
+            if (Creature *Illusion = DoSpawnCreature(11439, float(irand(-9,9)), float(irand(-9,9)), 0, 0, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 60000))
+                Illusion->AI()->AttackStart(victim);
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            if (Invisible && Invisible_Timer <= diff)
+            {
+                //Become visible again
+                me->setFaction(14);
+                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                me->SetDisplayId(11073);     //Jandice Model
+                Invisible = false;
+            } else if (Invisible)
+            {
+                Invisible_Timer -= diff;
+                //Do nothing while invisible
+                return;
+            }
+
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            //CurseOfBlood_Timer
+            if (CurseOfBlood_Timer <= diff)
+            {
+                //Cast
+                DoCast(me->getVictim(), SPELL_CURSEOFBLOOD);
+
+                //45 seconds
+                CurseOfBlood_Timer = 30000;
+            } else CurseOfBlood_Timer -= diff;
+
+            //Illusion_Timer
+            if (!Invisible && Illusion_Timer <= diff)
+            {
+
+                //Interrupt any spell casting
+                me->InterruptNonMeleeSpells(false);
+                me->setFaction(35);
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                me->SetDisplayId(11686);  // Invisible Model
+                DoModifyThreatPercent(me->getVictim(),-99);
+
+                //Summon 10 Illusions attacking random gamers
+                Unit *pTarget = NULL;
+                for (uint8 i = 0; i < 10; ++i)
+                {
+                    pTarget = SelectTarget(SELECT_TARGET_RANDOM,0);
+                    if (pTarget)
+                        SummonIllusions(pTarget);
+                }
+                Invisible = true;
+                Invisible_Timer = 3000;
+
+                //25 seconds until we should cast this agian
+                Illusion_Timer = 25000;
+            } else Illusion_Timer -= diff;
+
+            //            //Illusion_Timer
+            //            if (Illusion_Timer <= diff)
+            //            {
+            //                  //Cast
+            //                DoCast(me->getVictim(), SPELL_ILLUSION);
+            //
+            //                  //3 Illusion will be summoned
+            //                  if (Illusioncounter < 3)
+            //                  {
+            //                    Illusion_Timer = 500;
+            //                    ++Illusioncounter;
+            //                  }
+            //                  else {
+            //                      //15 seconds until we should cast this again
+            //                      Illusion_Timer = 15000;
+            //                      Illusioncounter = 0;
+            //                  }
+            //
+            //            } else Illusion_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
+};
+
+// Illusion of Jandice Barov Script
+
+class mob_illusionofjandicebarov : public CreatureScript
+{
+public:
+    mob_illusionofjandicebarov() : CreatureScript("mob_illusionofjandicebarov") { }
+
+    CreatureAI* GetAI(Creature* pCreature) const
+    {
+        return new mob_illusionofjandicebarovAI (pCreature);
     }
 
-private:
-    EventMap _events;
+    struct mob_illusionofjandicebarovAI : public ScriptedAI
+    {
+        mob_illusionofjandicebarovAI(Creature *c) : ScriptedAI(c) {}
+
+        uint32 Cleave_Timer;
+
+        void Reset()
+        {
+            Cleave_Timer = 2000 + rand()%6000;
+            me->ApplySpellImmune(0, IMMUNITY_DAMAGE, SPELL_SCHOOL_MASK_MAGIC, true);
+        }
+
+        void EnterCombat(Unit * /*who*/)
+        {
+        }
+
+        void UpdateAI(const uint32 diff)
+        {
+            //Return since we have no target
+            if (!UpdateVictim())
+                return;
+
+            //Cleave_Timer
+            if (Cleave_Timer <= diff)
+            {
+                //Cast
+                DoCast(me->getVictim(), SPELL_CLEAVE);
+
+                //5-8 seconds
+                Cleave_Timer = 5000 + rand()%3000;
+            } else Cleave_Timer -= diff;
+
+            DoMeleeAttackIfReady();
+        }
+    };
+
 };
 
 void AddSC_boss_jandicebarov()
 {
-    RegisterScholomanceCreatureAI(boss_jandice_barov);
+    new boss_jandice_barov();
+    new mob_illusionofjandicebarov();
 }

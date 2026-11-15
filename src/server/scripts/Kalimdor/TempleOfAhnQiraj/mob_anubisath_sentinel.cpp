@@ -1,5 +1,6 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,48 +17,52 @@
  */
 
 /* ScriptData
-SDName: npc_anubisath_sentinel
+SDName: mob_anubisath_sentinel
 SD%Complete: 95
-SDComment: Shadow storm is not properly implemented in core it should only target ppl outside of melee range.
+SDComment: Shadow storm is not properly implemented in core it should only pTarget ppl outside of melee range.
 SDCategory: Temple of Ahn'Qiraj
 EndScriptData */
 
-#include "ScriptMgr.h"
-#include "ObjectAccessor.h"
-#include "ScriptedCreature.h"
-#include "temple_of_ahnqiraj.h"
+#include "ScriptPCH.h"
+#include "WorldPacket.h"
 
-enum Spells
-{
-    SPELL_MENDING_BUFF     = 2147,
+#include "Item.h"
+#include "Player.h"
+#include "Spell.h"
 
-    SPELL_KNOCK_BUFF       = 21737,
-    SPELL_KNOCK            = 25778,
-    SPELL_MANAB_BUFF       = 812,
-    SPELL_MANAB            = 25779,
+#include "Cell.h"
+#include "CellImpl.h"
+#include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
 
-    SPELL_REFLECTAF_BUFF   = 13022,
-    SPELL_REFLECTSFr_BUFF  = 19595,
-    SPELL_THORNS_BUFF      = 25777,
+#define SPELL_MENDING_BUFF      2147
 
-    SPELL_THUNDER_BUFF     = 2834,
-    SPELL_THUNDER          = 8732,
+#define SPELL_KNOCK_BUFF        21737
+#define SPELL_KNOCK             25778
+#define SPELL_MANAB_BUFF        812
+#define SPELL_MANAB             25779
 
-    SPELL_MSTRIKE_BUFF     = 9347,
-    SPELL_MSTRIKE          = 24573,
+#define SPELL_REFLECTAF_BUFF    13022
+#define SPELL_REFLECTSFr_BUFF   19595
+#define SPELL_THORNS_BUFF       25777
 
-    SPELL_STORM_BUFF       = 2148,
-    SPELL_STORM            = 26546
-};
+#define SPELL_THUNDER_BUFF      2834
+#define SPELL_THUNDER           8732
 
-class npc_anubisath_sentinel : public CreatureScript
+#define SPELL_MSTRIKE_BUFF      9347
+#define SPELL_MSTRIKE           24573
+
+#define SPELL_STORM_BUFF        2148
+#define SPELL_STORM             26546
+
+class mob_anubisath_sentinel : public CreatureScript
 {
 public:
-    npc_anubisath_sentinel() : CreatureScript("npc_anubisath_sentinel") { }
+    mob_anubisath_sentinel() : CreatureScript("mob_anubisath_sentinel") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
+    CreatureAI* GetAI(Creature* pCreature) const
     {
-        return GetAQ40AI<aqsentinelAI>(creature);
+        return new aqsentinelAI (pCreature);
     }
 
     struct aqsentinelAI : public ScriptedAI
@@ -81,29 +86,20 @@ public:
             }
         }
 
-        aqsentinelAI(Creature* creature) : ScriptedAI(creature)
-        {
-            Initialize();
-            abselected = 0;                                     // just initialization of variable
-            ability = 0;
-        }
-
-        void Initialize()
+        aqsentinelAI(Creature *c) : ScriptedAI(c)
         {
             ClearBuddyList();
-            gatherOthersWhenAggro = true;
+            abselected = 0;                                     // just initialization of variable
         }
 
-        ObjectGuid NearbyGUID[3];
+        uint64 NearbyGUID[3];
 
         void ClearBuddyList()
         {
-            NearbyGUID[0].Clear();
-            NearbyGUID[1].Clear();
-            NearbyGUID[2].Clear();
+            NearbyGUID[0] = NearbyGUID[1] = NearbyGUID[2] = 0;
         }
 
-        void AddBuddyToList(ObjectGuid CreatureGUID)
+        void AddBuddyToList(uint64 CreatureGUID)
         {
             if (CreatureGUID == me->GetGUID())
                 return;
@@ -120,30 +116,30 @@ public:
             }
         }
 
-        void GiveBuddyMyList(Creature* c)
+        void GiveBuddyMyList(Creature *c)
         {
-            aqsentinelAI* cai = ENSURE_AI(aqsentinelAI, (c)->AI());
-            for (int32 i = 0; i < 3; ++i)
-                if (!NearbyGUID[i].IsEmpty() && NearbyGUID[i] != c->GetGUID())
+            aqsentinelAI *cai = CAST_AI(aqsentinelAI, (c)->AI());
+            for (int i=0; i<3; ++i)
+                if (NearbyGUID[i] && NearbyGUID[i] != c->GetGUID())
                     cai->AddBuddyToList(NearbyGUID[i]);
             cai->AddBuddyToList(me->GetGUID());
         }
 
         void SendMyListToBuddies()
         {
-            for (int32 i = 0; i < 3; ++i)
-                if (Creature* pNearby = ObjectAccessor::GetCreature(*me, NearbyGUID[i]))
+            for (int i=0; i<3; ++i)
+                if (Creature *pNearby = Unit::GetCreature(*me, NearbyGUID[i]))
                     GiveBuddyMyList(pNearby);
         }
 
-        void CallBuddiesToAttack(Unit* who)
+        void CallBuddiesToAttack(Unit *who)
         {
-            for (int32 i = 0; i < 3; ++i)
+            for (int i=0; i<3; ++i)
             {
-                Creature* c = ObjectAccessor::GetCreature(*me, NearbyGUID[i]);
+                Creature *c = Unit::GetCreature(*me, NearbyGUID[i]);
                 if (c)
                 {
-                    if (!c->IsInCombat())
+                    if (!c->isInCombat())
                     {
                         c->SetNoCallAssistance(true);
                         if (c->AI())
@@ -153,10 +149,10 @@ public:
             }
         }
 
-        void AddSentinelsNear(Unit* /*nears*/)
+        void AddSentinelsNear(Unit * /*nears*/)
         {
             std::list<Creature*> assistList;
-            me->GetCreatureListWithEntryInGrid(assistList, 15264, 70.0f);
+            me->GetCreatureListWithEntryInGrid(assistList,15264,70.0f);
 
             if (assistList.empty())
                 return;
@@ -169,7 +165,7 @@ public:
         {
             for (int t = 0; t < 2; ++t)
             {
-                for (int i = !t ? (rand32()%9) : 0; i < 9; ++i)
+                for (int i = !t ? (rand()%9) : 0; i < 9; ++i)
                 {
                     if (!chosenAbilities[i])
                     {
@@ -181,10 +177,10 @@ public:
             return 0;                                           // should never happen
         }
 
-        void GetOtherSentinels(Unit* who)
+        void GetOtherSentinels(Unit *who)
         {
-            bool chosenAbilities[9];
-            memset(chosenAbilities, 0, sizeof(chosenAbilities));
+            bool *chosenAbilities = new bool[9];
+            memset(chosenAbilities, 0, 9*sizeof(bool));
             selectAbility(pickAbilityRandom(chosenAbilities));
 
             ClearBuddyList();
@@ -195,38 +191,41 @@ public:
                 if (!NearbyGUID[bli])
                     break;
 
-                Creature* pNearby = ObjectAccessor::GetCreature(*me, NearbyGUID[bli]);
+                Creature *pNearby = Unit::GetCreature(*me, NearbyGUID[bli]);
                 if (!pNearby)
                     break;
 
                 AddSentinelsNear(pNearby);
-                ENSURE_AI(aqsentinelAI, pNearby->AI())->gatherOthersWhenAggro = false;
-                ENSURE_AI(aqsentinelAI, pNearby->AI())->selectAbility(pickAbilityRandom(chosenAbilities));
+                CAST_AI(aqsentinelAI, pNearby->AI())->gatherOthersWhenAggro = false;
+                CAST_AI(aqsentinelAI, pNearby->AI())->selectAbility(pickAbilityRandom(chosenAbilities));
             }
             /*if (bli < 3)
                 DoYell("I dont have enough buddies.", LANG_NEUTRAL, 0);*/
             SendMyListToBuddies();
             CallBuddiesToAttack(who);
+
+            delete[] chosenAbilities;
         }
 
         bool gatherOthersWhenAggro;
 
-        void Reset() override
+        void Reset()
         {
             if (!me->isDead())
             {
-                for (int i = 0; i < 3; ++i)
+                for (int i=0; i<3; ++i)
                 {
                     if (!NearbyGUID[i])
                         continue;
-                    if (Creature* pNearby = ObjectAccessor::GetCreature(*me, NearbyGUID[i]))
+                    if (Creature *pNearby = Unit::GetCreature(*me, NearbyGUID[i]))
                     {
                         if (pNearby->isDead())
                             pNearby->Respawn();
                     }
                 }
             }
-            Initialize();
+            ClearBuddyList();
+            gatherOthersWhenAggro = true;
         }
 
         void GainSentinelAbility(uint32 id)
@@ -234,7 +233,7 @@ public:
             me->AddAura(id, me);
         }
 
-        void JustEngagedWith(Unit* who) override
+        void EnterCombat(Unit * who)
         {
             if (gatherOthersWhenAggro)
                 GetOtherSentinels(who);
@@ -243,23 +242,56 @@ public:
             DoZoneInCombat();
         }
 
-        void JustDied(Unit* /*killer*/) override
+        void JustDied(Unit* /*who*/)
         {
-            for (int ni = 0; ni < 3; ++ni)
+            for (int ni=0; ni<3; ++ni)
             {
-                Creature* sent = ObjectAccessor::GetCreature(*me, NearbyGUID[ni]);
+                Creature *sent = Unit::GetCreature(*me, NearbyGUID[ni]);
                 if (!sent)
                     continue;
                 if (sent->isDead())
                     continue;
                 sent->ModifyHealth(int32(sent->CountPctFromMaxHealth(50)));
-                ENSURE_AI(aqsentinelAI, sent->AI())->GainSentinelAbility(ability);
+                CAST_AI(aqsentinelAI, sent->AI())->GainSentinelAbility(ability);
+            }
+        }
+
+        Unit *GetHatedManaUser() const
+        {
+            std::list<HostileReference*> const& threatList = me->getThreatManager().getThreatList();
+            for (std::list<HostileReference*>::const_iterator i = threatList.begin(); i != threatList.end(); ++i)
+                if (Unit* unit = (*i)->getTarget())
+                    if (unit->getPowerType() == POWER_MANA)
+                        return unit;
+
+            return NULL;
+        }
+
+        Unit* GetAuraEffectTriggerTarget(uint32 spellId, uint8 /*effIndex*/)
+        {
+            switch (spellId)
+            {
+                case SPELL_KNOCK_BUFF:
+                case SPELL_THUNDER_BUFF:
+                case SPELL_MSTRIKE_BUFF:
+                case SPELL_STORM_BUFF:
+                    return me->getVictim();
+
+                case SPELL_MANAB_BUFF:
+                    return GetHatedManaUser();
+
+                case SPELL_MENDING_BUFF:
+                case SPELL_REFLECTAF_BUFF:
+                case SPELL_REFLECTSFr_BUFF:
+                case SPELL_THORNS_BUFF:
+                default:
+                    return me;
             }
         }
     };
 };
 
-void AddSC_npc_anubisath_sentinel()
+void AddSC_mob_anubisath_sentinel()
 {
-    new npc_anubisath_sentinel();
+    new mob_anubisath_sentinel();
 }

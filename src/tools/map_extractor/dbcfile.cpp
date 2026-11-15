@@ -1,29 +1,14 @@
-/*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+#define _CRT_SECURE_NO_DEPRECATE
 
 #include "dbcfile.h"
-#include "mpq_libmpq.h"
+#include "mpq_libmpq04.h"
 
-DBCFile::DBCFile(const std::string& filename):
-    filename(filename), recordSize(0), recordCount(0), fieldCount(0), stringSize(0), data(nullptr), stringTable(nullptr)
+DBCFile::DBCFile(const std::string &filename):
+    filename(filename),
+    data(0)
 {
 
 }
-
 bool DBCFile::open()
 {
     MPQFile f(filename.c_str());
@@ -95,3 +80,4 @@ DBCFile::Iterator DBCFile::end()
     assert(data);
     return Iterator(*this, stringTable);
 }
+
