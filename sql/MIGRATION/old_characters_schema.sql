@@ -1,0 +1,1301 @@
+-- --------------------------------------------------------
+-- Host:                         127.0.0.1
+-- Server version:               8.4.9 - MySQL Community Server - GPL
+-- Server OS:                    Win64
+-- HeidiSQL Version:             12.21.0.7344
+-- --------------------------------------------------------
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+-- Dumping structure for table woi_characters.account_data
+CREATE TABLE IF NOT EXISTS `account_data` (
+  `accountId` int unsigned NOT NULL DEFAULT '0' COMMENT 'Account Identifier',
+  `type` tinyint unsigned NOT NULL DEFAULT '0',
+  `time` int unsigned NOT NULL DEFAULT '0',
+  `data` blob NOT NULL,
+  PRIMARY KEY (`accountId`,`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.account_instance_times
+CREATE TABLE IF NOT EXISTS `account_instance_times` (
+  `accountId` int unsigned NOT NULL,
+  `instanceId` int unsigned NOT NULL DEFAULT '0',
+  `releaseTime` bigint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`accountId`,`instanceId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.account_tutorial
+CREATE TABLE IF NOT EXISTS `account_tutorial` (
+  `accountId` int unsigned NOT NULL DEFAULT '0' COMMENT 'Account Identifier',
+  `tut0` int unsigned NOT NULL DEFAULT '0',
+  `tut1` int unsigned NOT NULL DEFAULT '0',
+  `tut2` int unsigned NOT NULL DEFAULT '0',
+  `tut3` int unsigned NOT NULL DEFAULT '0',
+  `tut4` int unsigned NOT NULL DEFAULT '0',
+  `tut5` int unsigned NOT NULL DEFAULT '0',
+  `tut6` int unsigned NOT NULL DEFAULT '0',
+  `tut7` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`accountId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.addons
+CREATE TABLE IF NOT EXISTS `addons` (
+  `name` varchar(120) NOT NULL DEFAULT '',
+  `crc` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Addons';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.arena_games_log
+CREATE TABLE IF NOT EXISTS `arena_games_log` (
+  `game_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `team_type` int unsigned NOT NULL DEFAULT '0',
+  `winner_team_id` int unsigned NOT NULL DEFAULT '0',
+  `winner_previous_rating` int unsigned NOT NULL DEFAULT '0',
+  `winner_change` int NOT NULL DEFAULT '0',
+  `loser_team_id` int unsigned NOT NULL DEFAULT '0',
+  `loser_previous_rating` int unsigned NOT NULL DEFAULT '0',
+  `loser_change` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`game_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.arena_team
+CREATE TABLE IF NOT EXISTS `arena_team` (
+  `arenateamid` int unsigned NOT NULL DEFAULT '0',
+  `name` varchar(24) NOT NULL,
+  `captainguid` int unsigned NOT NULL DEFAULT '0',
+  `type` tinyint unsigned NOT NULL DEFAULT '0',
+  `BackgroundColor` int unsigned NOT NULL DEFAULT '0',
+  `EmblemStyle` tinyint unsigned NOT NULL DEFAULT '0',
+  `EmblemColor` int unsigned NOT NULL DEFAULT '0',
+  `BorderStyle` tinyint unsigned NOT NULL DEFAULT '0',
+  `BorderColor` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`arenateamid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.arena_team_member
+CREATE TABLE IF NOT EXISTS `arena_team_member` (
+  `arenateamid` int unsigned NOT NULL DEFAULT '0',
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  `played_week` int unsigned NOT NULL DEFAULT '0',
+  `wons_week` int unsigned NOT NULL DEFAULT '0',
+  `played_season` int unsigned NOT NULL DEFAULT '0',
+  `wons_season` int unsigned NOT NULL DEFAULT '0',
+  `personal_rating` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`arenateamid`,`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.arena_team_stats
+CREATE TABLE IF NOT EXISTS `arena_team_stats` (
+  `arenateamid` int unsigned NOT NULL DEFAULT '0',
+  `rating` int unsigned NOT NULL DEFAULT '0',
+  `games` int unsigned NOT NULL DEFAULT '0',
+  `wins` int unsigned NOT NULL DEFAULT '0',
+  `played` int unsigned NOT NULL DEFAULT '0',
+  `wins2` int unsigned NOT NULL DEFAULT '0',
+  `rank` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`arenateamid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.armory_character_stats
+CREATE TABLE IF NOT EXISTS `armory_character_stats` (
+  `guid` int NOT NULL,
+  `data` longtext NOT NULL,
+  PRIMARY KEY (`guid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COMMENT='World of Warcraft Armory table';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.auctionhouse
+CREATE TABLE IF NOT EXISTS `auctionhouse` (
+  `id` int unsigned NOT NULL DEFAULT '0',
+  `auctioneerguid` int unsigned NOT NULL DEFAULT '0',
+  `itemguid` int unsigned NOT NULL DEFAULT '0',
+  `itemowner` int unsigned NOT NULL DEFAULT '0',
+  `buyoutprice` int unsigned NOT NULL DEFAULT '0',
+  `time` int unsigned NOT NULL DEFAULT '0',
+  `buyguid` int unsigned NOT NULL DEFAULT '0',
+  `lastbid` int unsigned NOT NULL DEFAULT '0',
+  `startbid` int unsigned NOT NULL DEFAULT '0',
+  `deposit` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `item_guid` (`itemguid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.blizz_raffle
+CREATE TABLE IF NOT EXISTS `blizz_raffle` (
+  `guid` int NOT NULL,
+  `count` int NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.bugreport
+CREATE TABLE IF NOT EXISTS `bugreport` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Identifier',
+  `type` longtext NOT NULL,
+  `content` longtext NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Debug System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.channels
+CREATE TABLE IF NOT EXISTS `channels` (
+  `name` varchar(128) NOT NULL,
+  `team` int unsigned NOT NULL,
+  `announce` tinyint unsigned NOT NULL DEFAULT '1',
+  `ownership` tinyint unsigned NOT NULL DEFAULT '1',
+  `password` varchar(32) DEFAULT NULL,
+  `bannedList` text,
+  `lastUsed` int unsigned NOT NULL,
+  PRIMARY KEY (`name`,`team`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Channel System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_account_data
+CREATE TABLE IF NOT EXISTS `character_account_data` (
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  `type` tinyint unsigned NOT NULL DEFAULT '0',
+  `time` int unsigned NOT NULL DEFAULT '0',
+  `data` blob NOT NULL,
+  PRIMARY KEY (`guid`,`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_achievement
+CREATE TABLE IF NOT EXISTS `character_achievement` (
+  `guid` int unsigned NOT NULL,
+  `achievement` smallint unsigned NOT NULL,
+  `date` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`achievement`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_achievement_progress
+CREATE TABLE IF NOT EXISTS `character_achievement_progress` (
+  `guid` int unsigned NOT NULL,
+  `criteria` smallint unsigned NOT NULL,
+  `counter` int unsigned NOT NULL,
+  `date` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`criteria`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_action
+CREATE TABLE IF NOT EXISTS `character_action` (
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  `spec` tinyint unsigned NOT NULL DEFAULT '0',
+  `button` tinyint unsigned NOT NULL DEFAULT '0',
+  `action` int unsigned NOT NULL DEFAULT '0',
+  `type` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`spec`,`button`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_arena_stats
+CREATE TABLE IF NOT EXISTS `character_arena_stats` (
+  `guid` int NOT NULL,
+  `slot` tinyint NOT NULL,
+  `personal_rating` int NOT NULL,
+  `matchmaker_rating` int NOT NULL,
+  PRIMARY KEY (`guid`,`slot`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_aura
+CREATE TABLE IF NOT EXISTS `character_aura` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `caster_guid` bigint unsigned NOT NULL DEFAULT '0' COMMENT 'Full Global Unique Identifier',
+  `item_guid` bigint unsigned NOT NULL DEFAULT '0',
+  `spell` mediumint unsigned NOT NULL DEFAULT '0',
+  `effect_mask` tinyint unsigned NOT NULL DEFAULT '0',
+  `recalculate_mask` tinyint unsigned NOT NULL DEFAULT '0',
+  `stackcount` tinyint unsigned NOT NULL DEFAULT '1',
+  `maxduration` int NOT NULL DEFAULT '0',
+  `remaintime` int NOT NULL DEFAULT '0',
+  `remaincharges` tinyint unsigned NOT NULL DEFAULT '0',
+  `amount0` int NOT NULL DEFAULT '0',
+  `amount1` int NOT NULL DEFAULT '0',
+  `amount2` int NOT NULL DEFAULT '0',
+  `base_amount0` int NOT NULL DEFAULT '0',
+  `base_amount1` int NOT NULL DEFAULT '0',
+  `base_amount2` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`caster_guid`,`item_guid`,`spell`,`effect_mask`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_banned
+CREATE TABLE IF NOT EXISTS `character_banned` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Account id',
+  `bandate` int unsigned NOT NULL DEFAULT '0',
+  `unbandate` int unsigned NOT NULL DEFAULT '0',
+  `bannedby` varchar(50) NOT NULL,
+  `banreason` varchar(255) NOT NULL,
+  `active` tinyint unsigned NOT NULL DEFAULT '1',
+  PRIMARY KEY (`guid`,`bandate`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Ban List';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_battleground_data
+CREATE TABLE IF NOT EXISTS `character_battleground_data` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `instance_id` int unsigned NOT NULL,
+  `team` smallint unsigned NOT NULL,
+  `join_x` float NOT NULL DEFAULT '0',
+  `join_y` float NOT NULL DEFAULT '0',
+  `join_z` float NOT NULL DEFAULT '0',
+  `join_o` float NOT NULL DEFAULT '0',
+  `join_map` smallint unsigned NOT NULL DEFAULT '0',
+  `taxi_start` int unsigned NOT NULL DEFAULT '0',
+  `taxi_end` int unsigned NOT NULL DEFAULT '0',
+  `mount_spell` mediumint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_battleground_random
+CREATE TABLE IF NOT EXISTS `character_battleground_random` (
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_declinedname
+CREATE TABLE IF NOT EXISTS `character_declinedname` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `genitive` varchar(15) NOT NULL DEFAULT '',
+  `dative` varchar(15) NOT NULL DEFAULT '',
+  `accusative` varchar(15) NOT NULL DEFAULT '',
+  `instrumental` varchar(15) NOT NULL DEFAULT '',
+  `prepositional` varchar(15) NOT NULL DEFAULT '',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_equipmentsets
+CREATE TABLE IF NOT EXISTS `character_equipmentsets` (
+  `guid` int NOT NULL DEFAULT '0',
+  `setguid` bigint NOT NULL AUTO_INCREMENT,
+  `setindex` tinyint unsigned NOT NULL DEFAULT '0',
+  `name` varchar(31) NOT NULL,
+  `iconname` varchar(100) NOT NULL,
+  `item0` int unsigned NOT NULL DEFAULT '0',
+  `item1` int unsigned NOT NULL DEFAULT '0',
+  `item2` int unsigned NOT NULL DEFAULT '0',
+  `item3` int unsigned NOT NULL DEFAULT '0',
+  `item4` int unsigned NOT NULL DEFAULT '0',
+  `item5` int unsigned NOT NULL DEFAULT '0',
+  `item6` int unsigned NOT NULL DEFAULT '0',
+  `item7` int unsigned NOT NULL DEFAULT '0',
+  `item8` int unsigned NOT NULL DEFAULT '0',
+  `item9` int unsigned NOT NULL DEFAULT '0',
+  `item10` int unsigned NOT NULL DEFAULT '0',
+  `item11` int unsigned NOT NULL DEFAULT '0',
+  `item12` int unsigned NOT NULL DEFAULT '0',
+  `item13` int unsigned NOT NULL DEFAULT '0',
+  `item14` int unsigned NOT NULL DEFAULT '0',
+  `item15` int unsigned NOT NULL DEFAULT '0',
+  `item16` int unsigned NOT NULL DEFAULT '0',
+  `item17` int unsigned NOT NULL DEFAULT '0',
+  `item18` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`setguid`),
+  UNIQUE KEY `idx_set` (`guid`,`setguid`,`setindex`),
+  KEY `Idx_setindex` (`setindex`)
+) ENGINE=InnoDB AUTO_INCREMENT=14078 DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_feed_log
+CREATE TABLE IF NOT EXISTS `character_feed_log` (
+  `guid` int NOT NULL,
+  `type` smallint NOT NULL,
+  `data` int NOT NULL,
+  `date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `counter` int NOT NULL,
+  PRIMARY KEY (`guid`,`type`,`data`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_gifts
+CREATE TABLE IF NOT EXISTS `character_gifts` (
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  `item_guid` int unsigned NOT NULL DEFAULT '0',
+  `entry` int unsigned NOT NULL DEFAULT '0',
+  `flags` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`item_guid`),
+  KEY `idx_guid` (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_glyphs
+CREATE TABLE IF NOT EXISTS `character_glyphs` (
+  `guid` int unsigned NOT NULL,
+  `spec` tinyint unsigned NOT NULL DEFAULT '0',
+  `glyph1` smallint unsigned NOT NULL DEFAULT '0',
+  `glyph2` smallint unsigned DEFAULT '0',
+  `glyph3` smallint unsigned DEFAULT '0',
+  `glyph4` smallint unsigned DEFAULT '0',
+  `glyph5` smallint unsigned DEFAULT '0',
+  `glyph6` smallint unsigned DEFAULT '0',
+  PRIMARY KEY (`guid`,`spec`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_homebind
+CREATE TABLE IF NOT EXISTS `character_homebind` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `map` smallint unsigned NOT NULL DEFAULT '0' COMMENT 'Map Identifier',
+  `zone` smallint unsigned NOT NULL DEFAULT '0' COMMENT 'Zone Identifier',
+  `position_x` float NOT NULL DEFAULT '0',
+  `position_y` float NOT NULL DEFAULT '0',
+  `position_z` float NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_instance
+CREATE TABLE IF NOT EXISTS `character_instance` (
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  `instance` int unsigned NOT NULL DEFAULT '0',
+  `permanent` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`instance`),
+  KEY `instance` (`instance`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_inventory
+CREATE TABLE IF NOT EXISTS `character_inventory` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `bag` int unsigned NOT NULL DEFAULT '0',
+  `slot` tinyint unsigned NOT NULL DEFAULT '0',
+  `item` int unsigned NOT NULL DEFAULT '0' COMMENT 'Item Global Unique Identifier',
+  PRIMARY KEY (`item`),
+  UNIQUE KEY `guid` (`guid`,`bag`,`slot`),
+  KEY `idx_guid` (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_pet
+CREATE TABLE IF NOT EXISTS `character_pet` (
+  `id` int unsigned NOT NULL DEFAULT '0',
+  `entry` int unsigned NOT NULL DEFAULT '0',
+  `owner` int unsigned NOT NULL DEFAULT '0',
+  `modelid` int unsigned DEFAULT '0',
+  `CreatedBySpell` mediumint unsigned NOT NULL DEFAULT '0',
+  `PetType` tinyint unsigned NOT NULL DEFAULT '0',
+  `level` smallint unsigned NOT NULL DEFAULT '1',
+  `exp` int unsigned NOT NULL DEFAULT '0',
+  `Reactstate` tinyint unsigned NOT NULL DEFAULT '0',
+  `name` varchar(21) NOT NULL DEFAULT 'Pet',
+  `renamed` tinyint unsigned NOT NULL DEFAULT '0',
+  `slot` tinyint unsigned NOT NULL DEFAULT '0',
+  `curhealth` int unsigned NOT NULL DEFAULT '1',
+  `curmana` int unsigned NOT NULL DEFAULT '0',
+  `curhappiness` int unsigned NOT NULL DEFAULT '0',
+  `savetime` int unsigned NOT NULL DEFAULT '0',
+  `resettalents_cost` int unsigned NOT NULL DEFAULT '0',
+  `resettalents_time` int unsigned NOT NULL DEFAULT '0',
+  `abdata` text,
+  PRIMARY KEY (`id`),
+  KEY `owner` (`owner`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Pet System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_pet_declinedname
+CREATE TABLE IF NOT EXISTS `character_pet_declinedname` (
+  `id` int unsigned NOT NULL DEFAULT '0',
+  `owner` int unsigned NOT NULL DEFAULT '0',
+  `genitive` varchar(12) NOT NULL DEFAULT '',
+  `dative` varchar(12) NOT NULL DEFAULT '',
+  `accusative` varchar(12) NOT NULL DEFAULT '',
+  `instrumental` varchar(12) NOT NULL DEFAULT '',
+  `prepositional` varchar(12) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`),
+  KEY `owner_key` (`owner`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_queststatus
+CREATE TABLE IF NOT EXISTS `character_queststatus` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `quest` int unsigned NOT NULL DEFAULT '0' COMMENT 'Quest Identifier',
+  `status` tinyint unsigned NOT NULL DEFAULT '0',
+  `explored` tinyint unsigned NOT NULL DEFAULT '0',
+  `timer` int unsigned NOT NULL DEFAULT '0',
+  `mobcount1` smallint unsigned NOT NULL DEFAULT '0',
+  `mobcount2` smallint unsigned NOT NULL DEFAULT '0',
+  `mobcount3` smallint unsigned NOT NULL DEFAULT '0',
+  `mobcount4` smallint unsigned NOT NULL DEFAULT '0',
+  `itemcount1` smallint unsigned NOT NULL DEFAULT '0',
+  `itemcount2` smallint unsigned NOT NULL DEFAULT '0',
+  `itemcount3` smallint unsigned NOT NULL DEFAULT '0',
+  `itemcount4` smallint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`quest`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_queststatus_daily
+CREATE TABLE IF NOT EXISTS `character_queststatus_daily` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `quest` int unsigned NOT NULL DEFAULT '0' COMMENT 'Quest Identifier',
+  `time` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`quest`),
+  KEY `idx_guid` (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_queststatus_rewarded
+CREATE TABLE IF NOT EXISTS `character_queststatus_rewarded` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `quest` int unsigned NOT NULL DEFAULT '0' COMMENT 'Quest Identifier',
+  PRIMARY KEY (`guid`,`quest`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_queststatus_weekly
+CREATE TABLE IF NOT EXISTS `character_queststatus_weekly` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `quest` int unsigned NOT NULL DEFAULT '0' COMMENT 'Quest Identifier',
+  PRIMARY KEY (`guid`,`quest`),
+  KEY `idx_guid` (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_reputation
+CREATE TABLE IF NOT EXISTS `character_reputation` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `faction` smallint unsigned NOT NULL DEFAULT '0',
+  `standing` int NOT NULL DEFAULT '0',
+  `flags` smallint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`faction`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_skills
+CREATE TABLE IF NOT EXISTS `character_skills` (
+  `guid` int unsigned NOT NULL COMMENT 'Global Unique Identifier',
+  `skill` smallint unsigned NOT NULL,
+  `value` smallint unsigned NOT NULL,
+  `max` smallint unsigned NOT NULL,
+  PRIMARY KEY (`guid`,`skill`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_social
+CREATE TABLE IF NOT EXISTS `character_social` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Character Global Unique Identifier',
+  `friend` int unsigned NOT NULL DEFAULT '0' COMMENT 'Friend Global Unique Identifier',
+  `flags` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'Friend Flags',
+  `note` varchar(48) NOT NULL DEFAULT '' COMMENT 'Friend Note',
+  PRIMARY KEY (`guid`,`friend`,`flags`),
+  KEY `friend` (`friend`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_spell
+CREATE TABLE IF NOT EXISTS `character_spell` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `spell` mediumint unsigned NOT NULL DEFAULT '0' COMMENT 'Spell Identifier',
+  `active` tinyint unsigned NOT NULL DEFAULT '1',
+  `disabled` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`spell`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_spell_cooldown
+CREATE TABLE IF NOT EXISTS `character_spell_cooldown` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier, Low part',
+  `spell` mediumint unsigned NOT NULL DEFAULT '0' COMMENT 'Spell Identifier',
+  `item` int unsigned NOT NULL DEFAULT '0' COMMENT 'Item Identifier',
+  `time` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`spell`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_stats
+CREATE TABLE IF NOT EXISTS `character_stats` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier, Low part',
+  `maxhealth` int unsigned NOT NULL DEFAULT '0',
+  `maxpower1` int unsigned NOT NULL DEFAULT '0',
+  `maxpower2` int unsigned NOT NULL DEFAULT '0',
+  `maxpower3` int unsigned NOT NULL DEFAULT '0',
+  `maxpower4` int unsigned NOT NULL DEFAULT '0',
+  `maxpower5` int unsigned NOT NULL DEFAULT '0',
+  `maxpower6` int unsigned NOT NULL DEFAULT '0',
+  `maxpower7` int unsigned NOT NULL DEFAULT '0',
+  `strength` int unsigned NOT NULL DEFAULT '0',
+  `agility` int unsigned NOT NULL DEFAULT '0',
+  `stamina` int unsigned NOT NULL DEFAULT '0',
+  `intellect` int unsigned NOT NULL DEFAULT '0',
+  `spirit` int unsigned NOT NULL DEFAULT '0',
+  `armor` int unsigned NOT NULL DEFAULT '0',
+  `resHoly` int unsigned NOT NULL DEFAULT '0',
+  `resFire` int unsigned NOT NULL DEFAULT '0',
+  `resNature` int unsigned NOT NULL DEFAULT '0',
+  `resFrost` int unsigned NOT NULL DEFAULT '0',
+  `resShadow` int unsigned NOT NULL DEFAULT '0',
+  `resArcane` int unsigned NOT NULL DEFAULT '0',
+  `blockPct` float unsigned NOT NULL DEFAULT '0',
+  `dodgePct` float unsigned NOT NULL DEFAULT '0',
+  `parryPct` float unsigned NOT NULL DEFAULT '0',
+  `critPct` float unsigned NOT NULL DEFAULT '0',
+  `rangedCritPct` float unsigned NOT NULL DEFAULT '0',
+  `spellCritPct` float unsigned NOT NULL DEFAULT '0',
+  `attackPower` int unsigned NOT NULL DEFAULT '0',
+  `rangedAttackPower` int unsigned NOT NULL DEFAULT '0',
+  `spellPower` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.character_talent
+CREATE TABLE IF NOT EXISTS `character_talent` (
+  `guid` int unsigned NOT NULL,
+  `spell` mediumint unsigned NOT NULL,
+  `spec` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`spell`,`spec`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.characters
+CREATE TABLE IF NOT EXISTS `characters` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `account` int unsigned NOT NULL DEFAULT '0' COMMENT 'Account Identifier',
+  `name` varchar(12) NOT NULL DEFAULT '',
+  `race` tinyint unsigned NOT NULL DEFAULT '0',
+  `class` tinyint unsigned NOT NULL DEFAULT '0',
+  `gender` tinyint unsigned NOT NULL DEFAULT '0',
+  `level` tinyint unsigned NOT NULL DEFAULT '0',
+  `xp` int unsigned NOT NULL DEFAULT '0',
+  `money` int unsigned NOT NULL DEFAULT '0',
+  `playerBytes` int unsigned NOT NULL DEFAULT '0',
+  `playerBytes2` int unsigned NOT NULL DEFAULT '0',
+  `playerFlags` int unsigned NOT NULL DEFAULT '0',
+  `position_x` float NOT NULL DEFAULT '0',
+  `position_y` float NOT NULL DEFAULT '0',
+  `position_z` float NOT NULL DEFAULT '0',
+  `map` smallint unsigned NOT NULL DEFAULT '0' COMMENT 'Map Identifier',
+  `orientation` float NOT NULL DEFAULT '0',
+  `taximask` text NOT NULL,
+  `online` tinyint unsigned NOT NULL DEFAULT '0',
+  `cinematic` tinyint unsigned NOT NULL DEFAULT '0',
+  `totaltime` int unsigned NOT NULL DEFAULT '0',
+  `leveltime` int unsigned NOT NULL DEFAULT '0',
+  `logout_time` int unsigned NOT NULL DEFAULT '0',
+  `is_logout_resting` tinyint unsigned NOT NULL DEFAULT '0',
+  `rest_bonus` float NOT NULL DEFAULT '0',
+  `resettalents_cost` int unsigned NOT NULL DEFAULT '0',
+  `resettalents_time` int unsigned NOT NULL DEFAULT '0',
+  `trans_x` float NOT NULL DEFAULT '0',
+  `trans_y` float NOT NULL DEFAULT '0',
+  `trans_z` float NOT NULL DEFAULT '0',
+  `trans_o` float NOT NULL DEFAULT '0',
+  `transguid` mediumint unsigned NOT NULL DEFAULT '0',
+  `extra_flags` smallint unsigned NOT NULL DEFAULT '0',
+  `stable_slots` tinyint unsigned NOT NULL DEFAULT '0',
+  `at_login` smallint unsigned NOT NULL DEFAULT '0',
+  `zone` smallint unsigned NOT NULL DEFAULT '0',
+  `death_expire_time` int unsigned NOT NULL DEFAULT '0',
+  `taxi_path` text,
+  `arenaPoints` int unsigned NOT NULL DEFAULT '0',
+  `totalHonorPoints` int unsigned NOT NULL DEFAULT '0',
+  `todayHonorPoints` int unsigned NOT NULL DEFAULT '0',
+  `yesterdayHonorPoints` int unsigned NOT NULL DEFAULT '0',
+  `totalKills` int unsigned NOT NULL DEFAULT '0',
+  `todayKills` smallint unsigned NOT NULL DEFAULT '0',
+  `yesterdayKills` smallint unsigned NOT NULL DEFAULT '0',
+  `chosenTitle` int unsigned NOT NULL DEFAULT '0',
+  `knownCurrencies` bigint unsigned NOT NULL DEFAULT '0',
+  `watchedFaction` int unsigned NOT NULL DEFAULT '0',
+  `drunk` smallint unsigned NOT NULL DEFAULT '0',
+  `health` int unsigned NOT NULL DEFAULT '0',
+  `power1` int unsigned NOT NULL DEFAULT '0',
+  `power2` int unsigned NOT NULL DEFAULT '0',
+  `power3` int unsigned NOT NULL DEFAULT '0',
+  `power4` int unsigned NOT NULL DEFAULT '0',
+  `power5` int unsigned NOT NULL DEFAULT '0',
+  `power6` int unsigned NOT NULL DEFAULT '0',
+  `power7` int unsigned NOT NULL DEFAULT '0',
+  `speccount` tinyint unsigned NOT NULL DEFAULT '1',
+  `activespec` tinyint unsigned NOT NULL DEFAULT '0',
+  `exploredZones` longtext,
+  `equipmentCache` longtext,
+  `ammoId` int unsigned NOT NULL DEFAULT '0',
+  `knownTitles` longtext,
+  `actionBars` tinyint unsigned NOT NULL DEFAULT '0',
+  `deleteInfos_Account` int unsigned DEFAULT NULL,
+  `deleteInfos_Name` varchar(12) DEFAULT NULL,
+  `deleteDate` int unsigned DEFAULT NULL,
+  `instance_id` int unsigned NOT NULL DEFAULT '0',
+  `instance_mode_mask` tinyint unsigned NOT NULL DEFAULT '0',
+  `latency` mediumint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`),
+  KEY `idx_account` (`account`),
+  KEY `idx_online` (`online`),
+  KEY `idx_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.corpse
+CREATE TABLE IF NOT EXISTS `corpse` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `player` int unsigned NOT NULL DEFAULT '0' COMMENT 'Character Global Unique Identifier',
+  `position_x` float NOT NULL DEFAULT '0',
+  `position_y` float NOT NULL DEFAULT '0',
+  `position_z` float NOT NULL DEFAULT '0',
+  `orientation` float NOT NULL DEFAULT '0',
+  `map` smallint unsigned NOT NULL DEFAULT '0' COMMENT 'Map Identifier',
+  `phaseMask` int unsigned NOT NULL DEFAULT '1',
+  `displayId` int unsigned NOT NULL DEFAULT '0',
+  `itemCache` text NOT NULL,
+  `bytes1` int unsigned NOT NULL DEFAULT '0',
+  `bytes2` int unsigned NOT NULL DEFAULT '0',
+  `guild` int unsigned NOT NULL DEFAULT '0',
+  `flags` tinyint unsigned NOT NULL DEFAULT '0',
+  `dynFlags` tinyint unsigned NOT NULL DEFAULT '0',
+  `time` int unsigned NOT NULL DEFAULT '0',
+  `corpse_type` tinyint unsigned NOT NULL DEFAULT '0',
+  `instance` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`),
+  KEY `idx_type` (`corpse_type`),
+  KEY `instance` (`instance`),
+  KEY `Idx_player` (`player`),
+  KEY `Idx_time` (`time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Death System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.creature_respawn
+CREATE TABLE IF NOT EXISTS `creature_respawn` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `respawntime` int unsigned NOT NULL DEFAULT '0',
+  `instance` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`instance`),
+  KEY `instance` (`instance`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Grid Loading System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.game_event_condition_save
+CREATE TABLE IF NOT EXISTS `game_event_condition_save` (
+  `eventEntry` tinyint unsigned NOT NULL,
+  `condition_id` int unsigned NOT NULL DEFAULT '0',
+  `done` float DEFAULT '0',
+  PRIMARY KEY (`eventEntry`,`condition_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.game_event_save
+CREATE TABLE IF NOT EXISTS `game_event_save` (
+  `eventEntry` tinyint unsigned NOT NULL,
+  `state` tinyint unsigned NOT NULL DEFAULT '1',
+  `next_start` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`eventEntry`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.gameobject_respawn
+CREATE TABLE IF NOT EXISTS `gameobject_respawn` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `respawntime` int unsigned NOT NULL DEFAULT '0',
+  `instance` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`instance`),
+  KEY `instance` (`instance`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Grid Loading System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.gm_subsurveys
+CREATE TABLE IF NOT EXISTS `gm_subsurveys` (
+  `surveyid` int unsigned NOT NULL AUTO_INCREMENT,
+  `subsurveyid` int unsigned NOT NULL DEFAULT '0',
+  `rank` int unsigned NOT NULL DEFAULT '0',
+  `comment` text NOT NULL,
+  PRIMARY KEY (`surveyid`,`subsurveyid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.gm_surveys
+CREATE TABLE IF NOT EXISTS `gm_surveys` (
+  `surveyid` int unsigned NOT NULL AUTO_INCREMENT,
+  `player` int unsigned NOT NULL DEFAULT '0',
+  `mainSurvey` int unsigned NOT NULL DEFAULT '0',
+  `overall_comment` longtext NOT NULL,
+  `timestamp` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`surveyid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.gm_tickets
+CREATE TABLE IF NOT EXISTS `gm_tickets` (
+  `guid` int unsigned NOT NULL AUTO_INCREMENT,
+  `playerGuid` int unsigned NOT NULL DEFAULT '0',
+  `name` varchar(12) NOT NULL,
+  `message` text NOT NULL,
+  `createtime` int unsigned NOT NULL DEFAULT '0',
+  `map` smallint unsigned NOT NULL DEFAULT '0',
+  `posX` float NOT NULL DEFAULT '0',
+  `posY` float NOT NULL DEFAULT '0',
+  `posZ` float NOT NULL DEFAULT '0',
+  `timestamp` int unsigned NOT NULL DEFAULT '0',
+  `closed` int NOT NULL DEFAULT '0',
+  `assignedto` int unsigned NOT NULL DEFAULT '0',
+  `comment` text NOT NULL,
+  `completed` tinyint unsigned NOT NULL DEFAULT '0',
+  `escalated` tinyint unsigned NOT NULL DEFAULT '0',
+  `viewed` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB AUTO_INCREMENT=79937 DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.group_instance
+CREATE TABLE IF NOT EXISTS `group_instance` (
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  `instance` int unsigned NOT NULL DEFAULT '0',
+  `permanent` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`instance`),
+  KEY `instance` (`instance`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.group_member
+CREATE TABLE IF NOT EXISTS `group_member` (
+  `guid` int unsigned NOT NULL,
+  `memberGuid` int unsigned NOT NULL,
+  `memberFlags` tinyint unsigned NOT NULL DEFAULT '0',
+  `subgroup` tinyint unsigned NOT NULL DEFAULT '0',
+  `roles` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`memberGuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Groups';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild
+CREATE TABLE IF NOT EXISTS `guild` (
+  `guildid` int unsigned NOT NULL DEFAULT '0',
+  `name` varchar(50) NOT NULL DEFAULT '',
+  `leaderguid` int unsigned NOT NULL DEFAULT '0',
+  `EmblemStyle` tinyint unsigned NOT NULL DEFAULT '0',
+  `EmblemColor` tinyint unsigned NOT NULL DEFAULT '0',
+  `BorderStyle` tinyint unsigned NOT NULL DEFAULT '0',
+  `BorderColor` tinyint unsigned NOT NULL DEFAULT '0',
+  `BackgroundColor` tinyint unsigned NOT NULL DEFAULT '0',
+  `info` text NOT NULL,
+  `motd` varchar(128) NOT NULL DEFAULT '',
+  `createdate` int unsigned NOT NULL DEFAULT '0',
+  `BankMoney` bigint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guildid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Guild System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_bank_eventlog
+CREATE TABLE IF NOT EXISTS `guild_bank_eventlog` (
+  `guildid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Guild Identificator',
+  `LogGuid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Log record identificator - auxiliary column',
+  `TabId` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'Guild bank TabId',
+  `EventType` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'Event type',
+  `PlayerGuid` int unsigned NOT NULL DEFAULT '0',
+  `ItemOrMoney` int unsigned NOT NULL DEFAULT '0',
+  `ItemStackCount` smallint unsigned NOT NULL DEFAULT '0',
+  `DestTabId` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'Destination Tab Id',
+  `TimeStamp` int unsigned NOT NULL DEFAULT '0' COMMENT 'Event UNIX time',
+  PRIMARY KEY (`guildid`,`LogGuid`,`TabId`),
+  KEY `guildid_key` (`guildid`),
+  KEY `Idx_PlayerGuid` (`PlayerGuid`),
+  KEY `Idx_LogGuid` (`LogGuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_bank_item
+CREATE TABLE IF NOT EXISTS `guild_bank_item` (
+  `guildid` int unsigned NOT NULL DEFAULT '0',
+  `TabId` tinyint unsigned NOT NULL DEFAULT '0',
+  `SlotId` tinyint unsigned NOT NULL DEFAULT '0',
+  `item_guid` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guildid`,`TabId`,`SlotId`),
+  KEY `guildid_key` (`guildid`),
+  KEY `Idx_item_guid` (`item_guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_bank_right
+CREATE TABLE IF NOT EXISTS `guild_bank_right` (
+  `guildid` int unsigned NOT NULL DEFAULT '0',
+  `TabId` tinyint unsigned NOT NULL DEFAULT '0',
+  `rid` tinyint unsigned NOT NULL DEFAULT '0',
+  `gbright` tinyint unsigned NOT NULL DEFAULT '0',
+  `SlotPerDay` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guildid`,`TabId`,`rid`),
+  KEY `guildid_key` (`guildid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_bank_tab
+CREATE TABLE IF NOT EXISTS `guild_bank_tab` (
+  `guildid` int unsigned NOT NULL DEFAULT '0',
+  `TabId` tinyint unsigned NOT NULL DEFAULT '0',
+  `TabName` varchar(16) NOT NULL DEFAULT '',
+  `TabIcon` varchar(100) NOT NULL DEFAULT '',
+  `TabText` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`guildid`,`TabId`),
+  KEY `guildid_key` (`guildid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_eventlog
+CREATE TABLE IF NOT EXISTS `guild_eventlog` (
+  `guildid` int unsigned NOT NULL COMMENT 'Guild Identificator',
+  `LogGuid` int unsigned NOT NULL COMMENT 'Log record identificator - auxiliary column',
+  `EventType` tinyint unsigned NOT NULL COMMENT 'Event type',
+  `PlayerGuid1` int unsigned NOT NULL COMMENT 'Player 1',
+  `PlayerGuid2` int unsigned NOT NULL COMMENT 'Player 2',
+  `NewRank` tinyint unsigned NOT NULL COMMENT 'New rank(in case promotion/demotion)',
+  `TimeStamp` int unsigned NOT NULL COMMENT 'Event UNIX time',
+  PRIMARY KEY (`guildid`,`LogGuid`),
+  KEY `Idx_PlayerGuid1` (`PlayerGuid1`),
+  KEY `Idx_PlayerGuid2` (`PlayerGuid2`),
+  KEY `Idx_LogGuid` (`LogGuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Guild Eventlog';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_house_masks
+CREATE TABLE IF NOT EXISTS `guild_house_masks` (
+  `guid` mediumint unsigned NOT NULL DEFAULT '0',
+  `phasemask` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_house_masks_copy
+CREATE TABLE IF NOT EXISTS `guild_house_masks_copy` (
+  `guid` mediumint unsigned NOT NULL DEFAULT '0',
+  `phasemask` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_houses
+CREATE TABLE IF NOT EXISTS `guild_houses` (
+  `guildid` smallint unsigned NOT NULL DEFAULT '0',
+  `mapid` smallint NOT NULL DEFAULT '0',
+  `x` float(8,0) NOT NULL DEFAULT '0',
+  `y` float(8,0) NOT NULL DEFAULT '0',
+  `z` float(8,0) NOT NULL DEFAULT '0',
+  `o` float(8,0) NOT NULL DEFAULT '0',
+  `Comments` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`guildid`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_member
+CREATE TABLE IF NOT EXISTS `guild_member` (
+  `guildid` int unsigned NOT NULL COMMENT 'Guild Identificator',
+  `guid` int unsigned NOT NULL,
+  `rank` tinyint unsigned NOT NULL,
+  `pnote` varchar(31) NOT NULL DEFAULT '',
+  `offnote` varchar(31) NOT NULL DEFAULT '',
+  `BankResetTimeMoney` int unsigned NOT NULL DEFAULT '0',
+  `BankRemMoney` int unsigned NOT NULL DEFAULT '0',
+  `BankResetTimeTab0` int unsigned NOT NULL DEFAULT '0',
+  `BankRemSlotsTab0` int unsigned NOT NULL DEFAULT '0',
+  `BankResetTimeTab1` int unsigned NOT NULL DEFAULT '0',
+  `BankRemSlotsTab1` int unsigned NOT NULL DEFAULT '0',
+  `BankResetTimeTab2` int unsigned NOT NULL DEFAULT '0',
+  `BankRemSlotsTab2` int unsigned NOT NULL DEFAULT '0',
+  `BankResetTimeTab3` int unsigned NOT NULL DEFAULT '0',
+  `BankRemSlotsTab3` int unsigned NOT NULL DEFAULT '0',
+  `BankResetTimeTab4` int unsigned NOT NULL DEFAULT '0',
+  `BankRemSlotsTab4` int unsigned NOT NULL DEFAULT '0',
+  `BankResetTimeTab5` int unsigned NOT NULL DEFAULT '0',
+  `BankRemSlotsTab5` int unsigned NOT NULL DEFAULT '0',
+  UNIQUE KEY `guid_key` (`guid`),
+  KEY `guildid_key` (`guildid`),
+  KEY `guildid_rank_key` (`guildid`,`rank`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Guild System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.guild_rank
+CREATE TABLE IF NOT EXISTS `guild_rank` (
+  `guildid` int unsigned NOT NULL DEFAULT '0',
+  `rid` tinyint unsigned NOT NULL,
+  `rname` varchar(15) NOT NULL DEFAULT '',
+  `rights` mediumint unsigned NOT NULL DEFAULT '0',
+  `BankMoneyPerDay` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guildid`,`rid`),
+  KEY `Idx_rid` (`rid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Guild System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.instance
+CREATE TABLE IF NOT EXISTS `instance` (
+  `id` int unsigned NOT NULL DEFAULT '0',
+  `map` smallint unsigned NOT NULL DEFAULT '0',
+  `resettime` int unsigned NOT NULL DEFAULT '0',
+  `difficulty` tinyint unsigned NOT NULL DEFAULT '0',
+  `completedEncounters` int unsigned NOT NULL DEFAULT '0',
+  `data` tinytext NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `map` (`map`),
+  KEY `resettime` (`resettime`),
+  KEY `difficulty` (`difficulty`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.instance_reset
+CREATE TABLE IF NOT EXISTS `instance_reset` (
+  `mapid` smallint unsigned NOT NULL DEFAULT '0',
+  `difficulty` tinyint unsigned NOT NULL DEFAULT '0',
+  `resettime` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`mapid`,`difficulty`),
+  KEY `difficulty` (`difficulty`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.item_instance
+CREATE TABLE IF NOT EXISTS `item_instance` (
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  `itemEntry` mediumint unsigned NOT NULL DEFAULT '0',
+  `owner_guid` int unsigned NOT NULL DEFAULT '0',
+  `creatorGuid` int unsigned NOT NULL DEFAULT '0',
+  `giftCreatorGuid` int unsigned NOT NULL DEFAULT '0',
+  `count` int unsigned NOT NULL DEFAULT '1',
+  `duration` int NOT NULL DEFAULT '0',
+  `charges` tinytext,
+  `flags` mediumint unsigned NOT NULL DEFAULT '0',
+  `enchantments` text NOT NULL,
+  `randomPropertyId` smallint NOT NULL DEFAULT '0',
+  `durability` smallint unsigned NOT NULL DEFAULT '0',
+  `playedTime` int unsigned NOT NULL DEFAULT '0',
+  `text` text,
+  PRIMARY KEY (`guid`),
+  KEY `idx_owner_guid` (`owner_guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Item System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.item_refund_instance
+CREATE TABLE IF NOT EXISTS `item_refund_instance` (
+  `item_guid` int unsigned NOT NULL COMMENT 'Item GUID',
+  `player_guid` int unsigned NOT NULL COMMENT 'Player GUID',
+  `paidMoney` int unsigned NOT NULL DEFAULT '0',
+  `paidExtendedCost` smallint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`item_guid`,`player_guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.item_soulbound_trade_data
+CREATE TABLE IF NOT EXISTS `item_soulbound_trade_data` (
+  `itemGuid` int unsigned NOT NULL COMMENT 'Item GUID',
+  `allowedPlayers` text NOT NULL COMMENT 'Space separated GUID list of players who can receive this item in trade',
+  PRIMARY KEY (`itemGuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Item Refund System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.lag_reports
+CREATE TABLE IF NOT EXISTS `lag_reports` (
+  `report_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `player` int unsigned NOT NULL DEFAULT '0',
+  `lag_type` tinyint unsigned NOT NULL DEFAULT '0',
+  `map` smallint unsigned NOT NULL DEFAULT '0',
+  `posX` float NOT NULL DEFAULT '0',
+  `posY` float NOT NULL DEFAULT '0',
+  `posZ` float NOT NULL DEFAULT '0',
+  PRIMARY KEY (`report_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=124 DEFAULT CHARSET=utf8mb3 COMMENT='Player System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.mail
+CREATE TABLE IF NOT EXISTS `mail` (
+  `id` int unsigned NOT NULL DEFAULT '0' COMMENT 'Identifier',
+  `messageType` tinyint unsigned NOT NULL DEFAULT '0',
+  `stationery` tinyint NOT NULL DEFAULT '41',
+  `mailTemplateId` smallint unsigned NOT NULL DEFAULT '0',
+  `sender` int unsigned NOT NULL DEFAULT '0' COMMENT 'Character Global Unique Identifier',
+  `receiver` int unsigned NOT NULL DEFAULT '0' COMMENT 'Character Global Unique Identifier',
+  `subject` longtext,
+  `body` longtext,
+  `has_items` tinyint unsigned NOT NULL DEFAULT '0',
+  `expire_time` int unsigned NOT NULL DEFAULT '0',
+  `deliver_time` int unsigned NOT NULL DEFAULT '0',
+  `money` int unsigned NOT NULL DEFAULT '0',
+  `cod` int unsigned NOT NULL DEFAULT '0',
+  `checked` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `idx_receiver` (`receiver`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Mail System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.mail_external
+CREATE TABLE IF NOT EXISTS `mail_external` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `receiver` bigint unsigned NOT NULL,
+  `subject` varchar(200) DEFAULT 'Support Message',
+  `message` varchar(500) DEFAULT 'Support Message',
+  `money` bigint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=926734 DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.mail_external_items
+CREATE TABLE IF NOT EXISTS `mail_external_items` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `mail_id` int unsigned NOT NULL,
+  `item` int NOT NULL,
+  `count` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=26768 DEFAULT CHARSET=latin1;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.mail_items
+CREATE TABLE IF NOT EXISTS `mail_items` (
+  `mail_id` int unsigned NOT NULL DEFAULT '0',
+  `item_guid` int unsigned NOT NULL DEFAULT '0',
+  `receiver` int unsigned NOT NULL DEFAULT '0' COMMENT 'Character Global Unique Identifier',
+  PRIMARY KEY (`mail_id`,`item_guid`),
+  KEY `idx_receiver` (`receiver`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 ROW_FORMAT=DYNAMIC;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.pet_aura
+CREATE TABLE IF NOT EXISTS `pet_aura` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `caster_guid` bigint unsigned NOT NULL DEFAULT '0' COMMENT 'Full Global Unique Identifier',
+  `spell` mediumint unsigned NOT NULL DEFAULT '0',
+  `effect_mask` tinyint unsigned NOT NULL DEFAULT '0',
+  `recalculate_mask` tinyint unsigned NOT NULL DEFAULT '0',
+  `stackcount` tinyint unsigned NOT NULL DEFAULT '1',
+  `maxduration` int NOT NULL DEFAULT '0',
+  `remaintime` int NOT NULL DEFAULT '0',
+  `remaincharges` tinyint unsigned NOT NULL DEFAULT '0',
+  `amount0` mediumint NOT NULL,
+  `amount1` mediumint NOT NULL,
+  `amount2` mediumint NOT NULL,
+  `base_amount0` mediumint NOT NULL,
+  `base_amount1` mediumint NOT NULL,
+  `base_amount2` mediumint NOT NULL,
+  PRIMARY KEY (`guid`,`spell`,`effect_mask`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Pet System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.pet_spell
+CREATE TABLE IF NOT EXISTS `pet_spell` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `spell` mediumint unsigned NOT NULL DEFAULT '0' COMMENT 'Spell Identifier',
+  `active` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`spell`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Pet System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.pet_spell_cooldown
+CREATE TABLE IF NOT EXISTS `pet_spell_cooldown` (
+  `guid` int unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier, Low part',
+  `spell` mediumint unsigned NOT NULL DEFAULT '0' COMMENT 'Spell Identifier',
+  `time` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`,`spell`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.petition
+CREATE TABLE IF NOT EXISTS `petition` (
+  `ownerguid` int unsigned NOT NULL,
+  `petitionguid` int unsigned DEFAULT '0',
+  `name` varchar(24) NOT NULL,
+  `type` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`ownerguid`,`type`),
+  UNIQUE KEY `index_ownerguid_petitionguid` (`ownerguid`,`petitionguid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Guild System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.petition_sign
+CREATE TABLE IF NOT EXISTS `petition_sign` (
+  `ownerguid` int unsigned NOT NULL,
+  `petitionguid` int unsigned NOT NULL DEFAULT '0',
+  `playerguid` int unsigned NOT NULL DEFAULT '0',
+  `player_account` int unsigned NOT NULL DEFAULT '0',
+  `type` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`petitionguid`,`playerguid`),
+  KEY `Idx_playerguid` (`playerguid`),
+  KEY `Idx_ownerguid` (`ownerguid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Guild System';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.players_reports_status
+CREATE TABLE IF NOT EXISTS `players_reports_status` (
+  `guid` int unsigned NOT NULL DEFAULT '0',
+  `creation_time` int unsigned NOT NULL DEFAULT '0',
+  `average` float NOT NULL DEFAULT '0',
+  `total_reports` bigint unsigned NOT NULL DEFAULT '0',
+  `speed_reports` bigint unsigned NOT NULL DEFAULT '0',
+  `fly_reports` bigint unsigned NOT NULL DEFAULT '0',
+  `jump_reports` bigint unsigned NOT NULL DEFAULT '0',
+  `waterwalk_reports` bigint unsigned NOT NULL DEFAULT '0',
+  `teleportplane_reports` bigint unsigned NOT NULL DEFAULT '0',
+  `climb_reports` bigint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.pool_quest_save
+CREATE TABLE IF NOT EXISTS `pool_quest_save` (
+  `pool_id` int unsigned NOT NULL DEFAULT '0',
+  `quest_id` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`pool_id`,`quest_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.rafflesort
+CREATE TABLE IF NOT EXISTS `rafflesort` (
+  `guid` int NOT NULL,
+  `character` varchar(50) DEFAULT NULL,
+  `count` int NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.reserved_name
+CREATE TABLE IF NOT EXISTS `reserved_name` (
+  `name` varchar(12) NOT NULL DEFAULT '',
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Player Reserved Names';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.squads
+CREATE TABLE IF NOT EXISTS `squads` (
+  `guid` int unsigned NOT NULL,
+  `leaderGuid` int unsigned NOT NULL,
+  `lootMethod` tinyint unsigned NOT NULL,
+  `looterGuid` int unsigned NOT NULL,
+  `lootThreshold` tinyint unsigned NOT NULL,
+  `icon1` int unsigned NOT NULL,
+  `icon2` int unsigned NOT NULL,
+  `icon3` int unsigned NOT NULL,
+  `icon4` int unsigned NOT NULL,
+  `icon5` int unsigned NOT NULL,
+  `icon6` int unsigned NOT NULL,
+  `icon7` int unsigned NOT NULL,
+  `icon8` int unsigned NOT NULL,
+  `groupType` tinyint unsigned NOT NULL,
+  `difficulty` tinyint unsigned NOT NULL DEFAULT '0',
+  `raiddifficulty` tinyint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`guid`),
+  KEY `leaderGuid` (`leaderGuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Groups';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.world_entrys
+CREATE TABLE IF NOT EXISTS `world_entrys` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `db_name` varchar(255) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL,
+  `last_inc` int NOT NULL,
+  `last_id` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table woi_characters.worldstates
+CREATE TABLE IF NOT EXISTS `worldstates` (
+  `entry` int unsigned NOT NULL DEFAULT '0',
+  `value` int unsigned NOT NULL DEFAULT '0',
+  `comment` tinytext,
+  PRIMARY KEY (`entry`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Variable Saves';
+
+-- Data exporting was unselected.
+
+/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
+/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
+/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;

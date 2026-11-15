@@ -39,3 +39,6 @@ cmake-build-*/
 *.pch
 *.idb
 *.ipch
+
+# Local database migration credentials
+sql/MIGRATION/.env
