@@ -245,7 +245,7 @@ my_bool my_thread_global_init(void)
 
 void my_thread_global_end(void)
 {
-  struct timespec abstime;
+  my_timespec abstime;
   my_bool all_threads_killed= 1;
 
   set_timespec(abstime, my_thread_end_wait_time);

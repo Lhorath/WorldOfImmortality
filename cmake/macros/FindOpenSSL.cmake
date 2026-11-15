@@ -34,6 +34,7 @@ IF(PLATFORM EQUAL 64)
   SET(_OPENSSL_ROOT_PATHS
     "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;InstallLocation]"
     "C:/OpenSSL-Win64/"
+    "C:/Program Files/OpenSSL-Win64/"
     "C:/OpenSSL/"
   )
 ELSE()
@@ -62,6 +63,12 @@ FIND_PATH(OPENSSL_INCLUDE_DIR openssl/ssl.h
 IF(WIN32 AND NOT CYGWIN)
   # MINGW should go here too
   IF(MSVC)
+    IF(PLATFORM EQUAL 64)
+      SET(_OPENSSL_ARCH_DIR x64)
+    ELSE()
+      SET(_OPENSSL_ARCH_DIR Win32)
+    ENDIF()
+
     # /MD and /MDd are the standard values - if someone wants to use
     # others, the libnames have to change here too
     # use also ssl and ssleay32 in debug as fallback for openssl < 0.9.8b
@@ -79,29 +86,33 @@ IF(WIN32 AND NOT CYGWIN)
 
     FIND_LIBRARY(LIB_EAY_DEBUG
       NAMES
-        libeay32MDd libeay32
+        libcrypto libeay32MDd libeay32
       PATHS
+        ${OPENSSL_ROOT_DIR}/lib/VC/${_OPENSSL_ARCH_DIR}/MDd
         ${OPENSSL_ROOT_DIR}/lib/VC
     )
 
     FIND_LIBRARY(LIB_EAY_RELEASE
       NAMES
-        libeay32MD libeay32
+        libcrypto libeay32MD libeay32
       PATHS
+        ${OPENSSL_ROOT_DIR}/lib/VC/${_OPENSSL_ARCH_DIR}/MD
         ${OPENSSL_ROOT_DIR}/lib/VC
     )
 
     FIND_LIBRARY(SSL_EAY_DEBUG
       NAMES
-        ssleay32MDd ssleay32 ssl
+        libssl ssleay32MDd ssleay32 ssl
       PATHS
+        ${OPENSSL_ROOT_DIR}/lib/VC/${_OPENSSL_ARCH_DIR}/MDd
         ${OPENSSL_ROOT_DIR}/lib/VC
     )
 
     FIND_LIBRARY(SSL_EAY_RELEASE
       NAMES
-        ssleay32MD ssleay32 ssl
+        libssl ssleay32MD ssleay32 ssl
       PATHS
+        ${OPENSSL_ROOT_DIR}/lib/VC/${_OPENSSL_ARCH_DIR}/MD
         ${OPENSSL_ROOT_DIR}/lib/VC
     )
 

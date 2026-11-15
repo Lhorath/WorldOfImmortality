@@ -18,7 +18,14 @@
 #ifndef _MYSQLTHREADING_H
 #define _MYSQLTHREADING_H
 
+#include "Common.h"
 #include "Log.h"
+
+#if COMPILER == COMPILER_MICROSOFT
+#define MYSQL_THREAD_ID_FORMAT "%I64u"
+#else
+#define MYSQL_THREAD_ID_FORMAT "%llu"
+#endif
 
 class MySQL
 {
@@ -33,7 +40,7 @@ class MySQL
         static void Thread_Init()
         {
             mysql_thread_init();
-            sLog->outSQLDriver("Core thread with ID ["UI64FMTD"] initializing MySQL thread.",
+            sLog->outSQLDriver("Core thread with ID [" MYSQL_THREAD_ID_FORMAT "] initializing MySQL thread.",
                     (uint64)ACE_Based::Thread::currentId());
         }
 
@@ -44,7 +51,7 @@ class MySQL
         static void Thread_End()
         {
             mysql_thread_end();
-            sLog->outSQLDriver("Core thread with ID ["UI64FMTD"] shutting down MySQL thread.",
+            sLog->outSQLDriver("Core thread with ID [" MYSQL_THREAD_ID_FORMAT "] shutting down MySQL thread.",
                 (uint64)ACE_Based::Thread::currentId());
         }
 

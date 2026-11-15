@@ -54,6 +54,11 @@
 #endif
 //FUZZ: enable check_for_msc_ver
 
+#if (_MSC_VER >= 1900)
+# define ACE_HAS_POSIX_TIME
+# define ACE_LACKS_TIMESPEC_T
+#endif
+
 // MFC changes the behavior of operator new at all MSVC versions from 6 up
 // by throwing a static CMemoryException* instead of std::bad_alloc
 // (see ace/OS_Memory.h). This MFC exception object needs to be cleaned up

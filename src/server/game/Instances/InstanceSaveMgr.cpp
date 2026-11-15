@@ -139,7 +139,7 @@ void InstanceSaveManager::RemoveInstanceSave(uint32 InstanceId)
     {
         // save the resettime for normal instances only when they get unloaded
         if (time_t resettime = itr->second->GetResetTimeForDB())
-            CharacterDatabase.PExecute("UPDATE instance SET resettime = '"UI64FMTD"' WHERE id = '%u'", (uint64)resettime, InstanceId);
+            CharacterDatabase.PExecute("UPDATE instance SET resettime = '" UI64FMTD"' WHERE id = '%u'", (uint64)resettime, InstanceId);
 
         delete itr->second;
         m_instanceSaveById.erase(itr);
@@ -346,7 +346,7 @@ void InstanceSaveManager::LoadResetTimes()
                 InstResetTimeMapDiffType::iterator itr = instResetTime.find(instance);
                 if (itr != instResetTime.end() && itr->second.second != resettime)
                 {
-                    CharacterDatabase.DirectPExecute("UPDATE instance SET resettime = '"UI64FMTD"' WHERE id = '%u'", uint64(resettime), instance);
+                    CharacterDatabase.DirectPExecute("UPDATE instance SET resettime = '" UI64FMTD"' WHERE id = '%u'", uint64(resettime), instance);
                     itr->second.second = resettime;
                 }
             }
@@ -390,7 +390,7 @@ void InstanceSaveManager::LoadResetTimes()
 
     // clean expired instances, references to them will be deleted in CleanupInstances
     // must be done before calculating new reset times
-    _DelHelper("id, map, instance.difficulty", "instance", "LEFT JOIN instance_reset ON mapid = map AND instance.difficulty =  instance_reset.difficulty WHERE (instance.resettime < '"UI64FMTD"' AND instance.resettime > '0') OR (NOT instance_reset.resettime IS NULL AND instance_reset.resettime < '"UI64FMTD"')",  (uint64)now, (uint64)now);
+    _DelHelper("id, map, instance.difficulty", "instance", "LEFT JOIN instance_reset ON mapid = map AND instance.difficulty =  instance_reset.difficulty WHERE (instance.resettime < '" UI64FMTD"' AND instance.resettime > '0') OR (NOT instance_reset.resettime IS NULL AND instance_reset.resettime < '" UI64FMTD"')",  (uint64)now, (uint64)now);
 
     ResetTimeMapDiffInstances::const_iterator in_itr;
 
@@ -424,7 +424,7 @@ void InstanceSaveManager::LoadResetTimes()
             // calculate the next reset time
             t = (t / DAY) * DAY;
             t += ((today - t) / period + 1) * period + diff;
-            CharacterDatabase.DirectPExecute("UPDATE instance_reset SET resettime = '"UI64FMTD"' WHERE mapid = '%u' AND difficulty= '%u'", (uint64)t, mapid, difficulty);
+            CharacterDatabase.DirectPExecute("UPDATE instance_reset SET resettime = '" UI64FMTD"' WHERE mapid = '%u' AND difficulty= '%u'", (uint64)t, mapid, difficulty);
         }
 
         SetResetTimeFor(mapid,difficulty,t);

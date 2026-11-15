@@ -99,11 +99,12 @@ typedef volatile LONG my_pthread_once_t;
   FILETIME ft;
   __int64 i64;
  };
-struct timespec {
+struct my_timespec {
   union ft64 tv;
   /* The max timeout value in millisecond for pthread_cond_timedwait */
   long max_timeout_msec;
 };
+typedef struct my_timespec my_timespec;
 #define set_timespec(ABSTIME,SEC) { \
   GetSystemTimeAsFileTime(&((ABSTIME).tv.ft)); \
   (ABSTIME).tv.i64+= (__int64)(SEC)*10000000; \
@@ -134,7 +135,7 @@ int pthread_create(pthread_t *, const pthread_attr_t *, pthread_handler, void *)
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
-			   struct timespec *abstime);
+			   my_timespec *abstime);
 int pthread_cond_signal(pthread_cond_t *cond);
 int pthread_cond_broadcast(pthread_cond_t *cond);
 int pthread_cond_destroy(pthread_cond_t *cond);
@@ -193,6 +194,7 @@ int pthread_cancel(pthread_t thread);
 #undef sigwait
 #endif
 #include <pthread.h>
+typedef struct timespec my_timespec;
 #ifndef _REENTRANT
 #define _REENTRANT
 #endif

@@ -24,6 +24,12 @@
 #include "Logging/Log.h"
 #include "Utilities/ByteConverter.h"
 
+#if COMPILER == COMPILER_MICROSOFT
+#define BYTEBUFFER_SIZE_FORMAT "%Iu"
+#else
+#define BYTEBUFFER_SIZE_FORMAT "%zu"
+#endif
+
 class ByteBufferException
 {
     public:
@@ -35,7 +41,7 @@ class ByteBufferException
 
         void PrintPosError() const
         {
-            sLog->outError("Attempted to %s in ByteBuffer (pos: " SIZEFMTD " size: "SIZEFMTD") value with size: " SIZEFMTD,
+            sLog->outError("Attempted to %s in ByteBuffer (pos: " BYTEBUFFER_SIZE_FORMAT " size: " BYTEBUFFER_SIZE_FORMAT ") value with size: " BYTEBUFFER_SIZE_FORMAT,
                 (add ? "put" : "get"), pos, size, esize);
         }
     private:

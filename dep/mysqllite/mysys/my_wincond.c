@@ -86,7 +86,7 @@ static void check_native_cond_availability(void)
   Convert abstime to milliseconds
 */
 
-static DWORD get_milliseconds(const struct timespec *abstime)
+static DWORD get_milliseconds(const my_timespec *abstime)
 {
   long long millis; 
   union ft64 now;
@@ -305,7 +305,7 @@ int pthread_cond_signal(pthread_cond_t *cond)
 
 
 int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
-  struct timespec *abstime)
+  my_timespec *abstime)
 {
   if (have_native_conditions)
   {

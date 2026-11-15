@@ -396,7 +396,7 @@ wait_for_lock(struct st_lock_list *wait, THR_LOCK_DATA *data,
 {
   struct st_my_thread_var *thread_var= my_thread_var;
   mysql_cond_t *cond= &thread_var->suspend;
-  struct timespec wait_timeout;
+  my_timespec wait_timeout;
   enum enum_thr_lock_result result= THR_LOCK_ABORTED;
   const char *old_proc_info;
   DBUG_ENTER("wait_for_lock");
