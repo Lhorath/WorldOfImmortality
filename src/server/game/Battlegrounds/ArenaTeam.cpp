@@ -89,7 +89,7 @@ bool ArenaTeam::Create(uint64 captainGuid, uint32 type, std::string ArenaTeamNam
     trans->PAppend("INSERT INTO arena_team (arenateamid,name,captainguid,type,BackgroundColor,EmblemStyle,EmblemColor,BorderStyle,BorderColor) "
         "VALUES('%u','%s','%u','%u','%u','%u','%u','%u','%u')",
         m_TeamId, ArenaTeamName.c_str(), captainLowGuid, m_Type, m_BackgroundColor, m_EmblemStyle, m_EmblemColor, m_BorderStyle, m_BorderColor);
-    trans->PAppend("INSERT INTO arena_team_stats (arenateamid, rating, games, wins, played, wins2, rank) VALUES "
+    trans->PAppend("INSERT INTO arena_team_stats (arenateamid, rating, games, wins, played, wins2, `rank`) VALUES "
         "('%u', '%u', '%u', '%u', '%u', '%u', '%u')", m_TeamId, m_stats.rating, m_stats.games_week, m_stats.wins_week, m_stats.games_season, m_stats.wins_season, m_stats.rank);
 
     CharacterDatabase.CommitTransaction(trans);
@@ -486,7 +486,7 @@ void ArenaTeam::SetStats(uint32 stat_type, uint32 value)
             break;
         case STAT_TYPE_RANK:
             m_stats.rank = value;
-            CharacterDatabase.PExecute("UPDATE arena_team_stats SET rank = '%u' WHERE arenateamid = '%u'", value, GetId());
+            CharacterDatabase.PExecute("UPDATE arena_team_stats SET `rank` = '%u' WHERE arenateamid = '%u'", value, GetId());
             break;
         default:
             sLog->outError("unknown stat type in ArenaTeam::SetStats() %u", stat_type);
@@ -824,7 +824,7 @@ void ArenaTeam::SaveToDB()
     // save team and member stats to db
     // called after a match has ended, or when calculating arena_points
     SQLTransaction trans = CharacterDatabase.BeginTransaction();
-    trans->PAppend("UPDATE arena_team_stats SET rating = '%u',games = '%u',played = '%u',rank = '%u',wins = '%u',wins2 = '%u' WHERE arenateamid = '%u'", m_stats.rating, m_stats.games_week, m_stats.games_season, m_stats.rank, m_stats.wins_week, m_stats.wins_season, GetId());
+    trans->PAppend("UPDATE arena_team_stats SET rating = '%u',games = '%u',played = '%u',`rank` = '%u',wins = '%u',wins2 = '%u' WHERE arenateamid = '%u'", m_stats.rating, m_stats.games_week, m_stats.games_season, m_stats.rank, m_stats.wins_week, m_stats.wins_season, GetId());
     for (MemberList::const_iterator itr = m_members.begin(); itr !=  m_members.end(); ++itr)
     {
         trans->PAppend("UPDATE arena_team_member SET played_week = '%u', wons_week = '%u', played_season = '%u', wons_season = '%u' WHERE arenateamid = '%u' AND guid = '%u'", itr->games_week, itr->wins_week, itr->games_season, itr->wins_season, m_TeamId, GUID_LOPART(itr->guid));

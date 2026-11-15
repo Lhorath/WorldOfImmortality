@@ -3964,7 +3964,7 @@ void ObjectMgr::LoadArenaTeams()
     //                                                     0                      1    2           3    4               5
     QueryResult result = CharacterDatabase.Query("SELECT arena_team.arenateamid,name,captainguid,type,BackgroundColor,EmblemStyle,"
     //   6           7           8            9      10    11   12     13    14
-        "EmblemColor,BorderStyle,BorderColor, rating,games,wins,played,wins2,rank "
+        "EmblemColor,BorderStyle,BorderColor, rating,games,wins,played,wins2,`rank` "
         "FROM arena_team LEFT JOIN arena_team_stats ON arena_team.arenateamid = arena_team_stats.arenateamid ORDER BY arena_team.arenateamid ASC");
 
     if (!result)
@@ -4009,14 +4009,14 @@ void ObjectMgr::LoadGroups()
         uint32 oldMSTime = getMSTime();
 
         // Delete all groups whose leader does not exist
-        CharacterDatabase.DirectExecute("DELETE FROM groups WHERE leaderGuid NOT IN (SELECT guid FROM characters)");
+        CharacterDatabase.DirectExecute("DELETE FROM `groups` WHERE leaderGuid NOT IN (SELECT guid FROM characters)");
         // Delete all groups with less than 2 members
-        CharacterDatabase.DirectExecute("DELETE FROM groups WHERE guid NOT IN (SELECT guid FROM group_member GROUP BY guid HAVING COUNT(guid) > 1)");
+        CharacterDatabase.DirectExecute("DELETE FROM `groups` WHERE guid NOT IN (SELECT guid FROM group_member GROUP BY guid HAVING COUNT(guid) > 1)");
 
         //                                                        0           1           2             3          4      5      6      7      8     9
         QueryResult result = CharacterDatabase.PQuery("SELECT leaderGuid, lootMethod, looterGuid, lootThreshold, icon1, icon2, icon3, icon4, icon5, icon6"
         //                                                10     11     12         13              14        15
-                                                      ",icon7, icon8, groupType, difficulty, raiddifficulty, guid FROM groups ORDER BY guid ASC");
+                                                      ",icon7, icon8, groupType, difficulty, raiddifficulty, guid FROM `groups` ORDER BY guid ASC");
         if (!result)
         {
             sLog->outString(">> Loaded 0 group definitions. DB table `groups` is empty!");
@@ -4054,8 +4054,8 @@ void ObjectMgr::LoadGroups()
         uint32 oldMSTime = getMSTime();
 
         // Delete all rows from group_member or group_instance with no group
-        CharacterDatabase.DirectExecute("DELETE FROM group_member WHERE guid NOT IN (SELECT guid FROM groups)");
-        CharacterDatabase.DirectExecute("DELETE FROM group_instance WHERE guid NOT IN (SELECT guid FROM groups)");
+        CharacterDatabase.DirectExecute("DELETE FROM group_member WHERE guid NOT IN (SELECT guid FROM `groups`)");
+        CharacterDatabase.DirectExecute("DELETE FROM group_instance WHERE guid NOT IN (SELECT guid FROM `groups`)");
         // Delete all members that does not exist
         CharacterDatabase.DirectExecute("DELETE FROM group_member WHERE memberGuid NOT IN (SELECT guid FROM characters)");
 
@@ -4095,7 +4095,7 @@ void ObjectMgr::LoadGroups()
         //                                        0     1      2         3           4          5
         QueryResult result = CharacterDatabase.Query("SELECT guid, map, instance, permanent, difficulty, resettime, "
         //           6
-            "(SELECT COUNT(1) FROM groups JOIN character_instance ON leaderGuid = groups.guid WHERE instance = group_instance.instance AND permanent = 1 LIMIT 1) "
+            "(SELECT COUNT(1) FROM `groups` AS g JOIN character_instance ON leaderGuid = g.guid WHERE instance = group_instance.instance AND permanent = 1 LIMIT 1) "
             "FROM group_instance LEFT JOIN instance ON instance = id ORDER BY guid");
 
         if (!result)
@@ -6671,7 +6671,7 @@ void ObjectMgr::SetHighestGuids()
     if (result)
         m_guildId = (*result)[0].GetUInt32()+1;
 
-    result = CharacterDatabase.Query("SELECT MAX(guid) FROM groups");
+    result = CharacterDatabase.Query("SELECT MAX(guid) FROM `groups`");
     if (result)
         mGroupStorage.resize((*result)[0].GetUInt32()+1);
 }

@@ -7286,7 +7286,7 @@ uint32 Player::GetGuildIdFromDB(uint64 guid)
 
 uint8 Player::GetRankFromDB(uint64 guid)
 {
-    QueryResult result = CharacterDatabase.PQuery("SELECT rank FROM guild_member WHERE guid='%u'", GUID_LOPART(guid));
+    QueryResult result = CharacterDatabase.PQuery("SELECT `rank` FROM guild_member WHERE guid='%u'", GUID_LOPART(guid));
     if (result)
     {
         uint32 v = result->Fetch()[0].GetUInt8();

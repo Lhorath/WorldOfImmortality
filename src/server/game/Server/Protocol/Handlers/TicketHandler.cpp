@@ -241,7 +241,7 @@ void WorldSession::HandleGMSurveySubmit(WorldPacket& recv_data)
     for (uint8 i = 0; i < 10; i++)
     {
         std::ostringstream os;
-        os << "INSERT INTO gm_subsurveys (surveyid, subsurveyid, rank, comment) VALUES (";
+        os << "INSERT INTO gm_subsurveys (surveyid, subsurveyid, `rank`, comment) VALUES (";
         uint32 subSurveyId; // ref to i'th GMSurveySurveys.dbc field (all fields in that dbc point to fields in GMSurveyQuestions.dbc)
         recv_data >> subSurveyId;
         if(!subSurveyId)

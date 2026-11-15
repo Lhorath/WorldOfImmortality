@@ -3353,7 +3353,7 @@ void SpellMgr::LoadSpellRanks()
 
     mSpellChains.clear();                                   // need for reload case
 
-    QueryResult result = WorldDatabase.Query("SELECT first_spell_id, spell_id, rank from spell_ranks ORDER BY first_spell_id , rank");
+    QueryResult result = WorldDatabase.Query("SELECT first_spell_id, spell_id, `rank` from spell_ranks ORDER BY first_spell_id , `rank`");
 
     if (!result)
     {
