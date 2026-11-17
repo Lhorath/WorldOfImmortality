@@ -1,0 +1,2047 @@
+2026-11-17 19:10:29 Using configuration file worldserver.conf.
+2026-11-17 19:10:29 OpenSSL 1.0.2u  20 Dec 2019 (Library: OpenSSL 1.0.2u  20 Dec 2019)
+2026-11-17 19:10:29 Using ACE: 5.8.3
+2026-11-17 19:10:29 TrinityCore Rev: 0 Release Hash: Archive (Win64, little-endian) (core-daemon)
+2026-11-17 19:10:29 <Ctrl-C> to stop.
+
+2026-11-17 19:10:29  ______                       __
+2026-11-17 19:10:29 /\__  _\       __          __/\ \__
+2026-11-17 19:10:29 \/_/\ \/ _ __ /\_\    ___ /\_\ \ ,_\  __  __
+2026-11-17 19:10:29    \ \ \/\`'__\/\ \ /' _ `\/\ \ \ \/ /\ \/\ \
+2026-11-17 19:10:29     \ \ \ \ \/ \ \ \/\ \/\ \ \ \ \ \_\ \ \_\ \
+2026-11-17 19:10:29      \ \_\ \_\  \ \_\ \_\ \_\ \_\ \__\\/`____ \
+2026-11-17 19:10:29       \/_/\/_/   \/_/\/_/\/_/\/_/\/__/ `/___/> \
+2026-11-17 19:10:29                                  C O R E  /\___/
+2026-11-17 19:10:29 http://TrinityCore.org                    \/__/
+
+2026-11-17 19:10:29 Daemon PID: 120640
+
+2026-11-17 19:10:29 Connected to MySQL database at 127.0.0.1
+2026-11-17 19:10:29 Connected to MySQL database at 127.0.0.1
+2026-11-17 19:10:29 Connected to MySQL database at 127.0.0.1
+2026-11-17 19:10:29 Connected to MySQL database at 127.0.0.1
+2026-11-17 19:10:30 Connected to MySQL database at 127.0.0.1
+2026-11-17 19:10:30 Connected to MySQL database at 127.0.0.1
+2026-11-17 19:10:30 Connected to MySQL database at 127.0.0.1
+2026-11-17 19:10:30 Realm running as realm ID 1
+2026-11-17 19:10:31 Using World DB: TDB 335.11.39
+2026-11-17 19:10:31 Using creature EventAI: TDBAI 335.0.3
+2026-11-17 19:10:31 Will clear `logs` table of entries older than 1209600 seconds every 10 minutes.
+2026-11-17 19:10:31 Using DataDir data/
+2026-11-17 19:10:31 WORLD: VMap support included. LineOfSight:1, getHeight:1, indoorCheck:1 PetLOS:1
+2026-11-17 19:10:31 WORLD: VMap data directory is: data/vmaps
+2026-11-17 19:10:31 
+2026-11-17 19:10:31 Loading Trinity strings...
+2026-11-17 19:10:31 >> Loaded 914 Trinity strings from table trinity_string in 0 ms
+2026-11-17 19:10:31 
+2026-11-17 19:10:31 Initialize data stores...
+2026-11-17 19:10:31 >> Initialized 92 data stores in 250 ms
+2026-11-17 19:10:31 
+2026-11-17 19:10:31 Using enUS DBC Locale as default. All available DBC locales: enUS 
+2026-11-17 19:10:31 
+2026-11-17 19:10:31 Loading Script Names...
+2026-11-17 19:10:31 >> Loaded 1608 Script Names in 109 ms
+2026-11-17 19:10:31 
+2026-11-17 19:10:31 Loading Instance Template...
+2026-11-17 19:10:31 >> Loaded 84 Instance Template definitions in 0 ms
+2026-11-17 19:10:31 
+2026-11-17 19:10:31 Loading SkillLineAbilityMultiMap Data...
+2026-11-17 19:10:31 >> Loaded 10219 SkillLineAbility MultiMap Data in 16 ms
+2026-11-17 19:10:31 
+2026-11-17 19:10:31 Loading instances...
+2026-11-17 19:10:32 >> Loaded instances in 328 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Localization strings...
+2026-11-17 19:10:32 >> Localization strings loaded in 16 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Page Texts...
+2026-11-17 19:10:32 >> Loaded 1811 page texts in 34 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Game Object Templates...
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 126337 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 126338 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 126339 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 126340 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 126341 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 126342 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 126345 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 181168 GoType: 10) have data12=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 ERROR: Gameobject (Entry: 181169 GoType: 10) have data12=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 >> Loaded 19114 game object templates in 235 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Spell Rank Data...
+2026-11-17 19:10:32 >> Loaded 5584 spell rank records in 16 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Spell Required Data...
+2026-11-17 19:10:32 >> Loaded 38 spell required records in 0 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Spell Group types...
+2026-11-17 19:10:32 >> Loaded 454 spell group definitions in 15 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Spell Learn Skills...
+2026-11-17 19:10:32 >> Loaded 99 Spell Learn Skills from DBC in 0 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Spell Learn Spells...
+2026-11-17 19:10:32 >> Loaded 8 spell learn spells + 572 found in DBC in 0 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Spell Proc Event conditions...
+2026-11-17 19:10:32 >> Loaded 1070 extra and 63 custom spell proc event conditions in 16 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Spell Bonus Data...
+2026-11-17 19:10:32 >> Loaded 294 extra spell bonus data in 0 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Aggro Spells Definitions...
+2026-11-17 19:10:32 >> Loaded 105 aggro generating spells in 0 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Spell Group Stack Rules...
+2026-11-17 19:10:32 >> Loaded 46 spell group stack rules in 0 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading NPC Texts...
+2026-11-17 19:10:32 >> Loaded 5931 npc texts in 172 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Enchant Spells Proc datas...
+2026-11-17 19:10:32 >> Loaded 42 enchant proc data definitions in 0 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Item Random Enchantments Table...
+2026-11-17 19:10:32 >> Loaded 28607 Item Enchantment definitions in 47 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Disables
+2026-11-17 19:10:32 >> Loaded 466 disables in 0 ms
+2026-11-17 19:10:32 
+2026-11-17 19:10:32 Loading Items...
+2026-11-17 19:10:34 ERROR: Item (Entry: 60001) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60002) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60003) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60004) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60005) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60006) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60007) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60008) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60009) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60010) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60011) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60012) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60013) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60014) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60015) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 60016) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66660) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66661) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66666) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66667) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66668) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66669) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66670) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66671) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 66671) has wrong Subclass value (14) for class 0
+2026-11-17 19:10:34 ERROR: Item (Entry: 90000) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 90000) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 ERROR: Item (Entry: 99784) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100000) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100001) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100002) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100003) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100004) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100005) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100006) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100007) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100007) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100008) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100008) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100009) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100009) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100010) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100010) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100011) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100012) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100013) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100014) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100015) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100016) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100017) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100018) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100461) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100461) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100462) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100463) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100666) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 ERROR: Item (Entry: 100667) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 >> Loaded 37342 item prototypes in 1422 ms
+2026-11-17 19:10:34 
+2026-11-17 19:10:34 Loading Item set names...
+2026-11-17 19:10:34 >> Loaded 2481 item set names in 15 ms
+2026-11-17 19:10:34 
+2026-11-17 19:10:34 Loading Creature Model Based Info Data...
+2026-11-17 19:10:34 >> Loaded 24142 creature model based info in 47 ms
+2026-11-17 19:10:34 
+2026-11-17 19:10:34 Loading Equipment templates...
+2026-11-17 19:10:34 ERROR: Item (entry=32768) in creature_equip_template.equipentry2 for entry = 1807 is not equipable in a hand, forced to 0.
+2026-11-17 19:10:34 >> Loaded 2464 equipment templates in 0 ms
+2026-11-17 19:10:34 
+2026-11-17 19:10:34 Loading Creature templates...
+2026-11-17 19:10:35 ERROR: Creature (Entry: 39746) lists difficulty 1 mode entry 39805 with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.
+2026-11-17 19:10:35 ERROR: Creature (Entry: 39747) lists difficulty 1 mode entry 39823 with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.
+2026-11-17 19:10:35 ERROR: Creature (Entry: 39751) lists difficulty 1 mode entry 39920 with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.
+2026-11-17 19:10:35 ERROR: Creature (Entry: 39863) lists difficulty 1 mode entry 39864 with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.
+2026-11-17 19:10:35 ERROR: Creature (Entry: 66691) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 66698) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 190000) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600000) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600001) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600002) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600003) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600004) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600005) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600006) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600007) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600008) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600009) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600010) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600011) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600012) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600013) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600014) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600015) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600016) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600017) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600018) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600019) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600020) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600021) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600022) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600023) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600024) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600025) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600026) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600027) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600028) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600029) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600030) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600031) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600032) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600033) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600034) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600035) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600036) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600037) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600038) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600039) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600040) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600041) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600042) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600043) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600044) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600045) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600046) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600047) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600048) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600049) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600050) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 600051) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 3399801) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 3514301) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 4000000) has non-existing faction_A template (0).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 4000000) has non-existing faction_H template (0).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5000000) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500000) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500001) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500002) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500003) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500004) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500005) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500006) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500007) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500008) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500009) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500010) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 5500011) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 ERROR: Creature (Entry: 9999998) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 >> Loaded 30159 creature definitions in 890 ms
+2026-11-17 19:10:35 
+2026-11-17 19:10:35 Loading Vehicle scaling information...
+2026-11-17 19:10:35 >> Loaded 3 vehicle scaling entries in 0 ms
+2026-11-17 19:10:35 
+2026-11-17 19:10:35 Loading Reputation Reward Rates...
+2026-11-17 19:10:35 >> Loaded 14 reputation_reward_rate in 0 ms
+2026-11-17 19:10:35 
+2026-11-17 19:10:35 Loading Creature Reputation OnKill Data...
+2026-11-17 19:10:35 >> Loaded 1916 creature award reputation definitions in 0 ms
+2026-11-17 19:10:35 
+2026-11-17 19:10:35 Loading Reputation Spillover Data...
+2026-11-17 19:10:35 >> Loaded 26 reputation_spillover_template in 16 ms
+2026-11-17 19:10:35 
+2026-11-17 19:10:35 Loading Points Of Interest Data...
+2026-11-17 19:10:35 >> Loaded 453 Points of Interest definitions in 0 ms
+2026-11-17 19:10:35 
+2026-11-17 19:10:35 Loading Creature Base Stats...
+2026-11-17 19:10:35 >> Loaded 400 creature base stats in 15 ms
+2026-11-17 19:10:35 
+2026-11-17 19:10:35 Loading Creature Data...
+2026-11-17 19:10:36 ERROR: Table `creature` have creature (GUID: 120692 Entry: 68) with `MovementType`=0 (idle) have `spawndist`<>0, set to 0.
+2026-11-17 19:10:37 ERROR: Table `creature` has creature (GUID: 214209) with non existing creature entry 66699, skipped.
+2026-11-17 19:10:37 ERROR: Table `creature` have creature (GUID: 5560646) that listed as difficulty 1 template (entry: 31215) in `creature_template`, skipped.
+2026-11-17 19:10:37 >> Loaded 140434 creatures in 1862 ms
+2026-11-17 19:10:37 
+2026-11-17 19:10:37 Loading pet levelup spells...
+2026-11-17 19:10:37 >> Loaded 993 pet levelup and default spells for 39 families in 0 ms
+2026-11-17 19:10:37 
+2026-11-17 19:10:37 Loading pet default spells additional to levelup spells...
+2026-11-17 19:10:37 >> Loaded addition spells for 111 pet spell data entries in 16 ms
+2026-11-17 19:10:37 
+2026-11-17 19:10:37 Loading summonable creature templates...
+2026-11-17 19:10:37 >> Loaded 346 summonable creature templates in 0 ms
+2026-11-17 19:10:37 
+2026-11-17 19:10:37 Loading Creature Template Addon Data...
+2026-11-17 19:10:37 ERROR: Creature (Entry: 190000) has wrong `auras` data in `creature_template_addon`.
+2026-11-17 19:10:37 >> Loaded 5276 creature template addons in 16 ms
+2026-11-17 19:10:37 
+2026-11-17 19:10:37 Loading Creature Addon Data...
+2026-11-17 19:10:37 >> Loaded 83954 creature addons in 203 ms
+2026-11-17 19:10:37 
+2026-11-17 19:10:37 Loading Creature Respawn Data...
+2026-11-17 19:10:37 >> Loaded 5384 creature respawn times in 32 ms
+2026-11-17 19:10:37 
+2026-11-17 19:10:37 Loading Gameobject Data...
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 1986214 Entry: 170592) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097741 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097744 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097747 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097749 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097752 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097754 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097757 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097759 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097763 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097765 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097767 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097770 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097772 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097774 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097776 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097778 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097784 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097786 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097789 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097791 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097795 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097798 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097800 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097803 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097806 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097808 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097811 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097813 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097816 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097818 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097820 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097823 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097825 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097828 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097830 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097832 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097834 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097837 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097844 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097868 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097871 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097873 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097875 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097878 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097880 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097883 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097885 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097888 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097892 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097896 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097899 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097902 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097905 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097907 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097910 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097912 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097915 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097917 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097920 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097922 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097924 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097927 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097929 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097935 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097938 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097940 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097942 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097944 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097946 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097948 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097951 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097954 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097956 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097958 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097960 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097962 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097964 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097966 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097971 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2097974 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098160 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098162 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098165 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098168 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098172 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098174 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098180 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098182 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098185 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098189 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098191 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098193 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098195 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098197 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098199 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098201 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098203 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098217 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098219 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098221 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098223 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098225 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098228 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098230 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098233 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098235 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098238 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098240 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098242 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098244 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098247 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098249 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098251 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098295 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098297 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098304 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098306 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098308 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098311 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098342 Entry: 201378) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098349 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098351 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098353 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098355 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098359 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098361 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098363 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098365 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098367 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098369 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098371 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098373 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098375 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098377 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098379 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098381 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098383 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098385 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098387 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098390 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098392 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098394 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098398 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098401 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098405 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098407 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098410 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098412 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098414 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098416 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098418 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098420 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098422 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098424 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098426 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098429 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098431 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098433 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098437 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2098881 Entry: 188481) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099201 Entry: 192058) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099203 Entry: 192058) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099205 Entry: 192058) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099286 Entry: 187980) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099288 Entry: 187980) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099290 Entry: 187980) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099306 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099310 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099312 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099314 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099316 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099318 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099320 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2099986 Entry: 194487) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2100059 Entry: 183874) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2100061 Entry: 183859) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2100337 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2100533 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2100535 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2100537 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2100539 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2100545 Entry: 188072) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161137 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161144 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161147 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161150 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161156 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161165 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161184 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161207 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161209 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161704 Entry: 185567) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161708 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2161959 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162037 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162205 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162207 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162216 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162288 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162290 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162296 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162327 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162330 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162335 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162338 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162360 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162362 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162373 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162375 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162378 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162380 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162389 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162391 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162399 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162401 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162403 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162405 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2162407 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205218 Entry: 186610) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205251 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205253 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205255 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205257 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205259 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205261 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205284 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205286 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205288 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 ERROR: Table `gameobject` has gameobject (GUID: 2205290 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:40 ERROR: Table `gameobject` has gameobject (GUID: 6188239 Entry: 175708) with `spawntimesecs` (0) value, but the gameobejct is marked as despawnable at action.
+2026-11-17 19:10:40 >> Loaded 152881 gameobjects in 2844 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Gameobject Respawn Data...
+2026-11-17 19:10:40 >> Loaded 0 gameobject respawn times. DB table `gameobject_respawn` is empty!
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Creature Linked Respawn...
+2026-11-17 19:10:40 >> Loaded 5661 linked respawns in 16 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Weather Data...
+2026-11-17 19:10:40 >> Loaded 35 weather definitions in 0 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Quests...
+2026-11-17 19:10:40 ERROR: Quest 10839 has `ReqSpellCast1` = 38736 and ReqCreatureOrGOId1 = 0 but spell 38736 does not have SPELL_EFFECT_QUEST_COMPLETE or SPELL_EFFECT_SEND_EVENT effect for this quest, quest can't be done.
+2026-11-17 19:10:40 ERROR: Quest 10447 has `ReqSourceId1` = 0 but `ReqSourceCount1` = 1.
+2026-11-17 19:10:40 >> Loaded 9477 quests definitions in 484 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Checking Quest Disables
+2026-11-17 19:10:40 >> Checked 157 quest disables in 0 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Quest POI
+2026-11-17 19:10:40 >> Loaded 18749 quest POI definitions in 172 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Quests Relations...
+2026-11-17 19:10:40 Loading GO Start Quest Data...
+2026-11-17 19:10:40 >> Loaded 441 quest relations from gameobject_questrelation in 0 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading GO End Quest Data...
+2026-11-17 19:10:40 >> Loaded 373 quest relations from gameobject_involvedrelation in 15 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Creature Start Quest Data...
+2026-11-17 19:10:40 >> Loaded 7533 quest relations from creature_questrelation in 16 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 ERROR: Table `creature_questrelation` has creature entry (32516) for quest 13571, but npcflag does not include UNIT_NPC_FLAG_QUESTGIVER
+2026-11-17 19:10:40 Loading Creature End Quest Data...
+2026-11-17 19:10:40 >> Loaded 7822 quest relations from creature_involvedrelation in 31 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 ERROR: Table `creature_involvedrelation` has creature entry (32516) for quest 13571, but npcflag does not include UNIT_NPC_FLAG_QUESTGIVER
+2026-11-17 19:10:40 ERROR: Table `creature_involvedrelation` have data for not existed creature entry (16777215) and existed quest 600000
+2026-11-17 19:10:40 Loading Objects Pooling Data...
+2026-11-17 19:10:40 >> Loaded 2679 objects pools in 0 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Creatures Pooling Data...
+2026-11-17 19:10:40 ERROR: `pool_creature` has a non existing creature spawn (GUID: 151988) defined for pool id (1099), skipped.
+2026-11-17 19:10:40 >> Loaded 809 creatures in pools in 0 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Gameobject Pooling Data...
+2026-11-17 19:10:40 >> Loaded 21869 gameobject in pools in 31 ms
+2026-11-17 19:10:40 
+2026-11-17 19:10:40 Loading Mother Pooling Data...
+2026-11-17 19:10:41 >> Loaded 2096 pools in mother pools in 47 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Quest Pooling Data...
+2026-11-17 19:10:41 >> Loaded 81 quests in pools in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Starting objects pooling system...
+2026-11-17 19:10:41 ERROR: Pool Id 1079 has no equal chance pooled entites defined and explicit chance sum is not 100. The pool will not be spawned.
+2026-11-17 19:10:41 Pool handling system initialized, 582 pools spawned in 78 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Data...
+2026-11-17 19:10:41 >> Loaded 61 game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Saves Data...
+2026-11-17 19:10:41 >> Loaded 15 game event saves in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Prerequisite Data...
+2026-11-17 19:10:41 >> Loaded 15 game event prerequisites in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Creature Data...
+2026-11-17 19:10:41 >> Loaded 3934 creatures in game events in 15 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event GO Data...
+2026-11-17 19:10:41 >> Loaded 18643 gameobjects in game events in 47 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Model/Equipment Change Data...
+2026-11-17 19:10:41 >> Loaded 10 model/equipment changes in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Quest Data...
+2026-11-17 19:10:41 >> Loaded 81 quests additions in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event GO Quest Data...
+2026-11-17 19:10:41 >> Loaded 0 go quests additions in game events. DB table `game_event_gameobject_quest` is empty.
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Quest Condition Data...
+2026-11-17 19:10:41 >> Loaded 11 quest event conditions in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Condition Data...
+2026-11-17 19:10:41 >> Loaded 15 conditions in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Condition Save Data...
+2026-11-17 19:10:41 >> Loaded 6 condition saves in game events in 78 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event NPCflag Data...
+2026-11-17 19:10:41 >> Loaded 6 npcflags in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Vendor Additions Data...
+2026-11-17 19:10:41 >> Loaded 69 vendor additions in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Battleground Data...
+2026-11-17 19:10:41 >> Loaded 6 battleground holidays in game events in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Game Event Pool Data...
+2026-11-17 19:10:41 >> Loaded 0 pools for game events. DB table `game_event_pool` is empty.
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading UNIT_NPC_FLAG_SPELLCLICK Data...
+2026-11-17 19:10:41 >> Loaded 208 spellclick definitions in 32 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Vehicle Template Accessories...
+2026-11-17 19:10:41 >> Loaded 50 Vehicle Template Accessories in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Vehicle Accessories...
+2026-11-17 19:10:41 >> Loaded 0 Vehicle Accessories in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Dungeon boss data...
+2026-11-17 19:10:41 >> Loaded 612 instance encounters in 15 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading LFG rewards...
+2026-11-17 19:10:41 >> Loaded 15 lfg dungeon rewards in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading SpellArea Data...
+2026-11-17 19:10:41 >> Loaded 275 spell area requirements in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading AreaTrigger definitions...
+2026-11-17 19:10:41 >> Loaded 222 area trigger teleport definitions in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Access Requirements...
+2026-11-17 19:10:41 >> Loaded 121 access requirement definitions in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Quest Area Triggers...
+2026-11-17 19:10:41 >> Loaded 51 quest trigger points in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Tavern Area Triggers...
+2026-11-17 19:10:41 >> Loaded 102 tavern triggers in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading AreaTrigger script names...
+2026-11-17 19:10:41 >> Loaded 46 areatrigger scripts in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Graveyard-zone links...
+2026-11-17 19:10:41 ERROR: Table `game_graveyard_zone` has a record for not existing graveyard (WorldSafeLocs.dbc id) 2000, skipped.
+2026-11-17 19:10:41 >> Loaded 701 graveyard-zone links in 15 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading spell pet auras...
+2026-11-17 19:10:41 >> Loaded 44 spell pet auras in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading spell extra attributes...
+2026-11-17 19:10:41 >> Loaded 61181 custom spell attributes in 16 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Spell target coordinates...
+2026-11-17 19:10:41 >> Loaded 418 spell teleport coordinates in 16 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading enchant custom attributes...
+2026-11-17 19:10:41 >> Loaded 32 custom enchant attributes in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading linked spells...
+2026-11-17 19:10:41 >> Loaded 302 linked spells in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player Create Data...
+2026-11-17 19:10:41 >> Loaded 62 player create definitions in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player Create Items Data...
+2026-11-17 19:10:41 >> Loaded 1 custom player create items in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player Create Spell Data...
+2026-11-17 19:10:41 >> Loaded 2826 player create spells in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player Create Action Data...
+2026-11-17 19:10:41 >> Loaded 325 player create actions in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player Create Level HP/Mana Data...
+2026-11-17 19:10:41 >> Loaded 800 level health/mana definitions in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player Create Level Stats Data...
+2026-11-17 19:10:41 >> Loaded 4960 level stats definitions in 16 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player Create XP Data...
+2026-11-17 19:10:41 >> Loaded 79 xp for level definitions in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Exploration BaseXP Data...
+2026-11-17 19:10:41 >> Loaded 80 BaseXP definitions in 16 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Pet Name Parts...
+2026-11-17 19:10:41 >> Loaded 313 pet name parts in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading the max pet number...
+2026-11-17 19:10:41 >> Loaded the max pet number: 140715 in 203 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading pet level stats...
+2026-11-17 19:10:41 >> Loaded 2480 level pet stats definitions in 15 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player Corpses...
+2026-11-17 19:10:41 >> Loaded 0 corpses. DB table `pet_name_generation` is empty.
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading Player level dependent mail rewards...
+2026-11-17 19:10:41 >> Loaded 24 level dependent mail rewards in 0 ms
+2026-11-17 19:10:41 
+2026-11-17 19:10:41 Loading creature loot templates...
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 37007 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3672402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3672403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3672502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3672503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3680502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3680503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3680702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3680703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3680802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3680803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3681102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3681103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3682902 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3682903 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3688002 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3688003 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3699802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3699803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3700302 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3700303 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3700402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3700403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3700702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3700703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3701102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3701103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3701202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3701203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3701602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3701603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3701702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3701703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702302 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702303 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3702703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703002 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703003 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703302 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703303 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3703803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3709802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3709803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3712602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3712603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3714402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3714403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3714602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3714603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3714802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3714803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3714902 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3714903 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3721702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3721703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3723002 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3723003 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3750102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3750103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3750202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3750203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3754402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3754403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3754502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3754503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3754602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3754603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3757102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3757103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3759502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3759503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766302 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766303 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 3766603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 ERROR: Table 'creature_loot_template' entry 4000000 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 >> Loaded 337967 creature loot templates in 1125 ms
+2026-11-17 19:10:42 
+2026-11-17 19:10:42 Loading fishing loot templates...
+2026-11-17 19:10:42 >> Loaded 237 fishing loot templates in 0 ms
+2026-11-17 19:10:42 
+2026-11-17 19:10:42 Loading gameobject loot templates...
+2026-11-17 19:10:43 ERROR: Table 'gameobject_loot_template' entry 3459 (gameobject entry) not exist but used as loot id in DB.
+2026-11-17 19:10:46 ERROR: Table 'gameobject_loot_template' entry 27725 (gameobject entry) not exist but used as loot id in DB.
+2026-11-17 19:10:46 ERROR: Table 'gameobject_loot_template' entry 27985 (gameobject entry) not exist but used as loot id in DB.
+2026-11-17 19:10:46 ERROR: Table 'gameobject_loot_template' entry 27985 (gameobject entry) not exist but used as loot id in DB.
+2026-11-17 19:10:46 ERROR: Table 'gameobject_loot_template' entry 201384 isn't gameobject entry and not referenced from loot, and then useless.
+2026-11-17 19:10:46 >> Loaded 18351 gameobject loot templates in 3469 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading item loot templates...
+2026-11-17 19:10:46 >> Loaded 4958 prospecting loot templates in 15 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading mail loot templates...
+2026-11-17 19:10:46 >> Loaded 70 mail loot templates in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading milling loot templates...
+2026-11-17 19:10:46 >> Loaded 45 milling loot templates in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading pickpocketing loot templates...
+2026-11-17 19:10:46 >> Loaded 10641 pickpocketing loot templates in 47 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading skinning loot templates...
+2026-11-17 19:10:46 >> Loaded 3364 skinning loot templates in 31 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading disenchanting loot templates...
+2026-11-17 19:10:46 >> Loaded 124 disenchanting loot templates in 16 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading prospecting loot templates...
+2026-11-17 19:10:46 >> Loaded 102 prospecting loot templates in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading spell loot templates...
+2026-11-17 19:10:46 >> Loaded 161 spell loot templates in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading reference loot templates...
+2026-11-17 19:10:46 >> Loaded refence loot templates in 47 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Skill Discovery Table...
+2026-11-17 19:10:46 >> Loaded 348 skill discovery definitions in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Skill Extra Item Table...
+2026-11-17 19:10:46 >> Loaded 225 spell specialization definitions in 15 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Skill Fishing base level requirements...
+2026-11-17 19:10:46 >> Loaded 88 areas for fishing base skill level in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Achievements...
+2026-11-17 19:10:46 >> Loaded 43 achievement references in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Achievement Criteria Lists...
+2026-11-17 19:10:46 >> Loaded 1105 achievement criteria in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Achievement Criteria Data...
+2026-11-17 19:10:46 >> Loaded 2253 additional achievement criteria data in 16 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Achievement Rewards...
+2026-11-17 19:10:46 >> Loaded 101 achievement rewards in 0 ms
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Achievement Reward Locales...
+2026-11-17 19:10:46 >> Loaded 0 achievement reward locale strings.  DB table `locales_achievement_reward` is empty
+2026-11-17 19:10:46 
+2026-11-17 19:10:46 Loading Completed Achievements...
+2026-11-17 19:10:47 >> Loaded 1155 completed achievements in 844 ms
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading Item Auctions...
+2026-11-17 19:10:47 >> Loaded 0 auction items. DB table `auctionhouse` or `item_instance` is empty!
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading Auctions...
+2026-11-17 19:10:47 >> Loaded 0 auctions. DB table `auctionhouse` is empty.
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading guilds definitions...
+2026-11-17 19:10:47 >> Loaded 472 guild definitions in 16 ms
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading guild ranks...
+2026-11-17 19:10:47 >> Loaded 2744 guild ranks in 62 ms
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading guild members...
+2026-11-17 19:10:47 ERROR: Player (GUID: 13657) has broken zone-data
+2026-11-17 19:10:47 Loading map data/maps/0014828.map
+2026-11-17 19:10:47 VMAP loaded name:Kalimdor, id:1, x:48, y:28 (vmap rep.: x:48, y:28)
+2026-11-17 19:10:47 ERROR: Player (GUID: 91579) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 23773) has broken zone-data
+2026-11-17 19:10:47 Loading map data/maps/0014333.map
+2026-11-17 19:10:47 VMAP loaded name:Kalimdor, id:1, x:43, y:33 (vmap rep.: x:43, y:33)
+2026-11-17 19:10:47 ERROR: Player (GUID: 86574) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 91981) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 96655) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 34384) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 73093) has broken zone-data
+2026-11-17 19:10:47 Loading map data/maps/0014232.map
+2026-11-17 19:10:47 VMAP loaded name:Kalimdor, id:1, x:42, y:32 (vmap rep.: x:42, y:32)
+2026-11-17 19:10:47 ERROR: Player (GUID: 89274) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 70879) has broken zone-data
+2026-11-17 19:10:47 Loading map data/maps/5301847.map
+2026-11-17 19:10:47 VMAP loaded name:Outland, id:530, x:18, y:47 (vmap rep.: x:18, y:47)
+2026-11-17 19:10:47 ERROR: Player (GUID: 73035) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 19960) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 86619) has broken zone-data
+2026-11-17 19:10:47 ERROR: Player (GUID: 98859) has broken zone-data
+2026-11-17 19:10:47 >> Loaded 7141 guild members int 157 ms
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading bank tab rights...
+2026-11-17 19:10:47 >> Loaded 9604 bank tab rights in 31 ms
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading guild event logs...
+2026-11-17 19:10:47 >> Loaded 14359 guild event logs in 63 ms
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading guild bank event logs...
+2026-11-17 19:10:47 >> Loaded 35597 guild bank event logs in 171 ms
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Loading guild bank tabs...
+2026-11-17 19:10:47 >> Loaded 2035 guild bank tabs in 16 ms
+2026-11-17 19:10:47 
+2026-11-17 19:10:47 Filling bank tabs with items...
+2026-11-17 19:10:53 ERROR: Unknown item (GUID: 30762711, id: 41091) in guild bank, skipped.
+2026-11-17 19:10:53 ERROR: Unknown item (GUID: 30762721, id: 41091) in guild bank, skipped.
+2026-11-17 19:10:53 ERROR: Unknown item (GUID: 30762849, id: 41091) in guild bank, skipped.
+2026-11-17 19:10:53 >> Loaded 81074 guild bank tab items in 5461 ms
+2026-11-17 19:10:53 
+2026-11-17 19:10:53 Validating data of loaded guilds...
+2026-11-17 19:10:53 Validated data of loaded guilds in 0 ms
+2026-11-17 19:10:53 
+2026-11-17 19:10:53 Loading ArenaTeams...
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 >> Loaded 2186 arena team definitions in 3188 ms
+2026-11-17 19:10:56 Loading Groups...
+2026-11-17 19:10:56 >> Loaded 0 group definitions. DB table `groups` is empty!
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading ReservedNames...
+2026-11-17 19:10:56 >> Loaded 0 reserved player names. DB table `reserved_name` is empty!
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading GameObjects for quests...
+2026-11-17 19:10:56 >> Loaded 1142 GameObjects for quests in 0 ms
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading BattleMasters...
+2026-11-17 19:10:56 >> Loaded 136 battlemaster entries in 0 ms
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading GameTeleports...
+2026-11-17 19:10:56 ERROR: Wrong position for id 1581 (name: RevelationGaming) in `game_tele` table, ignoring.
+2026-11-17 19:10:56 ERROR: Wrong position for id 1590 (name: outish) in `game_tele` table, ignoring.
+2026-11-17 19:10:56 ERROR: Wrong position for id 2000 (name: DirtyRabbitZ) in `game_tele` table, ignoring.
+2026-11-17 19:10:56 >> Loaded 1739 GameTeleports in 78 ms
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading gossip_scripts...
+2026-11-17 19:10:56 >> Loaded 15 script definitions in 0 ms
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading Gossip menu...
+2026-11-17 19:10:56 >> Loaded 2817 gossip_menu entries in 0 ms
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading Gossip menu options...
+2026-11-17 19:10:56 >> Loaded 2085 gossip_menu_option entries in 63 ms
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading Vendors...
+2026-11-17 19:10:56 >> Loaded 36476 Vendors in 78 ms
+2026-11-17 19:10:56 
+2026-11-17 19:10:56 Loading Trainers...
+2026-11-17 19:10:58 >> Loaded 78620 Trainers in 1172 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading Waypoints...
+2026-11-17 19:10:58 >> Loaded 65232 waypoints in 296 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading SmartAI Waypoints...
+2026-11-17 19:10:58 >> Loaded 45 SmartAI waypoint paths (total 552 waypoints) in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading Creature Formations...
+2026-11-17 19:10:58 >> Loaded 228 creatures in formations in 125 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading Conditions...
+2026-11-17 19:10:58 ERROR: addToGossipMenus: GossipMenu 51900 not found
+2026-11-17 19:10:58 ERROR: Not handled grouped condition, SourceGroup 51900
+2026-11-17 19:10:58 ERROR: addToGossipMenus: GossipMenu 51900 not found
+2026-11-17 19:10:58 ERROR: Not handled grouped condition, SourceGroup 51900
+2026-11-17 19:10:58 >> Loaded 5425 conditions in 32 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading faction change achievement pairs...
+2026-11-17 19:10:58 >> Loaded 35 faction change achievement pairs in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading faction change spell pairs...
+2026-11-17 19:10:58 >> Loaded 84 faction change spell pairs in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading faction change item pairs...
+2026-11-17 19:10:58 >> Loaded 728 faction change item pairs in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading faction change reputation pairs...
+2026-11-17 19:10:58 >> Loaded 15 faction change reputation pairs in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading GM tickets...
+2026-11-17 19:10:58 >> Loaded 9743 GM tickets in 219 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading GM surveys...
+2026-11-17 19:10:58 >> Loaded GM Survey count from database in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading client addons...
+2026-11-17 19:10:58 >> Loaded 26 known addons in 16 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Returning old mails...
+2026-11-17 19:10:58 Returning mails current time: hour: 19, minute: 10, second: 58 
+2026-11-17 19:10:58 >> No expired mails found or DB table `mail` is empty.
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading Autobroadcasts...
+2026-11-17 19:10:58 >> Loaded 6 autobroadcasts definitions in 15 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading quest_start_scripts...
+2026-11-17 19:10:58 >> Loaded 232 script definitions in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading quest_end_scripts...
+2026-11-17 19:10:58 >> Loaded 268 script definitions in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading spell_scripts...
+2026-11-17 19:10:58 >> Loaded 82 script definitions in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading gameobject_scripts...
+2026-11-17 19:10:58 >> Loaded 55 script definitions in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading event_scripts...
+2026-11-17 19:10:58 >> Loaded 396 script definitions in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading waypoint_scripts...
+2026-11-17 19:10:58 >> Loaded 698 script definitions in 16 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading Scripts text locales...
+2026-11-17 19:10:58 >> Loaded 335 string templates from db_script_string in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading CreatureEventAI Texts...
+2026-11-17 19:10:58 >> Loaded 984 string templates from creature_ai_texts in 16 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 >> Loaded 984 additional CreatureEventAI Texts data in 16 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading CreatureEventAI Summons...
+2026-11-17 19:10:58 >> Loaded 21 CreatureEventAI summon definitions in 0 ms
+2026-11-17 19:10:58 
+2026-11-17 19:10:58 Loading CreatureEventAI Scripts...
+2026-11-17 19:10:59 >> Loaded 17726 CreatureEventAI scripts in 125 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Loading spell script names...
+2026-11-17 19:10:59 >> Loaded 364 spell script names in 0 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Loading Creature Texts...
+2026-11-17 19:10:59 >> Loaded 406 creature texts for 80 creatures in 31 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Initializing Scripts...
+2026-11-17 19:10:59 TSCR: Database version is: TDBAI 335.0.3
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 TSCR: Loading Script Texts...
+2026-11-17 19:10:59 >> Loaded 3063 string templates from script_texts in 16 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 TSCR: Loading Script Texts additional data...
+2026-11-17 19:10:59 >> Loaded 3063 additional Script Texts data in 0 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 TSCR: Loading Custom Texts...
+2026-11-17 19:10:59 >> Loaded 0 string templates. DB table `custom_texts` is empty.
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 TSCR: Loading Custom Texts additional data...
+2026-11-17 19:10:59 >> Loaded 0 additional Custom Texts data. DB table `custom_texts` is empty.
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 TSCR: Loading Script Waypoints for 80 creature(s)...
+2026-11-17 19:10:59 >> Loaded 2100 Script Waypoint nodes in 0 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Loading C++ scripts
+2026-11-17 19:10:59 ERROR: Script named 'boss_epoch' does not have a script name assigned in database.
+2026-11-17 19:10:59 ERROR: Script named 'boss_mal_ganis' does not have a script name assigned in database.
+2026-11-17 19:10:59 ERROR: Script named 'boss_tyrannus' does not have a script name assigned in database.
+2026-11-17 19:10:59 >> Loaded 1585 C++ scripts in 78 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Validating spell scripts...
+2026-11-17 19:10:59 >> Validated 460 scripts in 0 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Loading SmartAI scripts...
+2026-11-17 19:10:59 ERROR: SmartAIMgr::LoadSmartAIFromDB: Creature guid (88791) does not exist, skipped loading.
+2026-11-17 19:10:59 ERROR: SmartAIMgr::LoadSmartAIFromDB: Creature guid (88779) does not exist, skipped loading.
+2026-11-17 19:10:59 >> Loaded 297 SmartAI scripts in 0 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Initialize game time and timers
+2026-11-17 19:10:59 Mail timer set to: 900, mail return is called every 1440 minutes
+2026-11-17 19:10:59 Starting Map System
+2026-11-17 19:10:59 Starting Game Event system...
+2026-11-17 19:10:59 GameEvent 34 "Shattered Sun Offensive: Phase 1 - Reclaiming the Sanctum COMPLETE" started.
+2026-11-17 19:10:59 GameEvent 36 "Shattered Sun Offensive: Phase 2 - Sun's Reach Armory COMPLETE" started.
+2026-11-17 19:10:59 GameEvent 38 "Shattered Sun Offensive: Phase 2b - Activating the Sunwell Portal COMPLETE" started.
+2026-11-17 19:10:59 GameEvent 40 "Shattered Sun Offensive: Phase 3 - Sun's Reach Harbor COMPLETE" started.
+2026-11-17 19:10:59 GameEvent 42 "Shattered Sun Offensive: Phase 3b - Rebuilding the Anvil and Forge COMPLETE" started.
+2026-11-17 19:10:59 GameEvent 43 "Shattered Sun Offensive: Phase 4A - Creating the Alchemy Lab" started.
+2026-11-17 19:10:59 GameEvent 44 "Shattered Sun Offensive: Phase 4A - Creating the Alchemy Lab COMPLETE" started.
+2026-11-17 19:10:59 GameEvent 45 "Shattered Sun Offensive: Phase 4B - Building the Monument to the Fallen" started.
+2026-11-17 19:10:59 GameEvent 46 "Shattered Sun Offensive: Phase 4B - Building the Monument to the Fallen COMPLETE" started.
+2026-11-17 19:10:59 GameEvent 47 "Shattered Sun Offensive: Phase 4 - COMPLETE" started.
+2026-11-17 19:10:59 Next game event check in 86401 seconds.
+2026-11-17 19:10:59 Player::DeleteOldChars: Deleting all characters which have been deleted 30 days before...
+2026-11-17 19:10:59 Starting Arena Season...
+2026-11-17 19:10:59 GameEvent 55 "Arena Season 3" started.
+2026-11-17 19:10:59 Arena Season 3 started...
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Loading World States...
+2026-11-17 19:10:59 >> Loaded 4 world states in 0 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Starting Battleground System
+2026-11-17 19:10:59 >> Loaded 8 battlegrounds in 0 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Starting Outdoor PvP System
+2026-11-17 19:10:59 >> Loaded 6 outdoor PvP definitions in 0 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Loading Transports...
+2026-11-17 19:10:59 >> Loaded 20 transports in 63 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Loading Transport NPCs...
+2026-11-17 19:10:59 Loading map data/maps/0013232.map
+2026-11-17 19:10:59 VMAP loaded name:Kalimdor, id:1, x:32, y:32 (vmap rep.: x:32, y:32)
+2026-11-17 19:10:59 Loading map data/maps/0013439.map
+2026-11-17 19:10:59 VMAP loaded name:Kalimdor, id:1, x:34, y:39 (vmap rep.: x:34, y:39)
+2026-11-17 19:10:59 Object 9977089 enters grid[29,24]
+2026-11-17 19:10:59 Object 9977090 enters grid[29,24]
+2026-11-17 19:10:59 Object 9977091 enters grid[29,24]
+2026-11-17 19:10:59 Object 9977092 enters grid[29,24]
+2026-11-17 19:10:59 Object 9977093 enters grid[29,24]
+2026-11-17 19:10:59 Object 9977094 enters grid[29,24]
+2026-11-17 19:10:59 Object 9977095 enters grid[29,24]
+2026-11-17 19:10:59 Object 9977096 enters grid[29,24]
+2026-11-17 19:10:59 Loading map data/maps/0012941.map
+2026-11-17 19:10:59 VMAP loaded name:Kalimdor, id:1, x:29, y:41 (vmap rep.: x:29, y:41)
+2026-11-17 19:10:59 Object 9977097 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977098 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977099 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977100 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977101 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977102 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977103 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977104 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977105 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977106 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977107 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977108 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977109 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977110 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977111 enters grid[34,22]
+2026-11-17 19:10:59 Object 9977112 enters grid[34,22]
+2026-11-17 19:10:59 Loading map data/maps/0003232.map
+2026-11-17 19:10:59 VMAP loaded name:Eastern Kingdoms, id:0, x:32, y:32 (vmap rep.: x:32, y:32)
+2026-11-17 19:10:59 Loading map data/maps/0005530.map
+2026-11-17 19:10:59 VMAP loaded name:Eastern Kingdoms, id:0, x:55, y:30 (vmap rep.: x:55, y:30)
+2026-11-17 19:10:59 Object 9977113 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977114 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977115 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977116 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977117 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977118 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977119 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977120 enters grid[8,33]
+2026-11-17 19:10:59 Loading map data/maps/0011629.map
+2026-11-17 19:10:59 VMAP loaded name:Kalimdor, id:1, x:16, y:29 (vmap rep.: x:16, y:29)
+2026-11-17 19:10:59 Object 9977121 enters grid[47,34]
+2026-11-17 19:10:59 Object 9977122 enters grid[47,34]
+2026-11-17 19:10:59 Object 9977123 enters grid[47,34]
+2026-11-17 19:10:59 Object 9977124 enters grid[47,34]
+2026-11-17 19:10:59 Object 9977125 enters grid[47,34]
+2026-11-17 19:10:59 Object 9977126 enters grid[47,34]
+2026-11-17 19:10:59 Loading map data/maps/0004829.map
+2026-11-17 19:10:59 VMAP loaded name:Eastern Kingdoms, id:0, x:48, y:29 (vmap rep.: x:48, y:29)
+2026-11-17 19:10:59 Object 9977127 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977128 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977129 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977130 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977131 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977132 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977133 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977134 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977135 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977136 enters grid[15,34]
+2026-11-17 19:10:59 Object 9977137 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977138 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977139 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977140 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977141 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977142 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977143 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977144 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977145 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977146 enters grid[8,33]
+2026-11-17 19:10:59 Object 9977147 enters grid[8,33]
+2026-11-17 19:10:59 Loading map data/maps/5303232.map
+2026-11-17 19:10:59 VMAP loaded name:Outland, id:530, x:32, y:32 (vmap rep.: x:32, y:32)
+2026-11-17 19:10:59 Loading map data/maps/5303952.map
+2026-11-17 19:10:59 VMAP loaded name:Outland, id:530, x:39, y:52 (vmap rep.: x:39, y:52)
+2026-11-17 19:10:59 Object 9977148 enters grid[24,11]
+2026-11-17 19:10:59 Object 9977149 enters grid[24,11]
+2026-11-17 19:10:59 Object 9977150 enters grid[24,11]
+2026-11-17 19:10:59 Object 9977151 enters grid[24,11]
+2026-11-17 19:10:59 Object 9977152 enters grid[24,11]
+2026-11-17 19:10:59 Object 9977153 enters grid[24,11]
+2026-11-17 19:10:59 Loading map data/maps/5713232.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:32, y:32 (vmap rep.: x:32, y:32)
+2026-11-17 19:10:59 Loading map data/maps/5712843.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:28, y:43 (vmap rep.: x:28, y:43)
+2026-11-17 19:10:59 Object 9977154 enters grid[35,20]
+2026-11-17 19:10:59 Object 9977155 enters grid[35,20]
+2026-11-17 19:10:59 Object 9977156 enters grid[35,20]
+2026-11-17 19:10:59 Object 9977157 enters grid[35,20]
+2026-11-17 19:10:59 Object 9977158 enters grid[35,20]
+2026-11-17 19:10:59 Object 9977159 enters grid[35,20]
+2026-11-17 19:10:59 Loading map data/maps/5712719.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:27, y:19 (vmap rep.: x:27, y:19)
+2026-11-17 19:10:59 Object 9977160 enters grid[36,44]
+2026-11-17 19:10:59 Object 9977161 enters grid[36,44]
+2026-11-17 19:10:59 Object 9977162 enters grid[36,44]
+2026-11-17 19:10:59 Object 9977163 enters grid[36,44]
+2026-11-17 19:10:59 Object 9977164 enters grid[36,44]
+2026-11-17 19:10:59 Object 9977165 enters grid[36,44]
+2026-11-17 19:10:59 Object 9977166 enters grid[36,44]
+2026-11-17 19:10:59 Loading map data/maps/5713139.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:31, y:39 (vmap rep.: x:31, y:39)
+2026-11-17 19:10:59 Object 9977167 enters grid[32,24]
+2026-11-17 19:10:59 Loading map data/maps/5713239.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:32, y:39 (vmap rep.: x:32, y:39)
+2026-11-17 19:10:59 Object 9977168 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977169 enters grid[32,24]
+2026-11-17 19:10:59 Object 9977170 enters grid[32,24]
+2026-11-17 19:10:59 Object 9977171 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977172 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977173 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977174 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977175 enters grid[32,24]
+2026-11-17 19:10:59 Object 9977176 enters grid[32,24]
+2026-11-17 19:10:59 Object 9977177 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977178 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977179 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977180 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977181 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977182 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977183 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977184 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977185 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977186 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977187 enters grid[31,24]
+2026-11-17 19:10:59 Object 9977188 enters grid[32,24]
+2026-11-17 19:10:59 Object 9977189 enters grid[32,24]
+2026-11-17 19:10:59 Object 9977190 enters grid[32,24]
+2026-11-17 19:10:59 Loading map data/maps/0004728.map
+2026-11-17 19:10:59 VMAP loaded name:Eastern Kingdoms, id:0, x:47, y:28 (vmap rep.: x:47, y:28)
+2026-11-17 19:10:59 Object 9977191 enters grid[16,35]
+2026-11-17 19:10:59 Object 9977192 enters grid[16,35]
+2026-11-17 19:10:59 Object 9977193 enters grid[16,35]
+2026-11-17 19:10:59 Object 9977194 enters grid[16,35]
+2026-11-17 19:10:59 Object 9977195 enters grid[16,35]
+2026-11-17 19:10:59 Object 9977196 enters grid[16,35]
+2026-11-17 19:10:59 Loading map data/maps/0013332.map
+2026-11-17 19:10:59 VMAP loaded name:Kalimdor, id:1, x:33, y:32 (vmap rep.: x:33, y:32)
+2026-11-17 19:10:59 Object 9977197 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977198 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977199 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977200 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977201 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977202 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977203 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977204 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977205 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977206 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977207 enters grid[30,31]
+2026-11-17 19:10:59 Object 9977208 enters grid[30,31]
+2026-11-17 19:10:59 Loading map data/maps/5711729.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:17, y:29 (vmap rep.: x:17, y:29)
+2026-11-17 19:10:59 Object 9977209 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977210 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977211 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977212 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977213 enters grid[46,34]
+2026-11-17 19:10:59 Loading map data/maps/5711829.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:18, y:29 (vmap rep.: x:18, y:29)
+2026-11-17 19:10:59 Object 9977214 enters grid[45,34]
+2026-11-17 19:10:59 Object 9977215 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977216 enters grid[45,34]
+2026-11-17 19:10:59 Object 9977217 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977218 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977219 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977220 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977221 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977222 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977223 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977224 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977225 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977226 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977227 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977228 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977229 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977230 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977231 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977232 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977233 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977234 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977235 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977236 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977237 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977238 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977239 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977240 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977241 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977242 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977243 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977244 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977245 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977246 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977247 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977248 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977249 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977250 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977251 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977252 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977253 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977254 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977255 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977256 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977257 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977258 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977259 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977260 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977261 enters grid[46,34]
+2026-11-17 19:10:59 Object 9977262 enters grid[46,34]
+2026-11-17 19:10:59 Loading map data/maps/5711728.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:17, y:28 (vmap rep.: x:17, y:28)
+2026-11-17 19:10:59 Object 9977263 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977264 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977265 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977266 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977267 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977268 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977269 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977270 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977271 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977272 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977273 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977274 enters grid[46,35]
+2026-11-17 19:10:59 Loading map data/maps/5711828.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:18, y:28 (vmap rep.: x:18, y:28)
+2026-11-17 19:10:59 Object 9977275 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977276 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977277 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977278 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977279 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977280 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977281 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977282 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977283 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977284 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977285 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977286 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977287 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977288 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977289 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977290 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977291 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977292 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977293 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977294 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977295 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977296 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977297 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977298 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977299 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977300 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977301 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977302 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977303 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977304 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977305 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977306 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977307 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977308 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977309 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977310 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977311 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977312 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977313 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977314 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977315 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977316 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977317 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977318 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977319 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977320 enters grid[45,35]
+2026-11-17 19:10:59 Object 9977321 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977322 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977323 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977324 enters grid[46,35]
+2026-11-17 19:10:59 Object 9977325 enters grid[45,35]
+2026-11-17 19:10:59 >> Loaded 247 transport npcs in 437 ms
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Deleting expired bans...
+2026-11-17 19:10:59 Calculate next daily quest reset time...
+2026-11-17 19:10:59 Calculate next weekly quest reset time...
+2026-11-17 19:10:59 Calculate random battleground reset time...
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 WORLD: World initialized in 0 minutes 28 seconds
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 TrinityCore process priority class set to HIGH
+2026-11-17 19:10:59 
+2026-11-17 19:10:59 Starting up anti-freeze thread (60 seconds max stuck time)...
+2026-11-17 19:10:59 Max allowed socket connections 1024
+2026-11-17 19:10:59 Network Thread Starting
+2026-11-17 19:10:59 Network Thread Starting
+2026-11-17 19:10:59 Loading map data/maps/0004929.map
+2026-11-17 19:10:59 VMAP loaded name:Eastern Kingdoms, id:0, x:49, y:29 (vmap rep.: x:49, y:29)
+2026-11-17 19:10:59 Loading map data/maps/0005430.map
+2026-11-17 19:10:59 VMAP loaded name:Eastern Kingdoms, id:0, x:54, y:30 (vmap rep.: x:54, y:30)
+2026-11-17 19:10:59 Loading map data/maps/0004729.map
+2026-11-17 19:10:59 VMAP loaded name:Eastern Kingdoms, id:0, x:47, y:29 (vmap rep.: x:47, y:29)
+2026-11-17 19:10:59 Loading map data/maps/5712844.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:28, y:44 (vmap rep.: x:28, y:44)
+2026-11-17 19:10:59 Loading map data/maps/5711929.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:19, y:29 (vmap rep.: x:19, y:29)
+2026-11-17 19:10:59 Loading map data/maps/5711928.map
+2026-11-17 19:10:59 VMAP loaded name:Northrend, id:571, x:19, y:28 (vmap rep.: x:19, y:28)
+2026-11-17 19:11:00 Active object nearby triggers loading of grid [16,34] on map 0
+2026-11-17 19:11:00 Active object nearby triggers loading of grid [45,35] on map 571
+2026-11-17 19:11:00 Active object nearby triggers loading of grid [45,34] on map 571
+2026-11-17 19:11:00 Active object nearby triggers loading of grid [32,24] on map 571
+2026-11-17 19:11:00 Loading map data/maps/0013339.map
+2026-11-17 19:11:00 VMAP loaded name:Kalimdor, id:1, x:33, y:39 (vmap rep.: x:33, y:39)
+2026-11-17 19:11:00 Loading map data/maps/0011529.map
+2026-11-17 19:11:00 VMAP loaded name:Kalimdor, id:1, x:15, y:29 (vmap rep.: x:15, y:29)
+2026-11-17 19:11:00 Active object nearby triggers loading of grid [30,24] on map 1
+2026-11-17 19:11:12 Loading map data/maps/5711830.map
+2026-11-17 19:11:12 VMAP loaded name:Northrend, id:571, x:18, y:30 (vmap rep.: x:18, y:30)
+2026-11-17 19:11:19 Object 9977326 enters grid[36,44]
+2026-11-17 19:11:21 Loading map data/maps/5713138.map
+2026-11-17 19:11:21 VMAP loaded name:Northrend, id:571, x:31, y:38 (vmap rep.: x:31, y:38)
+2026-11-17 19:11:28 Object 9977327 enters grid[36,44]
+2026-11-17 19:11:31 Object 9977328 enters grid[36,44]
+2026-11-17 19:11:32 WorldSocket::HandleAuthSession: client 12340, unk2 0, account LHORATH, unk3 0, clientseed 218181661
+2026-11-17 19:11:32 WorldSocket::HandleAuthSession: (s,v) check s: 95688773AD5E31C8222A4FA6F2BC05E20D86636CFAB4DDAB9C22FBDC163705D9 v: 15AC24F0343F305F1EB5A7504D0BB3C752B920794437A7CF0F8DFBCEBF21DFA8
+2026-11-17 19:11:32 WorldSocket::HandleAuthSession: Client 'LHORATH' authenticated successfully from 127.0.0.1.
+2026-11-17 19:11:32 ADDON: Name: Blizzard_AchievementUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_AchievementUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_ArenaUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_ArenaUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_AuctionUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_AuctionUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_BarbershopUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_BarbershopUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_BattlefieldMinimap, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_BattlefieldMinimap was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_BindingUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_BindingUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_Calendar, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_Calendar was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_CombatLog, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_CombatLog was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_CombatText, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_CombatText was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_DebugTools, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_DebugTools was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_GMChatUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_GMChatUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_GMSurveyUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_GMSurveyUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_GlyphUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_GlyphUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_GuildBankUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_GuildBankUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_InspectUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_InspectUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_ItemSocketingUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_ItemSocketingUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_MacroUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_MacroUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_RaidUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_RaidUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_TalentUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_TalentUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_TimeManager, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_TimeManager was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_TokenUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_TokenUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_TradeSkillUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_TradeSkillUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 ADDON: Name: Blizzard_TrainerUI, Enabled: 0x1, CRC: 0x4c1c776d, Unknown2: 0x0
+2026-11-17 19:11:32 ADDON: Blizzard_TrainerUI was known, CRC is correct (0x4c1c776d)
+2026-11-17 19:11:32 Server Population (0.003333).
+2026-11-17 19:11:33 Loading char guid 88106 from account 36767.
+2026-11-17 19:11:33 Loading char guid 93148 from account 36767.
+2026-11-17 19:11:33 Loading char guid 95233 from account 36767.
+2026-11-17 19:11:34 Object 9977329 enters grid[36,44]
+2026-11-17 19:11:38 WORLD: Recvd Player Logon Message
+2026-11-17 19:11:39 Setting player home position - mapid: 0, areaid: 1519, X: -8865.169922, Y: 672.726990, Z: 97.903198
+2026-11-17 19:11:39 Loading map data/maps/0004830.map
+2026-11-17 19:11:39 VMAP loaded name:Eastern Kingdoms, id:0, x:48, y:30 (vmap rep.: x:48, y:30)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(131)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(891)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(889)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(890)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(892)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(116)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(731)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(732)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(733)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(734)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(735)
+2026-11-17 19:11:39 Added aura spellid 2458, effectmask 1
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(662)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(665)
+2026-11-17 19:11:39 AchievementMgr::CompletedAchievement(4784)
+2026-11-17 19:11:39 WORLD: cast itemset Equip spellId - 62181
+2026-11-17 19:11:39 WORLD: cast item Equip spellId - 72413
+2026-11-17 19:11:39 WORLD: cast Item spellId - 72413
+2026-11-17 19:11:39 WORLD: cast item Equip spellId - 72413
+2026-11-17 19:11:39 WORLD: cast Item spellId - 72413
+2026-11-17 19:11:39 WORLD: cast item Equip spellId - 67771
+2026-11-17 19:11:39 WORLD: cast Item spellId - 67771
+2026-11-17 19:11:39 WORLD: cast item Equip spellId - 71402
+2026-11-17 19:11:39 WORLD: cast Item spellId - 71402
+2026-11-17 19:11:39 Player '88106' Added Action '6603' (type 0) to Button '0'
+2026-11-17 19:11:39 Player '88106' Added Action '7620' (type 0) to Button '25'
+2026-11-17 19:11:39 Player '88106' Added Action '51313' (type 0) to Button '26'
+2026-11-17 19:11:39 Player '88106' Added Action '2550' (type 0) to Button '27'
+2026-11-17 19:11:39 Player '88106' Added Action '31252' (type 0) to Button '28'
+2026-11-17 19:11:39 Player '88106' Added Action '458' (type 0) to Button '31'
+2026-11-17 19:11:39 Player '88106' Added Action '49379' (type 0) to Button '32'
+2026-11-17 19:11:39 Player '88106' Added Action '75973' (type 0) to Button '36'
+2026-11-17 19:11:39 Player '88106' Added Action '3274' (type 0) to Button '37'
+2026-11-17 19:11:39 Player '88106' Added Action '13262' (type 0) to Button '38'
+2026-11-17 19:11:39 Player '88106' Added Action '818' (type 0) to Button '39'
+2026-11-17 19:11:39 Player '88106' Added Action '51311' (type 0) to Button '40'
+2026-11-17 19:11:39 Player '88106' Added Action '33452' (type 128) to Button '48'
+2026-11-17 19:11:39 Player '88106' Added Action '46379' (type 128) to Button '49'
+2026-11-17 19:11:39 Player '88106' Added Action '46377' (type 128) to Button '50'
+2026-11-17 19:11:39 Player '88106' Added Action '18' (type 64) to Button '53'
+2026-11-17 19:11:39 Player '88106' Added Action '57755' (type 0) to Button '60'
+2026-11-17 19:11:39 Player '88106' Added Action '64382' (type 0) to Button '61'
+2026-11-17 19:11:39 Player '88106' Added Action '7384' (type 0) to Button '62'
+2026-11-17 19:11:39 Player '88106' Added Action '47465' (type 0) to Button '63'
+2026-11-17 19:11:39 Player '88106' Added Action '47471' (type 0) to Button '64'
+2026-11-17 19:11:39 Player '88106' Added Action '34428' (type 0) to Button '65'
+2026-11-17 19:11:39 Player '88106' Added Action '7386' (type 0) to Button '66'
+2026-11-17 19:11:39 Player '88106' Added Action '60970' (type 0) to Button '67'
+2026-11-17 19:11:39 Player '88106' Added Action '5246' (type 0) to Button '69'
+2026-11-17 19:11:39 Player '88106' Added Action '47440' (type 0) to Button '70'
+2026-11-17 19:11:39 Player '88106' Added Action '47436' (type 0) to Button '71'
+2026-11-17 19:11:39 Player '88106' Added Action '11578' (type 0) to Button '72'
+2026-11-17 19:11:39 Player '88106' Added Action '47450' (type 0) to Button '73'
+2026-11-17 19:11:39 Player '88106' Added Action '694' (type 0) to Button '74'
+2026-11-17 19:11:39 Player '88106' Added Action '47502' (type 0) to Button '75'
+2026-11-17 19:11:39 Player '88106' Added Action '20230' (type 0) to Button '76'
+2026-11-17 19:11:39 Player '88106' Added Action '47520' (type 0) to Button '77'
+2026-11-17 19:11:39 Player '88106' Added Action '1715' (type 0) to Button '78'
+2026-11-17 19:11:39 Player '88106' Added Action '7384' (type 0) to Button '79'
+2026-11-17 19:11:39 Player '88106' Added Action '59752' (type 0) to Button '82'
+2026-11-17 19:11:39 Player '88106' Added Action '2687' (type 0) to Button '83'
+2026-11-17 19:11:39 Player '88106' Added Action '355' (type 0) to Button '95'
+2026-11-17 19:11:39 Player '88106' Added Action '20252' (type 0) to Button '96'
+2026-11-17 19:11:39 Player '88106' Added Action '6552' (type 0) to Button '97'
+2026-11-17 19:11:39 Player '88106' Added Action '1680' (type 0) to Button '98'
+2026-11-17 19:11:39 Player '88106' Added Action '47520' (type 0) to Button '99'
+2026-11-17 19:11:39 Player '88106' Added Action '1719' (type 0) to Button '100'
+2026-11-17 19:11:39 Player '88106' Added Action '55694' (type 0) to Button '101'
+2026-11-17 19:11:39 Player '88106' Added Action '47475' (type 0) to Button '102'
+2026-11-17 19:11:39 Player '88106' Added Action '59752' (type 0) to Button '106'
+2026-11-17 19:11:39 Player '88106' Added Action '2687' (type 0) to Button '107'
+2026-11-17 19:11:39 Player '88106' Added Action '6603' (type 0) to Button '108'
+2026-11-17 19:11:39 WORLD: Sent motd (SMSG_MOTD)
+2026-11-17 19:11:39 WORLD: Sent server info
+2026-11-17 19:11:39 CHARACTER: Sent Initial Spells
+2026-11-17 19:11:39 Sending Action Buttons for '88106' spec '0'
+2026-11-17 19:11:39 Action Buttons for '88106' spec '0' Sent
+2026-11-17 19:11:39 Player Lhorath enter cell[3,1] triggers loading of grid[15,33] on map 0
+2026-11-17 19:11:39 Creating player data for himself 88106
+2026-11-17 19:11:40 Loading map data/maps/0004831.map
+2026-11-17 19:11:40 VMAP loaded name:Eastern Kingdoms, id:0, x:48, y:31 (vmap rep.: x:48, y:31)
+2026-11-17 19:11:40 Loading map data/maps/0004930.map
+2026-11-17 19:11:40 VMAP loaded name:Eastern Kingdoms, id:0, x:49, y:30 (vmap rep.: x:49, y:30)
+2026-11-17 19:11:40 Loading map data/maps/0004931.map
+2026-11-17 19:11:40 VMAP loaded name:Eastern Kingdoms, id:0, x:49, y:31 (vmap rep.: x:49, y:31)
+2026-11-17 19:11:40 Loading map data/maps/0004730.map
+2026-11-17 19:11:40 VMAP loaded name:Eastern Kingdoms, id:0, x:47, y:30 (vmap rep.: x:47, y:30)
+2026-11-17 19:11:40 Loading map data/maps/0004731.map
+2026-11-17 19:11:40 VMAP loaded name:Eastern Kingdoms, id:0, x:47, y:31 (vmap rep.: x:47, y:31)
+2026-11-17 19:11:40 WORLD: Received CMSG_MEETING_STONE_INFO
+00 00 
+2026-11-17 19:11:40 Active object nearby triggers loading of grid [46,34] on map 571
+07 2A 58 01 00 00 00 00 | 00 00 B4 27 39 25 3D F9 
+09 C6 93 20 20 44 FD D6 | BC 42 AF 42 BA 3F 00 00 
+00 00 
+2026-11-17 19:11:40 Loading map data/maps/5711730.map
+2026-11-17 19:11:40 VMAP loaded name:Northrend, id:571, x:17, y:30 (vmap rep.: x:17, y:30)
+07 2A 58 01 00 00 00 00 | 00 00 15 28 39 25 3D F9 
+09 C6 93 20 20 44 FD D6 | BC 42 AF 42 BA 3F 00 00 
+00 00 
+07 2A 58 01 00 00 00 00 | 00 00 AC 2F 39 25 3D F9 
+09 C6 93 20 20 44 FD D6 | BC 42 B6 F5 CA 3F 00 00 
+00 00 
+07 2A 58 01 00 00 00 00 | 00 00 EE 2F 39 25 3D F9 
+09 C6 93 20 20 44 FD D6 | BC 42 9E 72 D8 3F 00 00 
+00 00 
+07 2A 58 01 08 00 00 00 | 00 00 57 31 39 25 3D F9 
+09 C6 93 20 20 44 FD D6 | BC 42 E5 5F DA 3F 00 00 
+00 00 
+07 2A 58 01 09 00 00 00 | 00 00 BF 32 39 25 40 EF 
+09 C6 52 36 20 44 30 B0 | BC 42 E5 5F DA 3F 00 00 
+00 00 
+07 2A 58 01 09 00 00 00 | 00 00 5F 33 39 25 88 EC 
+09 C6 52 6F 20 44 7F B1 | BC 42 C2 76 C6 3F 00 00 
+00 00 
+07 2A 58 01 09 00 00 00 | 00 00 6C 33 39 25 45 EC 
+09 C6 5B 73 20 44 7F B1 | BC 42 50 1F B5 3F 00 00 
+00 00 
+07 2A 58 01 09 00 00 00 | 00 00 7A 33 39 25 F4 EB 
+09 C6 0C 77 20 44 7F B1 | BC 42 FC FD A6 3F 00 00 
+00 00 
+07 2A 58 01 09 00 00 00 | 00 00 91 33 39 25 65 EB 
+09 C6 29 7C 20 44 B0 AF | BC 42 15 81 99 3F 00 00 
+00 00 
+07 2A 58 01 01 00 00 00 | 00 00 4F 34 39 25 7E E6 
+09 C6 56 9D 20 44 F4 A1 | BC 42 CF 93 97 3F 00 00 
+00 00 
+07 2A 58 01 01 00 00 00 | 00 00 E2 34 39 25 06 E5 
+09 C6 D0 DA 20 44 E8 AB | BC 42 B6 10 A5 3F 00 00 
+00 00 
+07 2A 58 01 01 00 00 00 | 00 00 D6 36 39 25 9D E1 
+09 C6 F5 B3 21 44 B7 E8 | BC 42 1C 34 AA 3F 00 00 
+00 00 
+07 2A 58 01 00 00 00 00 | 00 00 1D 38 39 25 6E DF 
+09 C6 38 42 22 44 53 1D | BD 42 1C 34 AA 3F 00 00 
+00 00 
+2026-11-17 19:11:46 Active object nearby triggers loading of grid [32,25] on map 571
+07 2A 58 01 02 00 00 00 | 00 00 59 45 39 25 6E DF 
+09 C6 38 42 22 44 53 1D | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 06 00 00 00 | 00 00 14 46 39 25 40 E0 
+09 C6 FC 0D 22 44 52 0C | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 04 00 00 00 | 00 00 7E 46 39 25 E3 E1 
+09 C6 4F FE 21 44 0C 01 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 00 00 00 00 | 00 00 CE 46 39 25 0F E4 
+09 C6 0A 07 22 44 4F 03 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 02 00 00 00 | 00 00 31 4A 39 25 0F E4 
+09 C6 0A 07 22 44 4F 03 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 02 00 00 00 | 00 00 8E 4A 39 25 77 E4 
+09 C6 10 ED 21 44 77 FB | BC 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 06 00 00 00 | 00 00 07 4B 39 25 FF E4 
+09 C6 44 CB 21 44 95 F2 | BC 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 04 00 00 00 | 00 00 49 4B 39 25 04 E6 
+09 C6 81 C1 21 44 96 F2 | BC 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 05 00 00 00 | 00 00 A5 4C 39 25 77 EF 
+09 C6 7C E7 21 44 C2 19 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 01 00 00 00 | 00 00 F4 4C 39 25 9A F0 
+09 C6 DA 05 22 44 04 26 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 00 00 00 00 | 00 00 F4 4C 39 25 9A F0 
+09 C6 DA 05 22 44 04 26 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 02 00 00 00 | 00 00 87 4D 39 25 9A F0 
+09 C6 DA 05 22 44 04 26 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 00 00 00 00 | 00 00 C7 4E 39 25 01 F2 
+09 C6 78 AC 21 44 A5 14 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 08 00 00 00 | 00 00 65 55 39 25 01 F2 
+09 C6 78 AC 21 44 A5 14 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 08 00 00 00 | 00 00 CF 55 39 25 20 EF 
+09 C6 E6 A0 21 44 A7 04 | BD 42 AF 8F A9 3F 00 00 
+00 00 
+07 2A 58 01 09 00 00 00 | 00 00 2A 57 39 25 9C E5 
+09 C6 C1 81 21 44 F5 DE | BC 42 5B A0 B0 3F 00 00 
+00 00 
+07 2A 58 01 09 00 00 00 | 00 00 95 57 39 25 2C E3 
+09 C6 A1 9D 21 44 76 E1 | BC 42 45 1D BE 3F 00 00 
+00 00 
+07 2A 58 01 09 00 00 00 | 00 00 89 59 39 25 AF D8 
+09 C6 F3 31 22 44 B9 13 | BD 42 D3 F7 C1 3F 00 00 
+00 00 
+07 2A 58 01 09 50 00 00 | 00 00 EB 5A 39 25 4C D1 
+09 C6 B4 9B 22 44 EF 60 | BD 42 D3 F7 C1 3F 00 00 
+00 00 00 00 00 00 BD C4 | 3E 3F DC B6 2A 3F 00 00 
+E0 40 
+07 2A 58 01 08 00 00 00 | 00 00 EC 5A 39 25 4B D1 
+09 C6 C8 9B 22 44 EF 60 | BD 42 D3 F7 C1 3F 01 00 
+00 00 
+07 2A 58 01 08 90 00 00 | 00 00 13 5B 39 25 34 D0 
+09 C6 D0 9A 22 44 D2 42 | BD 42 D3 F7 C1 3F 1A 00 
+00 00 00 00 00 00 61 9B | 7F 3F 36 E3 62 BD 00 00 
+E0 40 
+07 2A 58 01 00 00 00 00 | 00 00 4A 5B 39 25 AA CE 
+09 C6 73 99 22 44 B6 25 | BD 42 D3 F7 C1 3F 51 00 
+00 00 
+2026-11-17 19:11:53 Creature (Entry: 2532 GUID: 79721) targeted point (ID: 0 X: -8718.480469 Y: 527.798828 Z: 98.878708)
+2026-11-17 19:11:54 Object 9977330 enters grid[36,44]
+07 2A 58 01 02 00 00 00 | 00 00 AC 5E 39 25 AA CE 
+09 C6 73 99 22 44 B6 25 | BD 42 D3 F7 C1 3F 51 00 
+00 00 
+07 2A 58 01 00 00 00 00 | 00 00 06 60 39 25 02 CF 
+09 C6 F4 35 22 44 70 F9 | BC 42 D3 F7 C1 3F 51 00 
+00 00 
+2026-11-17 19:11:55 WORLD: CMSG_NPC_TEXT_QUERY ID '300005'
+2026-11-17 19:11:57 Active object nearby triggers loading of grid [46,33] on map 571
+2026-11-17 19:11:57 Loading map data/maps/5711630.map
+2026-11-17 19:11:57 VMAP loaded name:Northrend, id:571, x:16, y:30 (vmap rep.: x:16, y:30)
+2026-11-17 19:11:57 Object 9977331 enters grid[47,33]
+2026-11-17 19:11:57 Object 9977332 enters grid[47,33]
+2026-11-17 19:11:57 Object 9977333 enters grid[47,33]
+2026-11-17 19:11:57 Object 9977334 enters grid[47,33]
+2026-11-17 19:11:57 Object 9977335 enters grid[47,33]
+2026-11-17 19:11:57 Object 9977336 enters grid[47,33]
+2026-11-17 19:11:57 Object 9977337 enters grid[47,33]
+2026-11-17 19:11:57 Object 9977338 enters grid[47,33]
+2026-11-17 19:11:57 Loading map data/maps/5711629.map
+2026-11-17 19:11:57 VMAP loaded name:Northrend, id:571, x:16, y:29 (vmap rep.: x:16, y:29)
+2026-11-17 19:11:57 Object 9977339 enters grid[47,34]
+2026-11-17 19:11:57 Object 9977340 enters grid[47,34]
+2026-11-17 19:11:57 Object 9977341 enters grid[47,34]
+2026-11-17 19:11:57 Loading map data/maps/5711529.map
+2026-11-17 19:11:57 VMAP loaded name:Northrend, id:571, x:15, y:29 (vmap rep.: x:15, y:29)
+2026-11-17 19:11:58 Remove player Lhorath from grid[15,33]
+2026-11-17 19:11:59 WORLD: Received CMSG_UPDATE_ACCOUNT_DATA
+2026-11-17 19:11:59 Update time diff: 51. Players online: 1.
+2026-11-17 19:12:00 Loading char guid 88106 from account 36767.
+2026-11-17 19:12:00 Loading char guid 93148 from account 36767.
+2026-11-17 19:12:00 Loading char guid 95233 from account 36767.
+2026-11-17 19:12:01 WorldSocket::handle_input: Peer has closed connection
+2026-11-17 19:12:02 Object 9977342 enters grid[36,44]
+2026-11-17 19:12:05 Object 9977343 enters grid[36,44]
+2026-11-17 19:12:08 Object 9977344 enters grid[36,44]
+2026-11-17 19:12:11 Loading map data/maps/0002730.map
+2026-11-17 19:12:11 VMAP loaded name:Eastern Kingdoms, id:0, x:27, y:30 (vmap rep.: x:27, y:30)
+2026-11-17 19:12:11 Active object nearby triggers loading of grid [36,33] on map 0
+2026-11-17 19:12:11 Loading map data/maps/5712731.map
+2026-11-17 19:12:11 VMAP loaded name:Northrend, id:571, x:27, y:31 (vmap rep.: x:27, y:31)
+2026-11-17 19:12:11 Loading map data/maps/5712730.map
+2026-11-17 19:12:11 VMAP loaded name:Northrend, id:571, x:27, y:30 (vmap rep.: x:27, y:30)
+2026-11-17 19:12:11 Active object nearby triggers loading of grid [35,20] on map 571
+2026-11-17 19:12:13 Active object nearby triggers loading of grid [46,35] on map 571
+2026-11-17 19:12:16 Network Thread Exitting
+2026-11-17 19:12:16 Network Thread Exitting
+2026-11-17 19:12:16 Remove object 17379391382402645310 from grid[24,11]
+2026-11-17 19:12:16 Remove object 17379391382335536444 from grid[24,11]
+2026-11-17 19:12:16 Remove object 17379391382318759229 from grid[24,11]
+2026-11-17 19:12:16 Remove object 17379391382369090880 from grid[24,11]
+2026-11-17 19:12:16 Remove object 17379391382385868097 from grid[24,11]
+2026-11-17 19:12:16 Remove object 17379391382301982015 from grid[24,11]
+2026-11-17 19:12:16 Unloading grid[24,11] for map 530 finished
+2026-11-17 19:12:16 Unloading grid[31,31] for map 530 finished
+2026-11-17 19:12:16 Unloading grid[45,16] for map 530 finished
+2026-11-17 19:12:16 Remove object 17379391381748333865 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391381647670570 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391381664447790 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391381681224999 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391381698002216 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391381765111083 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391381614116140 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391381714779437 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391381630893360 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391383224728881 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391383258283315 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391381731556655 from grid[15,34]
+2026-11-17 19:12:16 Remove object 17379391383157620020 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391383174397238 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391383241506098 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391383191174453 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391380188052763 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391380372602137 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391380355824922 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391380305493279 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391382805298461 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391382822075678 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391380221607196 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391382721412384 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391383207951671 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391383140842808 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391380355824953 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391382721412411 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391380372602170 from grid[8,33]
+2026-11-17 19:12:16 Remove object 17379391495397195112 from grid[16,34]
+2026-11-17 19:12:16 Remove object 17379391495413972327 from grid[16,34]
+2026-11-17 19:12:16 Remove object 17379391495430749545 from grid[16,34]
+2026-11-17 19:12:16 Remove object 17379391495346863468 from grid[16,34]
+2026-11-17 19:12:16 Remove object 17379391495380417899 from grid[16,34]
+2026-11-17 19:12:16 Remove object 17379391495363640682 from grid[16,34]
+2026-11-17 19:12:16 Unloading grid[36,33] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[16,32] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[16,33] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[14,32] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[14,33] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[15,32] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[15,33] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[16,34] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[9,33] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[14,34] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[16,35] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[15,34] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[8,33] for map 0 finished
+2026-11-17 19:12:16 Unloading grid[31,31] for map 0 finished
+2026-11-17 19:12:16 Remove object 17379391383023402247 from grid[30,24]
+2026-11-17 19:12:16 Remove object 17379391383325392136 from grid[30,24]
+2026-11-17 19:12:16 Remove object 17379391382838852866 from grid[30,24]
+2026-11-17 19:12:16 Remove object 17379391382956293379 from grid[30,24]
+2026-11-17 19:12:16 Remove object 17379391382855630089 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391383090511105 from grid[30,24]
+2026-11-17 19:12:16 Remove object 17379391372336315686 from grid[47,34]
+2026-11-17 19:12:16 Remove object 17379391382721412371 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391380372602129 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382721412370 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382721412372 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382654303498 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382704635147 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382671080716 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382788521229 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382637526286 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382738189583 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391380355824912 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382721412373 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382721412374 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382721412376 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391382721412375 from grid[34,22]
+2026-11-17 19:12:16 Remove object 17379391381396012321 from grid[47,34]
+2026-11-17 19:12:16 Remove object 17379391381379235108 from grid[47,34]
+2026-11-17 19:12:16 Remove object 17379391381580561701 from grid[47,34]
+2026-11-17 19:12:16 Remove object 17379391381412789538 from grid[47,34]
+2026-11-17 19:12:16 Remove object 17379391381345680675 from grid[47,34]
+2026-11-17 19:12:16 Remove object 17379391382771744004 from grid[30,24]
+2026-11-17 19:12:16 Remove object 17379391383040179461 from grid[30,24]
+2026-11-17 19:12:16 Remove object 17379391383056956678 from grid[30,24]
+2026-11-17 19:12:16 Remove object 17379391544453774703 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391013773655406 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391013773655405 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391544520883570 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391382721412472 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391544504106359 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391544587992432 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391544705432948 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391544554438003 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391380355825013 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391544487329137 from grid[30,31]
+2026-11-17 19:12:16 Remove object 17379391380372602230 from grid[30,31]
+2026-11-17 19:12:16 Unloading grid[48,34] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[30,24] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[30,31] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[47,34] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[34,22] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[29,24] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[31,31] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[21,31] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[20,30] for map 1 finished
+2026-11-17 19:12:16 Unloading grid[15,35] for map 1 finished
+2026-11-17 19:12:16 Remove object 17379391494273121609 from grid[36,44]
+2026-11-17 19:12:16 Remove object 17379391379953171791 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391494289898824 from grid[36,44]
+2026-11-17 19:12:16 Remove object 17379391494323453258 from grid[36,44]
+2026-11-17 19:12:16 Remove object 17379391494306676043 from grid[36,44]
+2026-11-17 19:12:16 Remove object 17379391494256344396 from grid[36,44]
+2026-11-17 19:12:16 Remove object 17379391494206012749 from grid[36,44]
+2026-11-17 19:12:16 Remove object 17379391382721412430 from grid[36,44]
+2026-11-17 19:12:16 Remove object 17379391381899328853 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381899328854 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381899328855 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381899328848 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381899328850 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381899328851 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381899328852 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381899328849 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949021 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949017 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949018 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949019 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949020 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949024 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949022 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381899328856 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949023 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949025 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391381328903523 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949028 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949026 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949030 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391379969949029 from grid[32,25]
+2026-11-17 19:12:16 Remove object 17379391477999222144 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391479878270334 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391477982444921 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477999222138 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477965667707 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391478015999356 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391478015999357 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999359 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391479878270339 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391503953575301 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391479878270337 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999364 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477965667718 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999367 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477982444930 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391479878270344 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999369 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391479190404496 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477982444945 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999370 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477982444941 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391479223958923 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477982444940 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999374 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999375 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391486203280790 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999380 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391486203280794 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391486203280791 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391486203280792 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391477982444946 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999379 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391486203280789 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391486203280793 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391477965667746 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391477982444959 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999389 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999390 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477982444960 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391478015999388 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391478015999387 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391477965667745 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391477982444970 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391461909872036 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999399 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477999222184 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391479173627301 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477965667747 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391479207181734 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391477982444969 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391478015999403 from grid[46,34]
+2026-11-17 19:12:16 Remove object 17379391471238004146 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391478015999405 from grid[46,33]
+2026-11-17 19:12:16 Remove object 17379391477999222190 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391478015999404 from grid[45,34]
+2026-11-17 19:12:16 Remove object 17379391471254781359 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781360 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781361 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391461976980919 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391479895047610 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391479895047603 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471238004152 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781364 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391479895047605 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391508399537590 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471238004159 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391479895047609 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471925870019 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471238004160 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471959424443 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471238004157 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781374 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471238004156 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391479324622273 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781378 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391486471716295 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471154118091 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471170895300 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471238004168 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781389 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471120563653 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391511939530182 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391479895047626 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391479895047625 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781388 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543444 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543446 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543439 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543443 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543442 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543440 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543441 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543438 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543445 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781403 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471137340893 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471959424479 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543457 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543447 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471959424473 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781402 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471959424472 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471959424476 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781406 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543456 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543464 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543462 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471959424482 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543463 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391502141636074 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543460 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543461 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471724543459 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471254781417 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391471221226987 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391503970352620 from grid[46,35]
+2026-11-17 19:12:16 Remove object 17379391486505270765 from grid[46,35]
+2026-11-17 19:12:16 Unloading grid[36,33] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[36,32] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[48,34] for map 571 finished
+2026-11-17 19:12:16 Anti-freeze thread exiting without problems.
+2026-11-17 19:12:16 Unloading grid[47,34] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[47,33] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[46,33] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[32,25] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[45,33] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[44,35] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[44,34] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[35,19] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[45,35] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[46,35] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[45,34] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[46,34] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[31,24] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[32,24] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[36,44] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[35,20] for map 571 finished
+2026-11-17 19:12:16 Unloading grid[31,31] for map 571 finished
+2026-11-17 19:12:17 Halting process...

@@ -1,0 +1,502 @@
+2026-11-17 19:10:32 Gameobject (Entry: 126337 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 Gameobject (Entry: 126338 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 Gameobject (Entry: 126339 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 Gameobject (Entry: 126340 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 Gameobject (Entry: 126341 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 Gameobject (Entry: 126342 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 Gameobject (Entry: 126345 GoType: 8) have data2=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 Gameobject (Entry: 181168 GoType: 10) have data12=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:32 Gameobject (Entry: 181169 GoType: 10) have data12=4 but GO (Entry 4) have not GAMEOBJECT_TYPE_TRAP (6) type.
+2026-11-17 19:10:34 Item (Entry: 60001) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60002) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60003) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60004) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60005) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60006) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60007) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60008) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60009) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60010) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60011) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60012) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60013) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60014) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60015) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 60016) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66660) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66661) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66666) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66667) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66668) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66669) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66670) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66671) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 66671) has wrong Subclass value (14) for class 0
+2026-11-17 19:10:34 Item (Entry: 90000) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 90000) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 Item (Entry: 99784) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100000) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100001) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100002) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100003) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100004) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100005) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100006) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100007) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100007) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 Item (Entry: 100008) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100008) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 Item (Entry: 100009) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100009) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 Item (Entry: 100010) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100010) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 Item (Entry: 100011) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100012) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100013) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100014) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100015) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100016) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100017) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100018) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100461) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100461) has wrong BuyCount value (0), set to default(1).
+2026-11-17 19:10:34 Item (Entry: 100462) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100463) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100666) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (Entry: 100667) does not exist in item.dbc! (not correct id?).
+2026-11-17 19:10:34 Item (entry=32768) in creature_equip_template.equipentry2 for entry = 1807 is not equipable in a hand, forced to 0.
+2026-11-17 19:10:35 Creature (Entry: 39746) lists difficulty 1 mode entry 39805 with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.
+2026-11-17 19:10:35 Creature (Entry: 39747) lists difficulty 1 mode entry 39823 with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.
+2026-11-17 19:10:35 Creature (Entry: 39751) lists difficulty 1 mode entry 39920 with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.
+2026-11-17 19:10:35 Creature (Entry: 39863) lists difficulty 1 mode entry 39864 with `ScriptName` filled in. `ScriptName` of difficulty 0 mode creature is always used instead.
+2026-11-17 19:10:35 Creature (Entry: 66691) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 66698) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 190000) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600000) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600001) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600002) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600003) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600004) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600005) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600006) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600007) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600008) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600009) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600010) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600011) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600012) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600013) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600014) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600015) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600016) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600017) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600018) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600019) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600020) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600021) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600022) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600023) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600024) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600025) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600026) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600027) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600028) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600029) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600030) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600031) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600032) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600033) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600034) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600035) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600036) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600037) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600038) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600039) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600040) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600041) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600042) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600043) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600044) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600045) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600046) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600047) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600048) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600049) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600050) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 600051) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 3399801) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 3514301) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 4000000) has non-existing faction_A template (0).
+2026-11-17 19:10:35 Creature (Entry: 4000000) has non-existing faction_H template (0).
+2026-11-17 19:10:35 Creature (Entry: 5000000) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500000) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500001) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500002) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500003) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500004) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500005) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500006) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500007) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500008) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500009) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500010) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 5500011) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:35 Creature (Entry: 9999998) has invalid unit_class (0) in creature_template. Set to 1 (UNIT_CLASS_WARRIOR).
+2026-11-17 19:10:36 Table `creature` have creature (GUID: 120692 Entry: 68) with `MovementType`=0 (idle) have `spawndist`<>0, set to 0.
+2026-11-17 19:10:37 Table `creature` has creature (GUID: 214209) with non existing creature entry 66699, skipped.
+2026-11-17 19:10:37 Table `creature` have creature (GUID: 5560646) that listed as difficulty 1 template (entry: 31215) in `creature_template`, skipped.
+2026-11-17 19:10:37 Creature (Entry: 190000) has wrong `auras` data in `creature_template_addon`.
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 1986214 Entry: 170592) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097741 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097744 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097747 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097749 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097752 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097754 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097757 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097759 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097763 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097765 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097767 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097770 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097772 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097774 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097776 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097778 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097784 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097786 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097789 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097791 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097795 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097798 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097800 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097803 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097806 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097808 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097811 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097813 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097816 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097818 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097820 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097823 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097825 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097828 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097830 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097832 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097834 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097837 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097844 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097868 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097871 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097873 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097875 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097878 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097880 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097883 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097885 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097888 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097892 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097896 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097899 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097902 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097905 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097907 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097910 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097912 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097915 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097917 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097920 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097922 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097924 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097927 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097929 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097935 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097938 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097940 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097942 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097944 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097946 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097948 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097951 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097954 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097956 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097958 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097960 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097962 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097964 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097966 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097971 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2097974 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098160 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098162 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098165 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098168 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098172 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098174 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098180 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098182 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098185 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098189 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098191 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098193 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098195 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098197 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098199 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098201 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098203 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098217 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098219 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098221 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098223 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098225 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098228 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098230 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098233 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098235 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098238 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098240 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098242 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098244 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098247 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098249 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098251 Entry: 190692) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098295 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098297 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098304 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098306 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098308 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098311 Entry: 180324) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098342 Entry: 201378) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098349 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098351 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098353 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098355 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098359 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098361 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098363 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098365 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098367 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098369 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098371 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098373 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098375 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098377 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098379 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098381 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098383 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098385 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098387 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098390 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098392 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098394 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098398 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098401 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098405 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098407 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098410 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098412 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098414 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098416 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098418 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098420 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098422 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098424 Entry: 181087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098426 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098429 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098431 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098433 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098437 Entry: 171728) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2098881 Entry: 188481) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099201 Entry: 192058) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099203 Entry: 192058) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099205 Entry: 192058) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099286 Entry: 187980) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099288 Entry: 187980) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099290 Entry: 187980) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099306 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099310 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099312 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099314 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099316 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099318 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099320 Entry: 195087) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2099986 Entry: 194487) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2100059 Entry: 183874) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2100061 Entry: 183859) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2100337 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2100533 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2100535 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2100537 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2100539 Entry: 180322) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2100545 Entry: 188072) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161137 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161144 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161147 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161150 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161156 Entry: 180472) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161165 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161184 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161207 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161209 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161704 Entry: 185567) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161708 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2161959 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162037 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162205 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162207 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162216 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162288 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162290 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162296 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162327 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162330 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162335 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162338 Entry: 192862) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162360 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162362 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162373 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162375 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162378 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162380 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162389 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162391 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162399 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162401 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162403 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162405 Entry: 191746) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2162407 Entry: 182260) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205218 Entry: 186610) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205251 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205253 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205255 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205257 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205259 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205261 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205284 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205286 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205288 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:39 Table `gameobject` has gameobject (GUID: 2205290 Entry: 192350) with invalid coordinates, skip
+2026-11-17 19:10:40 Table `gameobject` has gameobject (GUID: 6188239 Entry: 175708) with `spawntimesecs` (0) value, but the gameobejct is marked as despawnable at action.
+2026-11-17 19:10:40 Quest 10839 has `ReqSpellCast1` = 38736 and ReqCreatureOrGOId1 = 0 but spell 38736 does not have SPELL_EFFECT_QUEST_COMPLETE or SPELL_EFFECT_SEND_EVENT effect for this quest, quest can't be done.
+2026-11-17 19:10:40 Quest 10447 has `ReqSourceId1` = 0 but `ReqSourceCount1` = 1.
+2026-11-17 19:10:40 Table `creature_questrelation` has creature entry (32516) for quest 13571, but npcflag does not include UNIT_NPC_FLAG_QUESTGIVER
+2026-11-17 19:10:40 Table `creature_involvedrelation` has creature entry (32516) for quest 13571, but npcflag does not include UNIT_NPC_FLAG_QUESTGIVER
+2026-11-17 19:10:40 Table `creature_involvedrelation` have data for not existed creature entry (16777215) and existed quest 600000
+2026-11-17 19:10:40 `pool_creature` has a non existing creature spawn (GUID: 151988) defined for pool id (1099), skipped.
+2026-11-17 19:10:41 Pool Id 1079 has no equal chance pooled entites defined and explicit chance sum is not 100. The pool will not be spawned.
+2026-11-17 19:10:41 Table `game_graveyard_zone` has a record for not existing graveyard (WorldSafeLocs.dbc id) 2000, skipped.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 37007 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3672402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3672403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3672502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3672503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3680502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3680503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3680702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3680703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3680802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3680803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3681102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3681103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3682902 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3682903 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3688002 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3688003 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3699802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3699803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3700302 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3700303 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3700402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3700403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3700702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3700703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3701102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3701103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3701202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3701203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3701602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3701603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3701702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3701703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702302 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702303 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3702703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703002 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703003 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703302 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703303 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3703803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3709802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3709803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3712602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3712603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3714402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3714403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3714602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3714603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3714802 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3714803 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3714902 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3714903 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3721702 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3721703 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3723002 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3723003 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3750102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3750103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3750202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3750203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3754402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3754403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3754502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3754503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3754602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3754603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3757102 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3757103 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3759502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3759503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766202 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766203 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766302 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766303 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766402 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766403 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766502 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766503 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766602 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 3766603 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:42 Table 'creature_loot_template' entry 4000000 (creature entry) not exist but used as loot id in DB.
+2026-11-17 19:10:43 Table 'gameobject_loot_template' entry 3459 (gameobject entry) not exist but used as loot id in DB.
+2026-11-17 19:10:46 Table 'gameobject_loot_template' entry 27725 (gameobject entry) not exist but used as loot id in DB.
+2026-11-17 19:10:46 Table 'gameobject_loot_template' entry 27985 (gameobject entry) not exist but used as loot id in DB.
+2026-11-17 19:10:46 Table 'gameobject_loot_template' entry 27985 (gameobject entry) not exist but used as loot id in DB.
+2026-11-17 19:10:46 Table 'gameobject_loot_template' entry 201384 isn't gameobject entry and not referenced from loot, and then useless.
+2026-11-17 19:10:56 Wrong position for id 1581 (name: RevelationGaming) in `game_tele` table, ignoring.
+2026-11-17 19:10:56 Wrong position for id 1590 (name: outish) in `game_tele` table, ignoring.
+2026-11-17 19:10:56 Wrong position for id 2000 (name: DirtyRabbitZ) in `game_tele` table, ignoring.
+2026-11-17 19:10:58 addToGossipMenus: GossipMenu 51900 not found
+2026-11-17 19:10:58 Not handled grouped condition, SourceGroup 51900
+2026-11-17 19:10:58 addToGossipMenus: GossipMenu 51900 not found
+2026-11-17 19:10:58 Not handled grouped condition, SourceGroup 51900
+2026-11-17 19:10:59 Script named 'boss_epoch' does not have a script name assigned in database.
+2026-11-17 19:10:59 Script named 'boss_mal_ganis' does not have a script name assigned in database.
+2026-11-17 19:10:59 Script named 'boss_tyrannus' does not have a script name assigned in database.
+2026-11-17 19:10:59 SmartAIMgr::LoadSmartAIFromDB: Creature guid (88791) does not exist, skipped loading.
+2026-11-17 19:10:59 SmartAIMgr::LoadSmartAIFromDB: Creature guid (88779) does not exist, skipped loading.
