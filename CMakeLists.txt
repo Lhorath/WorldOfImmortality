@@ -71,4 +71,3 @@ add_subdirectory(src)
 # add sql-files
 add_subdirectory(sql)
 
-add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE -D__STDC_LIMIT_MACROS -DPTRDIFF_MAX=9223372036854775807LL)

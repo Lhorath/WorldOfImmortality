@@ -19,22 +19,6 @@
 #include "HMACSHA1.h"
 #include "BigNumber.h"
 
-/*
-* -- HERE GOES COMPATIBILITY HELPER 
-* Lhorath added this to Help With Modern COMPILATION
-*/
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
-inline HMAC_CTX* HMAC_CTX_new() {
-    HMAC_CTX *ctx = new HMAC_CTX;
-    HMAC_CTX_init(ctx);
-    return ctx;
-}
-inline void HMAC_CTX_free(HMAC_CTX *ctx) {
-    HMAC_CTX_cleanup(ctx);
-    delete ctx;
-}
-#endif
-
 HmacHash::HmacHash(uint32 len, uint8 *seed)
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     : m_ctx(HMAC_CTX_new())
