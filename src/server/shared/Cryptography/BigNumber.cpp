@@ -20,6 +20,35 @@
 #include <openssl/bn.h>
 #include <algorithm>
 
+/*
+* Here Goes the Helper
+*/
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#include <openssl/bn.h>
+#include <openssl/hmac.h>
+#include <openssl/ssl.h>
+
+inline int BN_is_zero(const BIGNUM *a) { 
+    return BN_is_bit_set(a, 0) == 0 && BN_num_bits(a) == 0; 
+}
+
+inline HMAC_CTX* HMAC_CTX_new() {
+    HMAC_CTX *ctx = (HMAC_CTX*)malloc(sizeof(HMAC_CTX));
+    HMAC_CTX_init(ctx);
+    return ctx;
+}
+
+inline void HMAC_CTX_free(HMAC_CTX *ctx) {
+    HMAC_CTX_cleanup(ctx);
+    free(ctx);
+}
+
+#define OpenSSL_version(x) SSLeay_version(x)
+#define OPENSSL_init_crypto(a, b) 1
+#define OPENSSL_init_ssl(a, b) 1
+#define SSL_get1_peer_certificate(ssl) SSL_get_peer_certificate(ssl)
+#endif
+
 BigNumber::BigNumber()
 {
     _bn = BN_new();
