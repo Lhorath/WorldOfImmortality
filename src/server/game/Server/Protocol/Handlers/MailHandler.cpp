@@ -112,10 +112,14 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data)
         return;
     }
 
-    Player *receive = sObjectMgr->GetPlayer(rc);
+Player *receive = sObjectMgr->GetPlayer(rc);
 
     uint32 rc_team = 0;
-    uint8 mails_count = 0;                                  //do not allow to send to one player more than 100 mails
+    // FIX: was uint8 — GetUInt32()/GetMailSize() return wider types, so
+    // values > 255 silently truncated. A player with 300 mails would
+    // become 300 & 0xFF = 44, failing the "> 100" anti-spam check.
+    // Widen to uint32 so the check actually fires.
+    uint32 mails_count = 0;                                  //do not allow to send to one player more than 100 mails
     uint8 receiveLevel = 0;
 
     if (receive)
@@ -305,11 +309,18 @@ void WorldSession::HandleMailMarkAsRead(WorldPacket & recv_data)
     Mail *m = pl->GetMail(mailId);
     if (m)
     {
-        if (pl->unReadMails)
-            --pl->unReadMails;
-        m->checked = m->checked | MAIL_CHECK_MASK_READ;
-        pl->m_mailsUpdated = true;
-        m->state = MAIL_STATE_CHANGED;
+        // FIX: Defensive guard. If the mail is already flagged read, do
+        // not decrement unReadMails again (a modified client, a double
+        // click, or a client resync could otherwise drive the counter
+        // negative or out of sync with the mail list).
+        if (!(m->checked & MAIL_CHECK_MASK_READ))
+        {
+            if (pl->unReadMails)
+                --pl->unReadMails;
+            m->checked = m->checked | MAIL_CHECK_MASK_READ;
+            pl->m_mailsUpdated = true;
+            m->state = MAIL_STATE_CHANGED;
+        }
     }
 }
 

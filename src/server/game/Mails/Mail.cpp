@@ -175,21 +175,25 @@ void WorldSession::SendExternalMails()
 {
     sLog->outString("EXTERNAL MAIL> Sending mails in queue...");
 
-	SQLTransaction trans = CharacterDatabase.BeginTransaction();
-    CharacterDatabase.BeginTransaction();
+    SQLTransaction trans = CharacterDatabase.BeginTransaction();
 
     QueryResult result = CharacterDatabase.Query("SELECT e.id, e.receiver, e.subject, e.message, e.money, i.item, i.count FROM mail_external e LEFT JOIN mail_external_items i ON e.id = i.mail_id ORDER BY e.id;");
     if(!result)
     {
         sLog->outString("EXTERNAL MAIL> No mails in queue...");
-		CharacterDatabase.CommitTransaction(trans);
+        CharacterDatabase.CommitTransaction(trans);
         return;
     }
     else
     {
         uint32 last_id = 0;
         MailDraft* mail = NULL;
-        uint32 last_receiver_guid;
+        // FIX: last_receiver_guid was uninitialized. On the "send very last
+        // mail" path below it is read whenever last_id != 0, and on that
+        // path it has always been set by the loop. Still, initializing it
+        // to 0 removes the risk of undefined behaviour if the loop body is
+        // ever refactored to skip the assignment.
+        uint32 last_receiver_guid = 0;
 
 
        do
@@ -211,20 +215,41 @@ void WorldSession::SendExternalMails()
                 if (last_id != 0)
                 {
                     sLog->outString("EXTERNAL MAIL> Sending mail to character with guid %d", last_receiver_guid);
-                    mail->SendMailTo( trans, MailReceiver(last_receiver_guid),MailSender(MAIL_NORMAL, 0 , MAIL_STATIONERY_GM),MAIL_CHECK_MASK_RETURNED, NULL);
+                    // FIX: deliver_delay parameter is uint32; NULL was being
+                    // passed before, which is a type error (NULL is a pointer
+                    // constant). Changed to 0 — external mails should have no
+                    // delivery delay anyway.
+                    mail->SendMailTo( trans, MailReceiver(last_receiver_guid),MailSender(MAIL_NORMAL, 0 , MAIL_STATIONERY_GM),MAIL_CHECK_MASK_RETURNED, 0);
                     delete mail;
-                    
-                    // FIXED LEGACY DELETE STATEMENTS
-                    CharacterDatabase.PExecute("DELETE FROM mail_external_items WHERE mail_id = %u;", last_id);
-                    CharacterDatabase.PExecute("DELETE FROM mail_external WHERE id = %u;", last_id);
-                    
+                    // FIX: Null the pointer after delete so the post-loop
+                    // "send very last mail" block can never accidentally
+                    // operate on a freed MailDraft.
+                    mail = NULL;
+
+                    // FIX: Previously these DELETEs were issued via
+                    // CharacterDatabase.PExecute() OUTSIDE the SQLTransaction,
+                    // on a separate pooled connection. That meant they could
+                    // be committed or rolled back independently of the mail
+                    // INSERT. If the pooled connection returned by
+                    // PExecute() was ever left in a bad/open transaction state
+                    // (see the old duplicate BeginTransaction() bug), the
+                    // DELETE would silently roll back and the mail_external
+                    // row would survive — causing the mail to be re-sent on
+                    // the next login. They are now queued into `trans` via
+                    // PAppend so they commit atomically with the mail insert.
+                    // Also removed the trailing ';' from the SQL strings,
+                    // which some MySQL driver builds mishandle when the
+                    // statement is sent prepared.
+                    trans->PAppend("DELETE FROM mail_external_items WHERE mail_id = %u", last_id);
+                    trans->PAppend("DELETE FROM mail_external WHERE id = %u", last_id);
+
                     sLog->outString("EXTERNAL MAIL> Mail sent");
                 }
 
                 // create new mail
                 mail = new MailDraft( subject, message );
 
-				if(money)
+                if(money)
                 {
                     sLog->outString("EXTERNAL MAIL> Adding money");
                     mail->AddMoney(money);
@@ -247,17 +272,25 @@ void WorldSession::SendExternalMails()
         {
             // send last mail
             sLog->outString("EXTERNAL MAIL> Sending mail to character with guid %d", last_receiver_guid);
-            mail->SendMailTo( trans, MailReceiver(last_receiver_guid),MailSender(MAIL_NORMAL, 0 , MAIL_STATIONERY_GM),MAIL_CHECK_MASK_RETURNED, NULL);
+            // FIX: deliver_delay NULL -> 0 (see comment above).
+            mail->SendMailTo( trans, MailReceiver(last_receiver_guid),MailSender(MAIL_NORMAL, 0 , MAIL_STATIONERY_GM),MAIL_CHECK_MASK_RETURNED, 0);
             delete mail;
-            
-            // FIXED LEGACY DELETE STATEMENTS
-            CharacterDatabase.PExecute("DELETE FROM mail_external_items WHERE mail_id = %u;", last_id);
-            CharacterDatabase.PExecute("DELETE FROM mail_external WHERE id = %u;", last_id);
-            
+            // FIX: Null pointer after delete.
+            mail = NULL;
+
+            // FIX: Same transaction-scope fix as the in-loop deletes above.
+            // These DELETEs were previously executed outside `trans` via
+            // CharacterDatabase.PExecute() and could be rolled back
+            // independently, leaving the row in mail_external. Now they are
+            // queued into `trans` so they commit together with the mail
+            // insert (or neither commits).
+            trans->PAppend("DELETE FROM mail_external_items WHERE mail_id = %u", last_id);
+            trans->PAppend("DELETE FROM mail_external WHERE id = %u", last_id);
+
             sLog->outString("EXTERNAL MAIL> Mail sent");
         }
     }
-	CharacterDatabase.CommitTransaction(trans);
+    CharacterDatabase.CommitTransaction(trans);
     sLog->outString("EXTERNAL MAIL> All Mails Sent...");
 }
 

@@ -3,6 +3,10 @@
 
 ## 1. Windows (`How-to:Win` — February 2011 source lineage)
 
+v141,version=14.16
+
+ADD THIS TOO CMAKE ARGS FOR Studio 2017 to compile
+
 This guide is adapted for the **World of Immortality** repository:
 
 - **Repository:** https://github.com/Lhorath/WorldOfImmortality
