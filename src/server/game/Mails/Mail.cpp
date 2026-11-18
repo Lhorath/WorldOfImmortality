@@ -213,7 +213,11 @@ void WorldSession::SendExternalMails()
                     sLog->outString("EXTERNAL MAIL> Sending mail to character with guid %d", last_receiver_guid);
                     mail->SendMailTo( trans, MailReceiver(last_receiver_guid),MailSender(MAIL_NORMAL, 0 , MAIL_STATIONERY_GM),MAIL_CHECK_MASK_RETURNED, NULL);
                     delete mail;
-                    CharacterDatabase.PExecute("DELETE mail_external AS e, mail_external_items AS i FROM mail_external AS e, mail_external_items AS i WHERE i.mail_id = e.id AND e.id = %u;", last_id);
+                    
+                    // FIXED LEGACY DELETE STATEMENTS
+                    CharacterDatabase.PExecute("DELETE FROM mail_external_items WHERE mail_id = %u;", last_id);
+                    CharacterDatabase.PExecute("DELETE FROM mail_external WHERE id = %u;", last_id);
+                    
                     sLog->outString("EXTERNAL MAIL> Mail sent");
                 }
 
@@ -245,7 +249,11 @@ void WorldSession::SendExternalMails()
             sLog->outString("EXTERNAL MAIL> Sending mail to character with guid %d", last_receiver_guid);
             mail->SendMailTo( trans, MailReceiver(last_receiver_guid),MailSender(MAIL_NORMAL, 0 , MAIL_STATIONERY_GM),MAIL_CHECK_MASK_RETURNED, NULL);
             delete mail;
-            CharacterDatabase.PExecute("DELETE mail_external AS e, mail_external_items AS i FROM mail_external AS e, mail_external_items AS i WHERE i.mail_id = e.id AND e.id = %u;", last_id);
+            
+            // FIXED LEGACY DELETE STATEMENTS
+            CharacterDatabase.PExecute("DELETE FROM mail_external_items WHERE mail_id = %u;", last_id);
+            CharacterDatabase.PExecute("DELETE FROM mail_external WHERE id = %u;", last_id);
+            
             sLog->outString("EXTERNAL MAIL> Mail sent");
         }
     }
