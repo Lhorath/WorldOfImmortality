@@ -126,15 +126,13 @@ int Master::Run()
     sLog->outString("%s (core-daemon)", _FULLVERSION);
     sLog->outString("<Ctrl-C> to stop.\n");
 
-    sLog->outString(" ______                       __");
-    sLog->outString("/\\__  _\\       __          __/\\ \\__");
-    sLog->outString("\\/_/\\ \\/ _ __ /\\_\\    ___ /\\_\\ \\ ,_\\  __  __");
-    sLog->outString("   \\ \\ \\/\\`'__\\/\\ \\ /' _ `\\/\\ \\ \\ \\/ /\\ \\/\\ \\");
-    sLog->outString("    \\ \\ \\ \\ \\/ \\ \\ \\/\\ \\/\\ \\ \\ \\ \\ \\_\\ \\ \\_\\ \\");
-    sLog->outString("     \\ \\_\\ \\_\\  \\ \\_\\ \\_\\ \\_\\ \\_\\ \\__\\\\/`____ \\");
-    sLog->outString("      \\/_/\\/_/   \\/_/\\/_/\\/_/\\/_/\\/__/ `/___/> \\");
-    sLog->outString("                                 C O R E  /\\___/");
-    sLog->outString("http://TrinityCore.org                    \\/__/\n");
+sLog->outString(".___                               __         .__  _________");
+sLog->outString("|   | _____   _____   ____________/  |______  |  | \\_   ___ \\  ___________   ____");
+sLog->outString("|   |/     \\ /     \\ /  _ \\_  __ \\   __\\__  \\ |  | /    \\  \\/ /  _ \\_  __ \\_/ __ \\");
+sLog->outString("|   |  Y Y  \\  Y Y  (  <_> )  | \\/|  |  / __ \\|  |_\\     \\___(  <_> )  | \\/\\  ___/");
+sLog->outString("|___|__|_|  /__|_|  /\\____/|__|   |__| (____  /____/\\______  /\\____/|__|    \\___  >");
+sLog->outString("          \\/      \\/  COPYRIGHT 2009 - 2026 \\/             \\/                   \\/");
+sLog->outString("World of Immortality - The Best Private Server in Emulation\n");
 
 #ifdef USE_SFMT_FOR_RNG
     sLog->outString("\n");
