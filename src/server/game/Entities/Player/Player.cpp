@@ -4798,15 +4798,14 @@ void Player::DeleteFromDB(uint64 playerguid, uint32 accountId, bool updateRealmC
 
                     // We can return mail now
                     // So firstly delete the old one
+                    // NOTE: child rows (mail_items) must be deleted BEFORE the parent row (mail)
+                    // so that foreign key constraints on the characters DB are not violated.
+                    trans->PAppend("DELETE FROM mail_items WHERE mail_id = '%u'", mail_id);
                     trans->PAppend("DELETE FROM mail WHERE id = '%u'", mail_id);
 
                     // Mail is not from player
                     if (mailType != MAIL_NORMAL)
-                    {
-                        if (has_items)
-                            trans->PAppend("DELETE FROM mail_items WHERE mail_id = '%u'", mail_id);
                         continue;
-                    }
 
                     MailDraft draft(subject, body);
                     if (mailTemplateId)
@@ -4848,8 +4847,6 @@ void Player::DeleteFromDB(uint64 playerguid, uint32 accountId, bool updateRealmC
                             while (resultItems->NextRow());
                         }
                     }
-
-                    trans->PAppend("DELETE FROM mail_items WHERE mail_id = '%u'", mail_id);
 
                     uint32 pl_account = sObjectMgr->GetPlayerAccountIdByGUID(MAKE_NEW_GUID(guid, 0, HIGHGUID_PLAYER));
 
@@ -4902,10 +4899,12 @@ void Player::DeleteFromDB(uint64 playerguid, uint32 accountId, bool updateRealmC
             trans->PAppend("DELETE FROM character_spell WHERE guid = '%u'",guid);
             trans->PAppend("DELETE FROM character_spell_cooldown WHERE guid = '%u'",guid);
             trans->PAppend("DELETE FROM gm_tickets WHERE playerGuid = '%u'", guid);
+            // mail_items references both mail and item_instance, so delete it first,
+            // then mail, and only then item_instance (children before parents).
+            trans->PAppend("DELETE FROM mail_items WHERE receiver = '%u'",guid);
+            trans->PAppend("DELETE FROM mail WHERE receiver = '%u'",guid);
             trans->PAppend("DELETE FROM item_instance WHERE owner_guid = '%u'",guid);
             trans->PAppend("DELETE FROM character_social WHERE guid = '%u' OR friend='%u'",guid,guid);
-            trans->PAppend("DELETE FROM mail WHERE receiver = '%u'",guid);
-            trans->PAppend("DELETE FROM mail_items WHERE receiver = '%u'",guid);
             trans->PAppend("DELETE FROM character_pet WHERE owner = '%u'",guid);
             trans->PAppend("DELETE FROM character_pet_declinedname WHERE owner = '%u'",guid);
             trans->PAppend("DELETE FROM character_achievement WHERE guid = '%u' "   // NOTE: These achievements have flags & 256 in DBC.
@@ -18341,8 +18340,10 @@ void Player::SaveToDB()
 
     trans->Append(ss.str().c_str());
 
-    if (m_mailsUpdated)                                     //save mails only when needed
+    if (m_mailsUpdated)
+    {
         _SaveMail(trans);
+    }
 
     _SaveBGData(trans);
     _SaveInventory(trans);
@@ -18611,6 +18612,13 @@ void Player::_SaveMail(SQLTransaction& trans)
         }
         else if (m->state == MAIL_STATE_DELETED)
         {
+            // Delete order matters when foreign keys exist on the characters DB (children before parents):
+            //   1. mail_items   (references mail and item_instance)
+            //   2. item_instance (the attached items themselves)
+            //   3. mail
+            // Running item_instance first, or mail before mail_items, makes MySQL reject the statement,
+            // which rolls back the whole character save transaction so the deleted mail comes back at next login.
+            trans->PAppend("DELETE FROM mail_items WHERE mail_id = '%u'", m->messageID);
             if (m->HasItems())
             {
                 PreparedStatement* stmt = NULL;
@@ -18622,7 +18630,6 @@ void Player::_SaveMail(SQLTransaction& trans)
                 }
             }
             trans->PAppend("DELETE FROM mail WHERE id = '%u'", m->messageID);
-            trans->PAppend("DELETE FROM mail_items WHERE mail_id = '%u'", m->messageID);
         }
     }
 
